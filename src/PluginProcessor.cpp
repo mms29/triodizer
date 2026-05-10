@@ -5,14 +5,21 @@
 TriodeProcessor::TriodeProcessor()
     : AudioProcessor(BusesProperties().withInput("Input", juce::AudioChannelSet::stereo())
                                      .withOutput("Output", juce::AudioChannelSet::stereo())),
-      parameters(*this, nullptr,
-          "TriodeParameters",
-          {
-              std::make_unique<juce::AudioParameterFloat>("drive", "drive",
-                  juce::NormalisableRange<float>(0.1f, 1000.0f, 0.1f), 1.0f),
-              std::make_unique<juce::AudioParameterFloat>("gain", "gain",
-                  juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 1.0f),
-          })
+        parameters(*this, nullptr,
+            "TriodeParameters",
+            {
+                std::make_unique<juce::AudioParameterFloat>(
+                    "drive",
+                    "Drive",
+                    juce::NormalisableRange<float>(0.0f, 60.0f, 0.1f),
+                    0.0f),
+
+                std::make_unique<juce::AudioParameterFloat>(
+                    "gain",
+                    "Gain",
+                    juce::NormalisableRange<float>(-80.0f, -20.0f, 0.1f),
+                    -20.0f),
+            })
 {
 }
 
@@ -50,13 +57,15 @@ void TriodeProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
         for (int i = 0; i < numSamples; ++i)
         {
             // Input audio (~±1.0) scaled to volts
-            double Vin = (double)samples[i] *  drive;
+            float driveG = juce::Decibels::decibelsToGain(drive);
+            double Vin = (double)samples[i]*driveG;
 
             // Process through WDF triode circuit
             double Vout = triode[ch].processSample(Vin);
 
             // Apply output gain and scale back to audio range
-            samples[i] = (float)(Vout * (double)gain);
+            float gainG = juce::Decibels::decibelsToGain(gain);
+            samples[i] = (float)(Vout * (double)gainG);
         }
     }
 }

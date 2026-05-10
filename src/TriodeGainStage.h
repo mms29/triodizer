@@ -35,11 +35,11 @@ class TriodeGainStage
             w_Ck.prepare ((float) sampleRate);
             w_Co.prepare ((float) sampleRate);
 
-
-            float Vk = 0.5 * Rk / (Rp + Rk);
-            float Vp = 0.5 * (E + Rk / (Rp + Rk));
-            w_Triode.prepare ((float) sampleRate, Vk,Vp);
-
+            float duration = 1.0f;
+            for (int i = 0; i < (int) sampleRate *duration; ++i)
+            {
+                auto y = processSample(0.0f);
+            }
         }
 
         void reset()
@@ -61,12 +61,15 @@ class TriodeGainStage
         }
 
         // Accessor methods for monitoring internal WDF variables
-        float getGridVoltage() const { return voltage<float> (w_Vi); }
-        float getCathodeVoltage() const { return voltage<float> (w_PJk); }
-        float getPlateVoltage() const { return voltage<float> (w_PJp); }
+        float getGridVoltage() const { return voltage<float> (w_Ri); }
+        float getCathodeVoltage() const { return voltage<float> (w_Rk); }
+        float getPlateVoltage() const { return voltage<float> (w_Ro); }
         float getTriodeVg() const { return w_Triode.getVg(); }
         float getTriodeVk() const { return w_Triode.getVk(); }
         float getTriodeVp() const { return w_Triode.getVp(); }
+        float getVgIters() const { return w_Triode.getVgIters(); }
+        float getVkIters() const { return w_Triode.getVkIters(); }
+        float getPPIters() const { return w_Triode.getPPIters(); }
         float getGridCurrent() const { return w_Triode.getAk(); } // Approximation
         float getCathodeCurrent() const { return -w_Triode.getAk(); } // Approximation
         float getPlateCurrent() const { return (w_Triode.getAp() - w_Triode.getVp()) / w_Triode.getR0p(); }
@@ -76,25 +79,24 @@ class TriodeGainStage
     float E = 250.0f;
     float Rp =  100.0e3f ;
     float Rk =  1.0e3f ;
-    float Ck =  47e-6f ;
-    float Co = 22e-9f;
+    float Ck =  10e-6f ;
+    float Co = 10e-9f;
     float Ro = 1.0e6f ;
     float Ri = 1.0e6f ;
-    float Rg = 10.0e3f ;
+    float Rg = 20.0e3f ;
     float Ci = 100e-9f;
-    float Rsi = 1.0e3f;
-    float sr = 48000.0f ;
+    float Rsi = 0.1f;
 
 
     // Cathode Circuit (connect to PJk)
     ResistorT<float> w_Rk { Rk };
-    CapacitorT<float> w_Ck { Ck, sr};
+    CapacitorT<float> w_Ck { Ck};
 
     WDFParallelT<float, decltype (w_Rk), decltype (w_Ck)> w_PJk { w_Rk, w_Ck };
 
     // Plate Circuit (connect to PJp)
     ResistiveVoltageSourceT<float> w_E_Rp {Rp};
-    CapacitorT<float> w_Co { Co, sr};
+    CapacitorT<float> w_Co { Co};
     ResistorT<float> w_Ro { Ro };
 
     WDFSeriesT<float, decltype (w_Co), decltype (w_Ro)> w_SJo { w_Co, w_Ro };
@@ -105,7 +107,7 @@ class TriodeGainStage
     // Grid Circuit (connect to PIg)
     ResistorT<float> w_Rg { Rg };
     ResistorT<float> w_Ri { Ri };
-    CapacitorT<float> w_Ci { Ci, sr};
+    CapacitorT<float> w_Ci { Ci};
     ResistiveVoltageSourceT<float> w_Vi { Rsi };
 
     WDFSeriesT<float, decltype (w_Ci), decltype (w_Vi)> w_SJi { w_Ci, w_Vi };
@@ -115,7 +117,10 @@ class TriodeGainStage
     PolarityInverterT<float, decltype (w_SJg)> w_PIg { w_SJg };
 
     // Triode WDF
-    TriodeWDF<float, decltype (w_PIg), decltype (w_PJk), decltype (w_PJp)> w_Triode {w_PIg, w_PJk, w_PJp};
+    float Vk_init = 0.5 * Rk / (Rp + Rk);
+    float Vp_init = 0.5 * (E + Rk / (Rp + Rk));
+    TriodeWDF<float, decltype (w_PIg), decltype (w_PJk), decltype (w_PJp)> 
+        w_Triode {w_PIg, w_PJk, w_PJp, Vk_init, Vp_init};
 
 };
 #endif TRIODEGAINSTAGE_H_INCLUDED

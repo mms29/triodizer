@@ -7,7 +7,8 @@ TriodeEditor::TriodeEditor(TriodeProcessor& p)
     // Drive slider
     driveSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
     driveSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    driveSlider.setRange(0.1, 20.0, 0.1);
+    driveSlider.setRange(0.0, 60.0, 0.1);
+    driveSlider.setTextValueSuffix(" dB");
     driveSlider.setValue(p.parameters.getRawParameterValue("drive")->load());
     driveSlider.addListener(this);
     addAndMakeVisible(driveSlider);
@@ -19,7 +20,8 @@ TriodeEditor::TriodeEditor(TriodeProcessor& p)
     // Gain slider
     gainSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
     gainSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    gainSlider.setRange(0.0, 2.0, 0.01);
+    gainSlider.setRange(-80.0, -20.0, 0.1);
+    gainSlider.setTextValueSuffix(" dB");
     gainSlider.setValue(p.parameters.getRawParameterValue("gain")->load());
     gainSlider.addListener(this);
     addAndMakeVisible(gainSlider);

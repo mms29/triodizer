@@ -17,12 +17,12 @@
 #include "../src/TriodeGainStage.h"
 
 // Constants matching the Python script
-const double SAMPLE_RATE = 96000.0;
-const double DURATION = 0.05; // 50ms
+const double SAMPLE_RATE = 384000.0;
+const double DURATION = 2.0; // 50ms
 const double TEST_FREQ = 440.0; // A4
 
 // Drive values to test (matching Python script)
-const std::vector<double> DRIVE_VALUES = {1.0, 5.0, 10.0, 100.0};
+const std::vector<double> DRIVE_VALUES = {1.0, 2.0, 4.0, 8.0};
 
 // Signal generation functions (matching Python script)
 std::vector<float> generateSine(double freq, double duration, double sampleRate) {
@@ -71,7 +71,7 @@ std::vector<float> generateSweep(double duration, double sampleRate) {
     double phase = 0.0;
     for (int n = 0; n < numSamples; ++n) {
         double t = static_cast<double>(n) / sampleRate;
-        double freq = 20.0 * std::pow(20000.0 / 20.0, t / duration);
+        double freq = 20.0 * std::pow(100000.0 / 20.0, t / duration);
         double deltaPhase = 2.0 * M_PI * freq / sampleRate;
         phase += deltaPhase;
         signal[n] = static_cast<float>(std::sin(phase));
@@ -87,7 +87,11 @@ std::vector<float> processSignalWithMonitoring(const std::vector<float>& input, 
                                               std::vector<float>& plateVoltages,
                                               std::vector<float>& triodeVg,
                                               std::vector<float>& triodeVk,
-                                              std::vector<float>& triodeVp) {
+                                              std::vector<float>& triodeVp,
+                        std::vector<int>& VgIters,
+                        std::vector<int>& VkIters,
+                        std::vector<int>& PPIters
+                                            ) {
     TriodeGainStage triode;
     triode.prepare(sampleRate);
 
@@ -98,6 +102,9 @@ std::vector<float> processSignalWithMonitoring(const std::vector<float>& input, 
     triodeVg.resize(input.size());
     triodeVk.resize(input.size());
     triodeVp.resize(input.size());
+    VgIters.resize(input.size());
+    VkIters.resize(input.size());
+    PPIters.resize(input.size());
 
     for (size_t i = 0; i < input.size(); ++i) {
         // Scale input by drive (as done in Python script's processSignal)
@@ -111,6 +118,9 @@ std::vector<float> processSignalWithMonitoring(const std::vector<float>& input, 
         triodeVg[i] = triode.getTriodeVg();
         triodeVk[i] = triode.getTriodeVk();
         triodeVp[i] = triode.getTriodeVp();
+        VgIters[i] = triode.getVgIters();
+        VkIters[i] = triode.getVkIters();
+        PPIters[i] = triode.getPPIters();
     }
 
     return output;
@@ -145,11 +155,15 @@ void saveMonitoringData(const juce::String& filename,
                        const std::vector<float>& plateVoltages,
                        const std::vector<float>& triodeVg,
                        const std::vector<float>& triodeVk,
-                       const std::vector<float>& triodeVp) {
+                       const std::vector<float>& triodeVp,
+                       const std::vector<int>& VgIters,
+                       const std::vector<int>& VkIters,
+                       const std::vector<int>& PPIters
+                    ) {
     std::ofstream file(filename.toStdString());
     if (file.is_open()) {
         // Header
-        file << "Time(s),Grid_Voltage(V),Cathode_Voltage(V),Plate_Voltage(V),Triode_Vg(V),Triode_Vk(V),Triode_Vp(V)\n";
+        file << "Time(s),Grid_Voltage(V),Cathode_Voltage(V),Plate_Voltage(V),Triode_Vg(V),Triode_Vk(V),Triode_Vp(V),VgIters,VkIters,PPIters\n";
 
         // Data
         for (size_t i = 0; i < time.size(); ++i) {
@@ -160,7 +174,10 @@ void saveMonitoringData(const juce::String& filename,
                  << plateVoltages[i] << ","
                  << triodeVg[i] << ","
                  << triodeVk[i] << ","
-                 << triodeVp[i] << "\n";
+                 << triodeVp[i] << ","
+                 << VgIters[i] << ","
+                 << VkIters[i] << ","
+                 << PPIters[i] << "\n";
         }
         file.close();
     }
@@ -200,6 +217,7 @@ int main() {
             std::vector<float> gridVoltages, cathodeVoltages, plateVoltages;
             std::vector<float> triodeVg, triodeVk, triodeVp;
             std::vector<float> timeVals;
+            std::vector<int>  VgIters,VkIters,PPIters;
 
             // Generate time values
             int numSamples = static_cast<int>(inputSignal.size());
@@ -212,7 +230,7 @@ int main() {
             std::vector<float> outputSignal = processSignalWithMonitoring(
                 inputSignal, SAMPLE_RATE, drive,
                 gridVoltages, cathodeVoltages, plateVoltages,
-                triodeVg, triodeVk, triodeVp);
+                triodeVg, triodeVk, triodeVp, VgIters,VkIters,PPIters);
 
             // Save input and output signals for external analysis
             juce::String inputFilename = outputDir.getFullPathName() + "/" +
@@ -228,7 +246,7 @@ int main() {
                                         signalName + "_drive_" + juce::String(drive) + "_monitoring.csv";
             saveMonitoringData(monitorFilename, timeVals,
                               gridVoltages, cathodeVoltages, plateVoltages,
-                              triodeVg, triodeVk, triodeVp);
+                              triodeVg, triodeVk, triodeVp, VgIters,VkIters,PPIters);
 
             // Calculate and display some basic statistics
             float inputPeak = 0.0f;
@@ -250,41 +268,41 @@ int main() {
             inputRMS = std::sqrt(inputRMS / static_cast<float>(inputSignal.size()));
             outputRMS = std::sqrt(outputRMS / static_cast<float>(outputSignal.size()));
 
-            std::cout << "    Input Peak: " << inputPeak << ", Output Peak: " << outputPeak << std::endl;
-            std::cout << "    Input RMS: " << inputRMS << ", Output RMS: " << outputRMS << std::endl;
-            std::cout << "    Gain (RMS): " << (outputRMS / inputRMS) << std::endl;
+            // std::cout << "    Input Peak: " << inputPeak << ", Output Peak: " << outputPeak << std::endl;
+            // std::cout << "    Input RMS: " << inputRMS << ", Output RMS: " << outputRMS << std::endl;
+            // std::cout << "    Gain (RMS): " << (outputRMS / inputRMS) << std::endl;
 
-            // Display some internal variable statistics (first, middle, last samples)
-            size_t mid = gridVoltages.size() / 2;
-            std::cout << "    Internal Vars (start/mid/end):" << std::endl;
-            std::cout << "      Grid V: " << gridVoltages[0] << "/" << gridVoltages[mid] << "/" << gridVoltages.back() << " V" << std::endl;
-            std::cout << "      Cathode V: " << cathodeVoltages[0] << "/" << cathodeVoltages[mid] << "/" << cathodeVoltages.back() << " V" << std::endl;
-            std::cout << "      Plate V: " << plateVoltages[0] << "/" << plateVoltages[mid] << "/" << plateVoltages.back() << " V" << std::endl;
-            std::cout << "      Triode Vg: " << triodeVg[0] << "/" << triodeVg[mid] << "/" << triodeVg.back() << " V" << std::endl;
-            std::cout << "      Triode Vk: " << triodeVk[0] << "/" << triodeVk[mid] << "/" << triodeVk.back() << " V" << std::endl;
-            std::cout << "      Triode Vp: " << triodeVp[0] << "/" << triodeVp[mid] << "/" << triodeVp.back() << " V" << std::endl;
+            // // Display some internal variable statistics (first, middle, last samples)
+            // size_t mid = gridVoltages.size() / 2;
+            // std::cout << "    Internal Vars (start/mid/end):" << std::endl;
+            // std::cout << "      Grid V: " << gridVoltages[0] << "/" << gridVoltages[mid] << "/" << gridVoltages.back() << " V" << std::endl;
+            // std::cout << "      Cathode V: " << cathodeVoltages[0] << "/" << cathodeVoltages[mid] << "/" << cathodeVoltages.back() << " V" << std::endl;
+            // std::cout << "      Plate V: " << plateVoltages[0] << "/" << plateVoltages[mid] << "/" << plateVoltages.back() << " V" << std::endl;
+            // std::cout << "      Triode Vg: " << triodeVg[0] << "/" << triodeVg[mid] << "/" << triodeVg.back() << " V" << std::endl;
+            // std::cout << "      Triode Vk: " << triodeVk[0] << "/" << triodeVk[mid] << "/" << triodeVk.back() << " V" << std::endl;
+            // std::cout << "      Triode Vp: " << triodeVp[0] << "/" << triodeVp[mid] << "/" << triodeVp.back() << " V" << std::endl;
 
-            // Save statistics and metadata to a text file
-            juce::String statsFilename = outputDir.getFullPathName() + "/" +
-                                      signalName + "_drive_" + juce::String(drive) + "_stats.txt";
-            std::ofstream statsFile(statsFilename.toStdString());
-            if (statsFile.is_open()) {
-                statsFile << "Signal: " << signalName.toStdString() << "\n";
-                statsFile << "Drive: " << drive << "\n";
-                statsFile << "Input Peak: " << inputPeak << "\n";
-                statsFile << "Output Peak: " << outputPeak << "\n";
-                statsFile << "Input RMS: " << inputRMS << "\n";
-                statsFile << "Output RMS: " << outputRMS << "\n";
-                statsFile << "Gain (RMS): " << (outputRMS / inputRMS) << "\n";
-                statsFile << "\nInternal Variables (start/mid/end):\n";
-                statsFile << "Grid V: " << gridVoltages[0] << "/" << gridVoltages[mid] << "/" << gridVoltages.back() << " V\n";
-                statsFile << "Cathode V: " << cathodeVoltages[0] << "/" << cathodeVoltages[mid] << "/" << cathodeVoltages.back() << " V\n";
-                statsFile << "Plate V: " << plateVoltages[0] << "/" << plateVoltages[mid] << "/" << plateVoltages.back() << " V\n";
-                statsFile << "Triode Vg: " << triodeVg[0] << "/" << triodeVg[mid] << "/" << triodeVg.back() << " V\n";
-                statsFile << "Triode Vk: " << triodeVk[0] << "/" << triodeVk[mid] << "/" << triodeVk.back() << " V\n";
-                statsFile << "Triode Vp: " << triodeVp[0] << "/" << triodeVp[mid] << "/" << triodeVp.back() << " V\n";
-                statsFile.close();
-            }
+            // // Save statistics and metadata to a text file
+            // juce::String statsFilename = outputDir.getFullPathName() + "/" +
+            //                           signalName + "_drive_" + juce::String(drive) + "_stats.txt";
+            // std::ofstream statsFile(statsFilename.toStdString());
+            // if (statsFile.is_open()) {
+            //     statsFile << "Signal: " << signalName.toStdString() << "\n";
+            //     statsFile << "Drive: " << drive << "\n";
+            //     statsFile << "Input Peak: " << inputPeak << "\n";
+            //     statsFile << "Output Peak: " << outputPeak << "\n";
+            //     statsFile << "Input RMS: " << inputRMS << "\n";
+            //     statsFile << "Output RMS: " << outputRMS << "\n";
+            //     statsFile << "Gain (RMS): " << (outputRMS / inputRMS) << "\n";
+            //     statsFile << "\nInternal Variables (start/mid/end):\n";
+            //     statsFile << "Grid V: " << gridVoltages[0] << "/" << gridVoltages[mid] << "/" << gridVoltages.back() << " V\n";
+            //     statsFile << "Cathode V: " << cathodeVoltages[0] << "/" << cathodeVoltages[mid] << "/" << cathodeVoltages.back() << " V\n";
+            //     statsFile << "Plate V: " << plateVoltages[0] << "/" << plateVoltages[mid] << "/" << plateVoltages.back() << " V\n";
+            //     statsFile << "Triode Vg: " << triodeVg[0] << "/" << triodeVg[mid] << "/" << triodeVg.back() << " V\n";
+            //     statsFile << "Triode Vk: " << triodeVk[0] << "/" << triodeVk[mid] << "/" << triodeVk.back() << " V\n";
+            //     statsFile << "Triode Vp: " << triodeVp[0] << "/" << triodeVp[mid] << "/" << triodeVp.back() << " V\n";
+            //     statsFile.close();
+            // }
         }
     }
 

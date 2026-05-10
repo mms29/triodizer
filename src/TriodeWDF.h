@@ -11,8 +11,8 @@ template <typename T, typename PortGType, typename PortKType, typename PortPType
 class TriodeWDF final : public RootWDF
 {
 public:
-    TriodeWDF(PortGType& pg, PortKType& pk, PortPType& pp) : port_g (pg), port_k (pk), port_p (pp)
-
+    TriodeWDF(PortGType& pg, PortKType& pk, PortPType& pp, T Vk_init, T Vp_init) 
+        : port_g (pg), port_k (pk), port_p (pp), Vk (Vk_init), Vp (Vp_init)
     {
         port_g.connectToParent (this);
         port_k.connectToParent (this);
@@ -23,30 +23,6 @@ public:
     {
     }
 
-    void prepare(double sampleRate, T Vk_init, T Vp_init)
-    {
-        port_g.calcImpedance();
-        port_k.calcImpedance();
-        port_p.calcImpedance();
-
-        ag = port_g.reflected();
-        ak = port_k.reflected();
-        ap = port_p.reflected();
-        R0g = port_g.wdf.R;
-        R0k = port_k.wdf.R;
-        R0p = port_p.wdf.R;
-
-        Vk = Vk_init;
-        Vp = Vp_init;
-        Vg=ag;
-        initDC();
-    }
-
-    void initDC()
-    {
-        solveTriode();
-        Vp = solve_Vp();
-    }
     void compute() noexcept
     {
         // 1. pull incident waves
@@ -61,23 +37,24 @@ public:
         solveTriode();
 
 
-        Vp = solve_Vp();
+        T Vkak = Vk - ak;
+        T Vgag = Vg - ag;
+        T bpx  = R0p * (Vgag / R0g + Vkak / R0k);
 
-        // 3. push reflected waves
-        bg = 2* Vg - ag;
-        bk = 2* Vk - ak;
-        bp = 2* Vp - ap;
+        bg   = Vg + Vgag;
+        bk   = Vk + Vkak;
+        bp   = ap - bpx - bpx;
+
+        Vp = ap - R0p * ((Vg - ag) / R0g + (Vk - ak) / R0k);
+
         port_g.incident (bg);
         port_k.incident (bk);
         port_p.incident (bp);
     }
-
-    void solveTriode() noexcept
+    void solveTriodeOld() noexcept
     {
-        // Initial guess from the paper
-        // Vg = ag;
-
-        // 1) first Vk solve (no grid current assumption)
+        // Vk with no grid current
+        Vg = ag;
         Vk = solve_Vk(true);
 
         // check grid condition
@@ -85,10 +62,10 @@ public:
             return;
 
         int ping = 0;
-        T Vk_start = Vk;
-        T Vg_start = Vg;
         while (ping < maxPingPongIters)
         {
+            T Vk_start = Vk;
+            T Vg_start = Vg;
             // --- grid solve ---
             Vg = solve_Vg();
 
@@ -99,17 +76,19 @@ public:
             T err_k = std::abs (Vk - Vk_start);
             T err_g = std::abs (Vg - Vg_start);
 
-            if (err_k < epsVk && err_g < epsVg)
+            if (err_k < epsVk && err_g < epsVgVk)
                 break;
 
             ++ping;
+            PPIters=ping;
+
         }
     }
 
-    T solve_Vp(){
-        // EQ7 
-        return ap - R0p * ((Vg - ag) / R0g + (Vk - ak) / R0k);
-    }
+    // T solve_Vp(){
+    //     // EQ7 
+    //     return ap - R0p * ((Vg - ag) / R0g + (Vk - ak) / R0k);
+    // }
 
 
     T solve_Vk(bool init) noexcept
@@ -124,7 +103,7 @@ public:
         T f_prev = fVk (Vk_prev);
         T Vk_curr;
         if (std::abs(Vk_prev - ak) < eps)
-            Vk_curr = Vk_prev - std::abs(f_prev);
+            Vk_curr = Vk_prev + std::abs(f_prev);
         else
             Vk_curr = Vk_prev + f_prev;
         T f_curr = fVk (Vk_curr);
@@ -158,6 +137,7 @@ public:
             err = std::abs(Vk_curr -Vk_prev);
 
             ++iter;
+            VkIters=iter;
         }
 
         return Vk_curr;
@@ -204,22 +184,182 @@ public:
             err = std::abs(Vg_curr -Vg_prev);
 
             ++iter;
+            VgIters=iter;
+
         }
 
         return Vg_curr;
     }
-
-    T fVk_no_grid_current(T Vk_val) noexcept
+    void solveTriode() noexcept
     {
-        // EQ10
+
+        // --- Vk without grid current ---
+        
+        Vg = ag;
+        T Vk_prev = ak; 
+        T f_Vk_prev = fVk (Vk_prev);
+        Vk = ak + std::abs(f_Vk_prev);
+
+        int iter = 0;
+        T err_k ;
+        do 
+        {
+            T f_Vk = fVk (Vk);
+            T df_Vk = f_Vk - f_Vk_prev;
+            if (std::abs (df_Vk) < eps)
+                break;
+
+            T Vk_next = Vk - f_Vk * (Vk - Vk_prev) / df_Vk;
+
+            Vk_next = std::max(Vk_next, ak);
+
+            // update states
+            Vk_prev = Vk;
+            Vk  = Vk_next;
+            f_Vk_prev = f_Vk;
+            err_k   = Vk - Vk_prev;
+
+            ++iter;
+            VkIters=iter;
+        } 
+        while (std::abs(err_k) > epsVk && iter < maxVkIters);
+
+        if ((Vg - Vk) <= Voff)
+            return;
+
+        // --- Grid Current ---
+        err_k = ak - Vk;
+        int ping = 0;
+        do{
+
+            // --- Calculate Vg ---
+
+            T Vg_min = ag + R0g / R0k * (ak - Vk);
+            T Vg_start = Vg;
+            T Vg_prev = Vg;
+            T f_Vg_prev  = fVg(Vg_prev);
+
+            if (std::abs(Vg_prev - ag) < eps) 
+                Vg = Vg - std::abs (f_Vg_prev);
+            else if (std::abs(Vg_prev - Vg_min) < eps) 
+                Vg = Vg + std::abs (f_Vg_prev);
+            else 
+                Vg = Vg + f_Vg_prev;
+            Vg = std::clamp(Vg, Vg_min, ag);
+
+            T err_g = Vg -Vg_prev;
+            iter = 0;
+            do
+            {
+                T f_Vg = fVg (Vg);
+                T df_Vg = f_Vg - f_Vg_prev;
+                if (std::abs(df_Vg) < eps)
+                    break;
+
+                T Vg_next = Vg - f_Vg * (Vg - Vg_prev) / df_Vg;
+
+                Vg_next = std::clamp(Vg_next, Vg_min, ag);
+
+                Vg_prev = Vg;
+                Vg = Vg_next;
+                f_Vg_prev  = f_Vg;
+                err_g   = Vg - Vg_prev;
+
+
+                ++iter;
+                VgIters=iter;
+
+            } while ( std::abs(err_g) > epsVg && iter < maxVgIters);
+
+            err_g = Vg_start - Vg;
+            if (abs(err_k) <= epsVk && abs(err_g) <= epsVg)
+                break;
+            
+            // --- calculate Vk ---
+            T Vk_min   = ak + R0k / R0g * (ag - Vg);
+            T Vk_start = Vk;
+            Vk_prev  = Vk;
+            f_Vk_prev = fVk (Vk_prev);
+            if (std::abs(Vk_prev - ak) < eps || std::abs(Vk_prev - Vk_min) < eps )
+                Vk = Vk_prev + std::abs(f_Vk_prev);
+            else
+                Vk = Vk + f_Vk_prev;
+            Vk = std::max(Vk, ak);
+            Vk = std::max(Vk, Vk_min);
+
+            err_k   = Vk - Vk_prev;
+            iter = 0;
+            do
+            {
+                T f_Vk = fVk (Vk);
+                T df_Vk = f_Vk - f_Vk_prev;
+
+                if (std::abs (df_Vk) < eps) 
+                    break;
+
+                T Vk_next = Vk - f_Vk * (Vk - Vk_prev) / df_Vk;
+
+                Vk_next = std::max(Vk_next, ak);
+                Vk_next = std::max(Vk_next, Vk_min);
+
+                // update states
+                Vk_prev = Vk;
+                Vk = Vk_next;
+                f_Vk_prev  = f_Vk;
+                err_k = Vk -Vk_prev;
+
+                ++iter;
+                VkIters=iter;
+            } while (std::abs(err_k) > epsVk && iter < maxVkIters);
+
+            err_k = (Vk - Vk_start);
+
+            if (err_k < epsVk && err_g < epsVg)
+                break;
+
+            ++ping;
+            PPIters=ping;
+
+        }while (ping < maxPingPongIters);
+    }
+
+
+    // T fVk_no_grid_current(T Vk_val) noexcept
+    // {
+    //     // EQ10
+    //     T Vgk = Vg - Vk_val;
+
+    //     // polynomial parameters
+    //     T G_val  = ((G[3]  * Vgk + G[2])  * Vgk + G[1])  * Vgk + G[0];
+    //     T mu_val = ((mu[3] * Vgk + mu[2]) * Vgk + mu[1]) * Vgk + mu[0];
+    //     T h_val  = ((h[3]  * Vgk + h[2])  * Vgk + h[1])  * Vgk + h[0];
+
+    //     // safety: tube conductance must never vanish
+    //     mu_val = std::max(mu_val, eps);
+
+    //     // α computation 
+    //     T alpha = (Vk_val - ak) / (R0k * G_val);
+    //     alpha = std::max(alpha, T(0));
+    //     alpha = std::cbrt(alpha * alpha);
+
+    //     T num = R0k * (ap + mu_val * (Vg + h_val - alpha)) + R0p * ak;
+    //     T den = R0p + (mu_val + T(1)) * R0k;
+
+    //     return (num / den) - Vk_val;
+    // }
+
+    T fVk(T Vk_val) noexcept
+    {
+        // EQ8 
         T Vgk = Vg - Vk_val;
+        T agVg = ag - Vg;
 
         // polynomial parameters
         T G_val  = ((G[3]  * Vgk + G[2])  * Vgk + G[1])  * Vgk + G[0];
         T mu_val = ((mu[3] * Vgk + mu[2]) * Vgk + mu[1]) * Vgk + mu[0];
         T h_val  = ((h[3]  * Vgk + h[2])  * Vgk + h[1])  * Vgk + h[0];
 
-        // safety: tube conductance must never vanish
+        G_val = std::max(G_val, eps);
         mu_val = std::max(mu_val, eps);
 
         // α computation 
@@ -227,54 +367,21 @@ public:
         alpha = std::max(alpha, T(0));
         alpha = std::cbrt(alpha * alpha);
 
-        T num = R0k * (ap + mu_val * (Vg + h_val - alpha)) + R0p * ak;
-        T den = R0p + (mu_val + T(1)) * R0k;
-
-        return (num / den) - Vk_val;
-    }
-
-    T fVk(T Vk_val) noexcept
-    {
-        // EQ8 
-        T Vgk = Vg - Vk_val;
-
-        // polynomial parameters
-        T G_val  = ((G[3]  * Vgk + G[2])  * Vgk + G[1])  * Vgk + G[0];
-        T mu_val = ((mu[3] * Vgk + mu[2]) * Vgk + mu[1]) * Vgk + mu[0];
-        T h_val  = ((h[3]  * Vgk + h[2])  * Vgk + h[1])  * Vgk + h[0];
-
-        // safety: tube conductance must never vanish
-        G_val = std::max(G_val, eps);
-
-        // α computation 
-        T alpha = (Vk_val - ak) / (R0k * G_val);
-        alpha = std::max(alpha, T(0));
-        alpha = std::cbrt(alpha * alpha);
-
-        T num = R0k * (ap + mu_val * (Vg + h_val - alpha)) + R0p * ak;
-        T den = R0p + (mu_val + T(1)) * R0k;
-
-        // coupling correction term
-        T denom2 = R0p + (mu_val + T(1)) * R0k;
-        denom2 = std::max(denom2, eps);
-        T term2 = R0k * R0p * (Vg - ag) / (R0g * denom2);
-
-        return (num / den) + term2 - Vk_val;
+        return (R0g * (R0p * ak + R0k * (ap + mu_val * (Vg + h_val - alpha))) 
+         + R0k * R0p * agVg) / (R0g * (R0p + (mu_val - 1.0) * R0k)) - Vk_val;
     }
     T fVg(T Vg_val) noexcept
     {
+        // EQ12 
         T agVg = ag - Vg_val;
+        T akVk = ak - Vk;
         if (std::abs(agVg) < eps)
             return Voff + Vk - Vg_val;
 
-        // EQ12 core
-        T beta = -(1.0 / D) * ((R0g / R0k) * (ak - Vk) / agVg + 1.0);
+        T beta = - (R0g / R0k * akVk / agVg + 1.0) / D;
         if (beta < 0)
         {
-            // fallback branch (paper eq. 11 special case behavior)
-            return (R0k * (R0g * (Voff + Vk - Vk + ap) + R0p * ag)
-                + R0g * R0p * (ak - Vk))
-                / (R0k * R0p) - Vg_val;
+            return (R0k * (R0g * (ap - Vk) + R0p * ag) + R0g * R0p * akVk) / (R0k * R0p) - Vg_val;
         }
         else
         {
@@ -283,15 +390,8 @@ public:
         if (!std::isfinite(beta))
             return Voff + Vk - Vg_val;
 
-        T denom = R0g * beta + R0p;
-        if (std::abs(denom) < eps)
-            denom = epsVg;
-
-        T term1 = (R0g * ((Voff + Vk) * beta - Vk + ap) + R0p * ag) /denom;
-
-        T term2 = R0g * R0p * (ak - Vk) / (R0k * denom);
-
-        return term1 + term2 - Vg_val;
+        return (R0k * (R0g * ((Voff + Vk) * beta - Vk + ap) + R0p * ag) 
+             + R0g * R0p * akVk) / (R0k * (R0g * beta + R0p)) - Vg_val;
     }
 
     void setTriodeParameters() noexcept
@@ -343,6 +443,9 @@ public:
     T getR0p() const { return R0p; }
     T getR0g() const { return R0g; }
     T getR0k() const { return R0k; }
+    T getVgIters() const { return VgIters; }
+    T getVkIters() const { return VkIters; }
+    T getPPIters() const { return PPIters; }
 
 private:
     std::array<T, 4> G {};
@@ -354,15 +457,15 @@ private:
     T R0k, R0g, R0p;
     T ak, ag, ap;
     T bk, bg, bp;
+    int VgIters, VkIters, PPIters;
 
-    static constexpr T epsVk = (T) 1.0e-5;
-    static constexpr T epsVg = (T) 1.0e-5;
+    static constexpr T epsVgVk = (T) 1.0e-6;
     static constexpr T eps = (T) 1.0e-9;
 
-    static constexpr int maxVkIters = 8;
-    static constexpr int maxVgIters = 8;
+    static constexpr int maxVkIters = 20;
+    static constexpr int maxVgIters = 20;
 
-    static constexpr int maxPingPongIters = 5;
+    static constexpr int maxPingPongIters = 50;
 };
 
 #endif TRIODEWDF_H_INCLUDED
