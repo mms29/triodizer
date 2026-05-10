@@ -20,8 +20,8 @@ juce_add_plugin(TriodePlugin
 
 # Add source files
 target_sources(TriodePlugin PRIVATE
-    Source/PluginProcessor.cpp
-    Source/PluginEditor.cpp
+    src/PluginProcessor.cpp
+    src/PluginEditor.cpp
 )
 
 # Link JUCE modules

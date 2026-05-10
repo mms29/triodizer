@@ -91,7 +91,7 @@ signals = {
 }
 
 
-drive_values = [1.0, 5.0, 10.0, 100.0]
+drive_values = [1.0, 50.0, 100.0, 1000.0]
 
 processedSignals = {k:[processSignal(v, sample_rate, d) for d in drive_values] for k,v in signals.items()}
 
