@@ -64,6 +64,20 @@ class TriodeGainStage
             return y;
         }
 
+        // Runtime setters — updates the WDF node and re-propagates impedance
+        void setRi (float newRi)  { Ri = newRi;  w_Ri.setResistanceValue(Ri); }
+        void setRg (float newRg)  { Rg = newRg;  w_Rg.setResistanceValue(Rg); }
+        void setCi (float newCi)  { Ci = newCi;  w_Vi.setCapacitanceValue(Ci); }
+
+        void setRk (float newRk)  { Rk = newRk;  w_Rk.setResistanceValue(Rk); }
+        void setCk (float newCk)  { Ck = newCk;  w_Ck.setCapacitanceValue(Ck); }
+
+        void setE  (float newE)   { E  = newE;   w_E_Rp.setVoltage(E); }
+        void setRp (float newRp)  { Rp = newRp;  w_E_Rp.setResistanceValue(Rp); }
+        void setCo (float newCo)  { Co = newCo;  w_Co.setCapacitanceValue(Co); }
+        void setRo (float newRo)  { Ro = newRo;  w_Ro.setResistanceValue(Ro); }
+        void setCp (float newCp)  { Cp = newCp;  w_Cp.setCapacitanceValue(Cp); }
+
         // Accessor methods for monitoring internal WDF variables
         float getGridVoltage() const { return voltage<float> (w_Ri); }
         float getCathodeVoltage() const { return voltage<float> (w_Rk); }
@@ -132,8 +146,8 @@ class TriodeGainStage
     // Triode WDF
     float Vk_init = 0.5 * Rk / (Rp + Rk);
     float Vp_init = 0.5 * (E + Rk / (Rp + Rk));
-    TriodeWDF<float, decltype (w_PIg), decltype (w_PJk), decltype (w_PJp)> 
-        w_Triode {w_PIg, w_PJk, w_PJp, Vk_init, Vp_init};
+    TriodeWDF<float, decltype(w_PIg), decltype(w_PJk), decltype(w_PJp)>
+        w_Triode{w_PIg, w_PJk, w_PJp, Vk_init, Vp_init};
 
 };
-#endif TRIODEGAINSTAGE_H_INCLUDED
+#endif // TRIODEGAINSTAGE_H_INCLUDED

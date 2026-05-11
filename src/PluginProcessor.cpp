@@ -102,6 +102,34 @@ void TriodeProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     oversampler->processSamplesDown(block);
 }
 
+
+void TriodeProcessor::updateWDFcircuit(juce::String paramName, float value){
+
+    std::cout << "Change parameter "<< paramName << " to "<< value<< std::endl; 
+
+    for (int ch = 0; ch < 2; ++ch){
+        if      (paramName == "Ri") triode[ch].setRi(value);
+        else if (paramName == "Rg") triode[ch].setRg(value);
+        else if (paramName == "Ci") triode[ch].setCi(value);
+
+        else if (paramName == "Rk") triode[ch].setRk(value);
+        else if (paramName == "Ck") triode[ch].setCk(value);
+
+        else if (paramName == "E")  triode[ch].setE(value);
+        else if (paramName == "Rp") triode[ch].setRp(value);
+
+        else if (paramName == "Co") triode[ch].setCo(value);
+        else if (paramName == "Ro") triode[ch].setRo(value);
+
+        else if (paramName == "Cp") triode[ch].setCp(value);
+
+        else
+            jassertfalse; // unknown parameter name
+    }
+
+
+}
+
 //==============================================================================
 void TriodeProcessor::updateOversampler()
 {

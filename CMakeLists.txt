@@ -22,6 +22,7 @@ juce_add_plugin(TriodePlugin
 target_sources(TriodePlugin PRIVATE
     src/PluginProcessor.cpp
     src/PluginEditor.cpp
+    src/Schematic.cpp
 )
 
 # Link JUCE modules

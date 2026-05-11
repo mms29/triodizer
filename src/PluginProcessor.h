@@ -37,6 +37,8 @@ public:
     void prepareToPlay(double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
 
+    void updateWDFcircuit(juce::String paramName, float value);
+
     juce::AudioProcessorValueTreeState parameters;
 
 private:

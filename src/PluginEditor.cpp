@@ -1,4 +1,5 @@
 #include "PluginEditor.h"
+#include "Schematic.h"
 
 //==============================================================================
 TriodeEditor::TriodeEditor(TriodeProcessor& p)
@@ -17,12 +18,9 @@ TriodeEditor::TriodeEditor(TriodeProcessor& p)
     driveLabel.attachToComponent(&driveSlider, false);
     addAndMakeVisible(driveLabel);
 
-    // Attachment (drives parameter sync automatically)
     driveAttachment = std::make_unique<
         juce::AudioProcessorValueTreeState::SliderAttachment>(
-            audioProcessor.parameters,
-            "drive",
-            driveSlider);
+            audioProcessor.parameters, "drive", driveSlider);
 
     // =====================================================
     // GAIN
@@ -39,9 +37,7 @@ TriodeEditor::TriodeEditor(TriodeProcessor& p)
 
     gainAttachment = std::make_unique<
         juce::AudioProcessorValueTreeState::SliderAttachment>(
-            audioProcessor.parameters,
-            "gain",
-            gainSlider);
+            audioProcessor.parameters, "gain", gainSlider);
 
     // =====================================================
     // OVERSAMPLING
@@ -59,14 +55,31 @@ TriodeEditor::TriodeEditor(TriodeProcessor& p)
 
     oversampleAttachment = std::make_unique<
         juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
-            audioProcessor.parameters,
-            "oversample",
-            oversampleSelector);
+            audioProcessor.parameters, "oversample", oversampleSelector);
+
+    // =====================================================
+    // SCHEMATIC PANEL
+    // =====================================================
+    schematic = std::make_unique<SchematicPanel>();
+
+    // // Build the common-cathode triode stage
+    buildCommonCathodeStage(*schematic);
+
+    // Wire each schematic element's onValueChanged callback -> processor
+    for (auto& elem : schematic->getElements())
+    {
+        auto name = elem->getName();
+
+        elem->onValueChanged =[this, name](float value){
+                audioProcessor.updateWDFcircuit(name, value);};
+    }
+
+    addAndMakeVisible(schematic.get());
 
     // =====================================================
     // SIZE
     // =====================================================
-    setSize(400, 250);
+    setSize(700, 520);
 }
 
 TriodeEditor::~TriodeEditor() = default;
@@ -75,24 +88,24 @@ TriodeEditor::~TriodeEditor() = default;
 void TriodeEditor::paint(juce::Graphics& g)
 {
     g.fillAll(juce::Colours::darkgrey);
-    g.setColour(juce::Colours::white);
-    g.setFont(20.0f);
-    g.drawFittedText("Triode Simulator", 0, 20, getWidth(), 30,
-                      juce::Justification::centred, 1);
 }
 
 void TriodeEditor::resized()
 {
-    auto area = getLocalBounds().reduced(20);
-    area.removeFromTop(50); // space for title
+    auto area = getLocalBounds().reduced(4);
 
-    auto row = area.removeFromTop(120);
-    driveSlider.setBounds(row.removeFromLeft(120).reduced(10));
-    gainSlider.setBounds(row.removeFromLeft(120).reduced(10));
+    // Schematic takes most of the space
+    schematic->setBounds(area.removeFromTop(area.getHeight() - 100));
 
-    // Position oversample controls
-    auto oversampleRow = area.removeFromTop(40);
-    oversampleLabel.setBounds(oversampleRow.removeFromLeft(80).reduced(10));
-    oversampleSelector.setBounds(oversampleRow.removeFromLeft(120).reduced(10));
+    // Bottom strip for drive / gain / oversample controls
+    auto bottom = area.removeFromBottom(80);
+    bottom.removeFromLeft(20);
+
+    driveSlider.setBounds(bottom.removeFromLeft(120).reduced(10));
+    bottom.removeFromLeft(20);
+    gainSlider.setBounds(bottom.removeFromLeft(120).reduced(10));
+    bottom.removeFromLeft(40);
+
+    oversampleLabel.setBounds(bottom.removeFromLeft(80).reduced(5, 10));
+    oversampleSelector.setBounds(bottom.removeFromLeft(100).reduced(5, 10));
 }
-
