@@ -3,8 +3,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "PluginProcessor.h"
 
-class TriodeEditor : public juce::AudioProcessorEditor,
-                      public juce::Slider::Listener
+class TriodeEditor : public juce::AudioProcessorEditor
 {
 public:
     TriodeEditor(TriodeProcessor&);
@@ -13,8 +12,6 @@ public:
     void paint(juce::Graphics&) override;
     void resized() override;
 
-    void sliderValueChanged(juce::Slider*) override;
-
 private:
     TriodeProcessor& audioProcessor;
 
@@ -22,6 +19,13 @@ private:
     juce::Slider gainSlider;
     juce::Label driveLabel;
     juce::Label gainLabel;
+
+    juce::ComboBox oversampleSelector;
+    juce::Label oversampleLabel;
+
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> driveAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> gainAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> oversampleAttachment;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TriodeEditor)
 };

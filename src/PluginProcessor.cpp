@@ -6,7 +6,7 @@ TriodeProcessor::TriodeProcessor()
     : AudioProcessor(BusesProperties().withInput("Input", juce::AudioChannelSet::stereo())
                                      .withOutput("Output", juce::AudioChannelSet::stereo())),
         parameters(*this, nullptr,
-            "TriodeParameters",
+            juce::Identifier("TriodeParameters"),
             {
                 std::make_unique<juce::AudioParameterFloat>(
                     "drive",
@@ -19,6 +19,18 @@ TriodeProcessor::TriodeProcessor()
                     "Gain",
                     juce::NormalisableRange<float>(-80.0f, -20.0f, 0.1f),
                     -20.0f),
+
+                std::make_unique<juce::AudioParameterChoice>(
+                    "oversample",
+                    "Oversample",
+                    juce::StringArray
+                    {
+                        "1x",
+                        "2x",
+                        "4x",
+                        "8x"
+                    },
+                    0) 
             })
 {
 }
@@ -26,11 +38,15 @@ TriodeProcessor::TriodeProcessor()
 TriodeProcessor::~TriodeProcessor() = default;
 
 //==============================================================================
-void TriodeProcessor::prepareToPlay(double sr, int)
+void TriodeProcessor::prepareToPlay(double sr, int samplesPerBlock)
 {
     sampleRate = sr;
+    blockSize = samplesPerBlock;
+
+    updateOversampler();
+
     for (int ch = 0; ch < 2; ++ch)
-        triode[ch].reset();
+        triode[ch].prepare(sampleRate);
 }
 
 void TriodeProcessor::releaseResources()
@@ -39,37 +55,75 @@ void TriodeProcessor::releaseResources()
         triode[ch].reset();
 }
 
-//==============================================================================
-void TriodeProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
+void TriodeProcessor::processBlock(juce::AudioBuffer<float>& buffer,
+                                   juce::MidiBuffer&)
 {
     juce::ScopedNoDenormals noDenormals;
 
-    float drive = *parameters.getRawParameterValue("drive");
-    float gain = *parameters.getRawParameterValue("gain");
+    const int numChannels = getTotalNumInputChannels();
 
-    int numChannels = buffer.getNumChannels();
-    int numSamples = buffer.getNumSamples();
+    // In case user changed oversampling factor
+    updateOversampler();
 
+    // Read parameters
+    float drive_dB = *parameters.getRawParameterValue("drive");
+    float gain_dB = *parameters.getRawParameterValue("gain");
+
+    float drive_G = juce::Decibels::decibelsToGain(drive_dB);
+    float gain_G  = juce::Decibels::decibelsToGain(gain_dB);
+
+    // Convert AudioBuffer -> AudioBlock
+    juce::dsp::AudioBlock<float> block(buffer);
+
+    // UPSAMPLE
+    auto upsampledBlock = oversampler->processSamplesUp(block);
+
+    const int osNumSamples = (int) upsampledBlock.getNumSamples();
+
+    // PROCESS AT OVERSAMPLED RATE
     for (int ch = 0; ch < numChannels; ++ch)
     {
-        auto* samples = buffer.getWritePointer(ch);
+        auto* samples = upsampledBlock.getChannelPointer((size_t) ch);
 
-        for (int i = 0; i < numSamples; ++i)
+        for (int i = 0; i < osNumSamples; ++i)
         {
-            // Input audio (~±1.0) scaled to volts
-            float driveG = juce::Decibels::decibelsToGain(drive);
-            double Vin = (double)samples[i]*driveG;
+            // Input audio scaled by drive
+            double Vin = (double) samples[i] * (double) drive_G;
 
-            // Process through WDF triode circuit
+            // Your nonlinear WDF triode
             double Vout = triode[ch].processSample(Vin);
 
-            // Apply output gain and scale back to audio range
-            float gainG = juce::Decibels::decibelsToGain(gain);
-            samples[i] = (float)(Vout * (double)gainG);
+            // Output gain
+            samples[i] = (float) (Vout * (double) gain_G);
         }
     }
+
+    // DOWNSAMPLE BACK INTO ORIGINAL BUFFER
+    oversampler->processSamplesDown(block);
 }
 
+//==============================================================================
+void TriodeProcessor::updateOversampler()
+{
+    int stages = (int) parameters.getRawParameterValue("oversample")->load();
+
+    // Avoid rebuilding every block
+    if (stages == oversamplingStages)
+        return;
+
+    oversamplingStages = stages;
+
+    oversampler = std::make_unique<juce::dsp::Oversampling<float>>(
+        getTotalNumInputChannels(),
+        stages, // 0=1x,1=2x,2=4x,3=8x
+        juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR);
+
+    oversampler->initProcessing((size_t) blockSize);
+
+    oversampler->reset();
+
+    // std::cout << "Oversampling updated: " << (1 << stages) << "x" << std::endl;
+}
 //==============================================================================
 juce::AudioProcessorEditor* TriodeProcessor::createEditor()
 {

@@ -2,6 +2,7 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "TriodeGainStage.h"
+#include <juce_dsp/juce_dsp.h>
 
 class TriodeProcessor : public juce::AudioProcessor
 {
@@ -17,6 +18,7 @@ public:
     double getTailLengthSeconds() const override { return 0.0; }
 
     void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
+    void updateOversampler();
 
     int getNumPrograms() override;
     int getCurrentProgram() override;
@@ -40,6 +42,11 @@ public:
 private:
     TriodeGainStage triode[2];  // one per channel
     double sampleRate = 48000.0;
+    int blockSize = 512;
+    int oversamplingStages = -1;
+
+    // Oversampling
+    std::unique_ptr<juce::dsp::Oversampling<float>> oversampler;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TriodeProcessor)
 };

@@ -22,7 +22,6 @@ using namespace chowdsp::wdft;
  * - Plate subcircuit: plate resistor (Rp) to supply (E), output stage (Ro, Co)
  *
  * The triode is modeled as a 3-port nonlinear element connecting these subnetworks.
- * The implementation uses precomputed WDF coefficients for efficiency.
  */
 class TriodeGainStage
 {
@@ -31,11 +30,14 @@ class TriodeGainStage
 
         void prepare (double sampleRate)
         {
-            w_Ci.prepare ((float) sampleRate);
+            w_Vi.prepare ((float) sampleRate);
             w_Ck.prepare ((float) sampleRate);
             w_Co.prepare ((float) sampleRate);
 
-            float duration = 1.0f;
+            w_Cp.prepare ((float) sampleRate);
+            // w_Cg.prepare ((float) sampleRate);
+
+            float duration = 0.1f;
             for (int i = 0; i < (int) sampleRate *duration; ++i)
             {
                 auto y = processSample(0.0f);
@@ -44,9 +46,11 @@ class TriodeGainStage
 
         void reset()
         {
-            w_Ci.reset();
+            w_Vi.reset();
             w_Ck.reset();
             w_Co.reset();
+            w_Cp.reset();
+            // w_Cg.reset();
         }
 
         inline float processSample (float x)
@@ -76,44 +80,53 @@ class TriodeGainStage
 
     private:
 
-    float E = 250.0f;
-    float Rp =  100.0e3f ;
-    float Rk =  1.0e3f ;
-    float Ck =  10e-6f ;
-    float Co = 10e-9f;
-    float Ro = 1.0e6f ;
+    
     float Ri = 1.0e6f ;
     float Rg = 20.0e3f ;
     float Ci = 100e-9f;
-    float Rsi = 0.1f;
+    // float Cg = 50e-12f;
+
+    float Rk =  1.0e3f ;
+    float Ck =  10e-6f ;
+
+    float E = 250.0f;
+    float Rp =  100.0e3f ;
+    float Co = 100e-9f;
+    float Ro = 1.0e6f ;
+    float Cp = 100e-12f;
 
 
-    // Cathode Circuit (connect to PJk)
+
+    // Cathode Circuit (connect triode to PJk)
     ResistorT<float> w_Rk { Rk };
     CapacitorT<float> w_Ck { Ck};
 
     WDFParallelT<float, decltype (w_Rk), decltype (w_Ck)> w_PJk { w_Rk, w_Ck };
 
-    // Plate Circuit (connect to PJp)
+    // Plate Circuit (connect triode to PJp)
     ResistiveVoltageSourceT<float> w_E_Rp {Rp};
     CapacitorT<float> w_Co { Co};
+    CapacitorT<float> w_Cp { Cp};
     ResistorT<float> w_Ro { Ro };
 
     WDFSeriesT<float, decltype (w_Co), decltype (w_Ro)> w_SJo { w_Co, w_Ro };
-    PolarityInverterT<float, decltype (w_SJo)> w_SJp { w_SJo };
-    WDFParallelT<float, decltype (w_E_Rp), decltype (w_SJp)> w_PJp { w_E_Rp, w_SJp};
+    PolarityInverterT<float, decltype (w_SJo)> w_PIp { w_SJo };
+    WDFParallelT<float, decltype (w_Cp), decltype (w_PIp)> w_PJp2 { w_Cp, w_PIp};
+    WDFParallelT<float, decltype (w_E_Rp), decltype (w_PJp2)> w_PJp { w_E_Rp, w_PJp2};
+    // WDFParallelT<float, decltype (w_E_Rp), decltype (w_PIp)> w_PJp { w_E_Rp, w_PIp};
 
 
-    // Grid Circuit (connect to PIg)
+    // Grid Circuit (connect triode to PIg)
     ResistorT<float> w_Rg { Rg };
     ResistorT<float> w_Ri { Ri };
-    CapacitorT<float> w_Ci { Ci};
-    ResistiveVoltageSourceT<float> w_Vi { Rsi };
+    // CapacitorT<float> w_Cg { Cg};
+    CapacitiveVoltageSourceT<float> w_Vi { Ci };
 
-    WDFSeriesT<float, decltype (w_Ci), decltype (w_Vi)> w_SJi { w_Ci, w_Vi };
-    PolarityInverterT<float, decltype (w_SJi)> w_PIi { w_SJi };
-    WDFParallelT<float, decltype (w_Ri), decltype (w_PIi)> w_PJg { w_Ri, w_PIi };
-    WDFSeriesT<float, decltype (w_Rg), decltype (w_PJg)> w_SJg { w_Rg, w_PJg };
+    PolarityInverterT<float, decltype (w_Vi)> w_PIi { w_Vi };
+    WDFParallelT<float, decltype (w_Ri), decltype (w_PIi)> w_PJi { w_Ri, w_PIi };
+    WDFSeriesT<float, decltype (w_Rg), decltype (w_PJi)> w_SJg { w_Rg, w_PJi };
+    // WDFParallelT<float, decltype (w_Cg), decltype (w_SJg)> w_PJg {w_Cg, w_SJg };
+    // PolarityInverterT<float, decltype (w_PJg)> w_PIg { w_PJg };
     PolarityInverterT<float, decltype (w_SJg)> w_PIg { w_SJg };
 
     // Triode WDF
