@@ -1,5 +1,7 @@
 #include "PluginEditor.h"
-#include "Schematic.h"
+
+const int WINDOW_WIDTH = 1200;
+const int WINDOW_HEIGHT = 800;
 
 //==============================================================================
 TriodeEditor::TriodeEditor(TriodeProcessor& p)
@@ -61,25 +63,14 @@ TriodeEditor::TriodeEditor(TriodeProcessor& p)
     // SCHEMATIC PANEL
     // =====================================================
     schematic = std::make_unique<SchematicPanel>();
-
-    // // Build the common-cathode triode stage
     buildCommonCathodeStage(*schematic);
-
-    // Wire each schematic element's onValueChanged callback -> processor
-    for (auto& elem : schematic->getElements())
-    {
-        auto name = elem->getName();
-
-        elem->onValueChanged =[this, name](float value){
-                audioProcessor.updateWDFcircuit(name, value);};
-    }
-
-    addAndMakeVisible(schematic.get());
+    schematic->setVisible (true);
+    addAndMakeVisible (schematic.get());
 
     // =====================================================
     // SIZE
     // =====================================================
-    setSize(700, 520);
+    setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
 }
 
 TriodeEditor::~TriodeEditor() = default;

@@ -123,3 +123,30 @@ for i in range(2):
         axij.set_ylim(0, sample_rate / 2)
 
 fig.show()
+
+
+
+
+p0 = np.array([100,350])
+p1= np.array([200,350])
+
+d_line = p1-p0
+
+length = np.linalg.norm(d_line)
+
+
+zigzagAmp = 10
+zigzagLength = 40
+zigzagCount = 6
+
+a = p0 + d_line*(length-zigzagLength)/(2*length)
+b = p1 - d_line*(length-zigzagLength)/(2*length)
+
+d_perp = d_line[::-1]/length * zigzagAmp
+
+
+fig.show()
+fig, ax = plt.subplots(1,1, figsize=(15,10), layout="constrained")
+ax.plot(p0[0],p0[1], "o")
+ax.plot(p1[0],p1[1], "o")
+fig.show()
