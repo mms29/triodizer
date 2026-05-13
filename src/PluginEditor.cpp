@@ -66,6 +66,7 @@ TriodeEditor::TriodeEditor(TriodeProcessor& p)
     buildCommonCathodeStage(*schematic);
     schematic->setVisible (true);
     addAndMakeVisible (schematic.get());
+    
 
     // =====================================================
     // SIZE

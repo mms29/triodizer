@@ -5,7 +5,7 @@
 
     
 const float STROKE_NORMAL = 2.0f;
-const float STROKE_HIGHLIGHT = 3.0f;
+const float STROKE_HIGHLIGHT = 4.0f;
 
 struct ValueChoice
 {
