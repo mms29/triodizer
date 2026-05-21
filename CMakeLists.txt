@@ -22,7 +22,9 @@ juce_add_plugin(TriodePlugin
 target_sources(TriodePlugin PRIVATE
     src/PluginProcessor.cpp
     src/PluginEditor.cpp
+    src/WaveformDisplay.cpp
     src/SchematicElement.cpp
+    src/VoltmeterElement.cpp
     src/TwoTermElement.cpp
     src/TriodeElement.cpp
     src/SchematicPanel.cpp

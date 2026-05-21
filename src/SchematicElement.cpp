@@ -21,18 +21,25 @@ std::vector<ValueChoice> SchematicElement::getParameters() const{ return paramet
 
 void SchematicElement::setHighlighted (bool should) noexcept { highlighted = should; }
 
+void SchematicElement::setMonitorValue (float v) noexcept   { displayVoltage = v; }
+float SchematicElement::getMonitorValue() const noexcept    { return displayVoltage; }
+void SchematicElement::enableMonitor (bool en) noexcept     { monitorEnabled = en; }
+bool SchematicElement::isMonitorEnabled() const noexcept    { return monitorEnabled; }
+
 juce::String SchematicElement::getParamLabel() const
 {
-    if (parameters.size() > paramIndex){
+    if (parameters.size() > (size_t)paramIndex){
         return parameters[paramIndex].label;
     }
+    return {};
 }
 
 float SchematicElement::getParamValue() const
 {
-    if (parameters.size() >paramIndex){
+    if (parameters.size() > (size_t)paramIndex){
         return parameters[paramIndex].value;
     }
+    return 0.0f;
 }
 
 const std::vector<Terminal>& SchematicElement::getTerminals() const noexcept
@@ -40,7 +47,7 @@ const std::vector<Terminal>& SchematicElement::getTerminals() const noexcept
     return terminals;
 }
 
-bool SchematicElement::hitTest (juce::Point<float> point) const noexcept
+bool SchematicElement::hitTest (juce::Point<float> point) const
 {
     for (const auto& terminal : terminals)
         if (terminal.getDistanceFrom (point) < 12.0f)

@@ -92,6 +92,7 @@ public:
         // --- Grid Current ---
         err_k = ak - Vk;
         int ping = 0;
+        if (ping == maxPingPongIters) return;
         do{
 
             // --- Calculate Vg ---
@@ -292,13 +293,13 @@ private:
     // to monitor iterations
     int VgIters, VkIters, PPIters;
 
-    static constexpr T epsVgVk = (T) 1.0e-6;
+    static constexpr T epsVgVk = (T) 1.0e-5;
     static constexpr T eps = (T) 1.0e-9;
 
     static constexpr int maxVkIters = 5;
     static constexpr int maxVgIters = 5;
 
-    static constexpr int maxPingPongIters = 5;
+    static constexpr int maxPingPongIters = 0;
 };
 
 #endif // TRIODEWDF_H_INCLUDED

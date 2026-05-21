@@ -1,10 +1,12 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
+
+
 //==============================================================================
 TriodeProcessor::TriodeProcessor()
     : AudioProcessor(BusesProperties().withInput("Input", juce::AudioChannelSet::stereo())
-                                     .withOutput("Output", juce::AudioChannelSet::stereo())),
+                             .withOutput("Output", juce::AudioChannelSet::stereo())),
         parameters(*this, nullptr,
             juce::Identifier("TriodeParameters"),
             {
@@ -30,7 +32,7 @@ TriodeProcessor::TriodeProcessor()
                         "4x",
                         "8x"
                     },
-                    0) 
+                    0)
             })
 {
 }
@@ -61,6 +63,7 @@ void TriodeProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     juce::ScopedNoDenormals noDenormals;
 
     const int numChannels = getTotalNumInputChannels();
+    const int numSamples = buffer.getNumSamples();
 
     // In case user changed oversampling factor
     updateOversampler();
@@ -71,6 +74,15 @@ void TriodeProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
     float drive_G = juce::Decibels::decibelsToGain(drive_dB);
     float gain_G  = juce::Decibels::decibelsToGain(gain_dB);
+
+    if (numChannels >= 1 && numSamples > 0)
+    {
+        auto* channelData = buffer.getReadPointer(0);
+        for (int i = 0; i < buffer.getNumSamples(); ++i)
+        {
+            waveformInputBuffer.push(channelData[i]);
+        }
+    }
 
     // Convert AudioBuffer -> AudioBlock
     juce::dsp::AudioBlock<float> block(buffer);
@@ -96,16 +108,25 @@ void TriodeProcessor::processBlock(juce::AudioBuffer<float>& buffer,
             // Output gain
             samples[i] = (float) (Vout * (double) gain_G);
         }
+
     }
 
     // DOWNSAMPLE BACK INTO ORIGINAL BUFFER
     oversampler->processSamplesDown(block);
+
+    // Capture output samples for waveform display
+    if (numChannels >= 1 && numSamples > 0)
+    {
+        auto* channelData = buffer.getReadPointer(0);
+        for (int i = 0; i < buffer.getNumSamples(); ++i)
+        {
+            waveformOutputBuffer.push(channelData[i]);
+        }
+    }
 }
 
 
 void TriodeProcessor::updateWDFcircuit(juce::String paramName, float value){
-
-    std::cout << "Change parameter "<< paramName << " to "<< value<< std::endl; 
 
     for (int ch = 0; ch < 2; ++ch){
         if      (paramName == "Ri") triode[ch].setRi(value);
@@ -115,7 +136,7 @@ void TriodeProcessor::updateWDFcircuit(juce::String paramName, float value){
         else if (paramName == "Rk") triode[ch].setRk(value);
         else if (paramName == "Ck") triode[ch].setCk(value);
 
-        else if (paramName == "E")  triode[ch].setE(value);
+        else if (paramName == "B+")  triode[ch].setE(value);
         else if (paramName == "Rp") triode[ch].setRp(value);
 
         else if (paramName == "Co") triode[ch].setCo(value);
@@ -149,8 +170,6 @@ void TriodeProcessor::updateOversampler()
     oversampler->initProcessing((size_t) blockSize);
 
     oversampler->reset();
-
-    // std::cout << "Oversampling updated: " << (1 << stages) << "x" << std::endl;
 }
 //==============================================================================
 juce::AudioProcessorEditor* TriodeProcessor::createEditor()

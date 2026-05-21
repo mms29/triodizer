@@ -38,6 +38,15 @@ void SchematicPanel::clear()
     wires.clear();
 }
 
+void SchematicPanel::setMonitorVoltage (const juce::String& elementName, float voltage)
+{
+    if (auto* elem = getElement (elementName))
+    {
+        elem->setMonitorValue (voltage);
+        repaint();
+    }
+}
+
 //==============================================================================
 void SchematicPanel::paint (juce::Graphics& g)
 {
@@ -139,6 +148,14 @@ void SchematicPanel::showPopupMenuForElement (SchematicElement* element,
                 {
                     element->setValueIndex (static_cast<int> (chosenIndex));
                     repaint();
+
+                    // Notify listener (e.g. PluginEditor) to update the DSP
+                    if (listener != nullptr)
+                    {
+                        float newValue = element->getParamValue();
+                        listener->schematicParameterChanged (element->getName(),
+                                                             newValue);
+                    }
                 }
             }
         });
@@ -178,9 +195,11 @@ void buildCommonCathodeStage(SchematicPanel& schematic)
 
     schematic.addElement (std::make_unique<CapacitorElement> (
         "Ci",
-        0,
+        2,
         std::vector<ValueChoice>
         {
+            { 22.0e-9f, "22nF" },
+            { 47.0e-9f, "47nF" },
             { 100.0e-9f, "100nF" },
         },
         std::vector<Terminal>
@@ -191,9 +210,10 @@ void buildCommonCathodeStage(SchematicPanel& schematic)
     ));
     schematic.addElement (std::make_unique<ResistorElement> (
         "Ri",
-        1,
+        2,
         std::vector<ValueChoice>
         {
+            { 0.22e6f, "220K" },
             { 0.47e6f, "470k" },
             { 1.0e6f,  "1M" },
             { 2.2e6f,  "2.2M" },
@@ -209,13 +229,16 @@ void buildCommonCathodeStage(SchematicPanel& schematic)
 
     schematic.addElement (std::make_unique<ResistorElement> (
         "Rk",
-        1,
+        2,
         std::vector<ValueChoice>
         {
             { 820.0f, "820R" },
             { 1.0e3f, "1k" },
             { 1.5e3f,  "1.5k" },
             { 2.2e3f,  "2.2k" },
+            { 4.7e3f,  "4.7k" },
+            { 6.8e3f,  "6.8k" },
+            { 10e3f,   "10k" },
         },
         std::vector<Terminal>
         {
@@ -225,10 +248,13 @@ void buildCommonCathodeStage(SchematicPanel& schematic)
     ));
     schematic.addElement (std::make_unique<CapacitorElement> (
         "Ck",
-        0,
+        2,
         std::vector<ValueChoice>
         {
+            { 4.7e-6f, "4.7uF" },
             { 10e-6f, "10uF" },
+            { 22e-6f, "22uF" },
+            { 47e-6f, "47uF" },
         },
         std::vector<Terminal>
         {
@@ -239,10 +265,12 @@ void buildCommonCathodeStage(SchematicPanel& schematic)
 
     schematic.addElement (std::make_unique<ResistorElement> (
         "Rp",
-        0,
+        1,
         std::vector<ValueChoice>
         {
+            { 47e3f, "47k" },
             { 100.0e3f, "100k" },
+            { 220.0e3f, "220K" },
         },
         std::vector<Terminal>
         {
@@ -252,10 +280,12 @@ void buildCommonCathodeStage(SchematicPanel& schematic)
     ));
     schematic.addElement (std::make_unique<CapacitorElement> (
         "Co",
-        0,
+        1,
         std::vector<ValueChoice>
         {
-            { 100e-9f, "100nF" },
+            { 22.0e-9f, "22nF" },
+            { 47.0e-9f, "47nF" },
+            { 100.0e-9f, "100nF" },
         },
         std::vector<Terminal>
         {
@@ -266,10 +296,13 @@ void buildCommonCathodeStage(SchematicPanel& schematic)
 
     schematic.addElement (std::make_unique<ResistorElement> (
         "Ro",
-        0,
+        2,
         std::vector<ValueChoice>
         {
-            { 1.0e6f, "1M" },
+            { 0.22e6f, "220K" },
+            { 0.47e6f, "470k" },
+            { 1.0e6f,  "1M" },
+            { 2.2e6f,  "2.2M" },
         },
         std::vector<Terminal>
         {
@@ -281,7 +314,13 @@ void buildCommonCathodeStage(SchematicPanel& schematic)
 
     //Voltages
     schematic.addElement (std::make_unique<VoltageElement>(
-        "B+", 0, std::vector<ValueChoice>{{ 250, "250V" }},
+        "B+", 0, 
+        std::vector<ValueChoice>{
+            { 250, "250V" },
+            { 275, "275V" },
+            { 300, "300V" },
+            { 325, "325V" },
+        },
         std::vector<Terminal>{schematic.getElement("Rp")->getTerminals()[1]}));
 
     // Grounds
@@ -289,7 +328,22 @@ void buildCommonCathodeStage(SchematicPanel& schematic)
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Rk")->getTerminals()[0]) );
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Ck")->getTerminals()[1]) );
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Ro")->getTerminals()[1]) );
-    
+
+    // Voltmeters (read-only monitor elements)
+    // Grid voltage — near the grid terminal of the triode
+    auto* triodeElem = schematic.getElement ("Triode");
+    jassert (triodeElem != nullptr);
+    const auto& triodeTerminals = triodeElem->getTerminals();
+
+    // Plate voltage — near the plate terminal
+    schematic.addElement (std::make_unique<VoltmeterElement> (
+        "Vp", triodeTerminals[1] + Terminal { -50.0f, 0.0f} ));
+
+    // Cathode voltage — near the cathode terminal
+    schematic.addElement (std::make_unique<VoltmeterElement> (
+        "Vk", triodeTerminals[2] + Terminal { -50.0f, 0.0f} ));
+
+
     // Wires
     schematic.addElement (std::make_unique<JunctionElement>(schematic.getElement("Ci")->getTerminals()[0]) );
     schematic.addElement (std::make_unique<JunctionElement>(
@@ -301,5 +355,13 @@ void buildCommonCathodeStage(SchematicPanel& schematic)
     schematic.addWire (
         schematic.getElement("Co")->getTerminals()[1],
         schematic.getElement("Co")->getTerminals()[1] + Terminal { 50.0f, 0.0f}
+    );
+    schematic.addWire (
+         triodeTerminals[2] ,
+          triodeTerminals[2] + Terminal { -50.0f, 0.0f}
+    );
+    schematic.addWire (
+         triodeTerminals[1] ,
+          triodeTerminals[1] + Terminal { -50.0f, 0.0f}
     );
 }

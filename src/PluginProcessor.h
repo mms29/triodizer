@@ -4,6 +4,31 @@
 #include "TriodeGainStage.h"
 #include <juce_dsp/juce_dsp.h>
 
+class WaveformBuffer
+{
+public:
+    void push(float sample)
+    {
+        buffer[writeIndex] = sample;
+        writeIndex = (writeIndex + 1) & (size - 1);
+    }
+
+    void getLastBlock(float* dest, int numSamples) const
+    {
+        auto idx = writeIndex.load(std::memory_order_relaxed);
+        for (int i = 0; i < numSamples; ++i)
+        {
+            idx = (idx + size - 1) & (size - 1);
+            dest[numSamples - 1 - i] = buffer[idx];
+        }
+    }
+
+private:
+    static constexpr int size = 8192; // MUST be power of 2
+    float buffer[size] {};
+    std::atomic<int> writeIndex { 0 };
+};
+
 class TriodeProcessor : public juce::AudioProcessor
 {
 public:
@@ -39,7 +64,22 @@ public:
 
     void updateWDFcircuit(juce::String paramName, float value);
 
+    // DSP monitor accessors (called from the message thread by the editor timer)
+    float getPlateVoltage  (int ch = 0) const  { return triode[ch].getTriodeVp();   }
+    float getGridVoltage   (int ch = 0) const  { return triode[ch].getTriodeVg();    }
+    float getCathodeVoltage(int ch = 0) const  { return triode[ch].getTriodeVk(); }
+    float getPlateCurrent  (int ch = 0) const  { return triode[ch].getPlateCurrent();   }
+
     juce::AudioProcessorValueTreeState parameters;
+
+    const WaveformBuffer& getWaveformInputBuffer() const noexcept
+    {
+        return waveformInputBuffer;
+    }
+    const WaveformBuffer& getWaveformOutputBuffer() const noexcept
+    {
+        return waveformOutputBuffer;
+    }
 
 private:
     TriodeGainStage triode[2];  // one per channel
@@ -47,8 +87,14 @@ private:
     int blockSize = 512;
     int oversamplingStages = -1;
 
+    // Waveform ring buffer for continuous display
+    WaveformBuffer waveformInputBuffer;
+    WaveformBuffer waveformOutputBuffer;
+
     // Oversampling
     std::unique_ptr<juce::dsp::Oversampling<float>> oversampler;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TriodeProcessor)
 };
+
+

@@ -3,9 +3,14 @@
 const int WINDOW_WIDTH = 1200;
 const int WINDOW_HEIGHT = 800;
 
+
+
 //==============================================================================
 TriodeEditor::TriodeEditor(TriodeProcessor& p)
-    : AudioProcessorEditor(&p), audioProcessor(p)
+    : AudioProcessorEditor(&p), audioProcessor(p),     
+    waveformTimer([this] { waveformTimerCallback(); }, 20),
+    schematicTimer([this] { triodeTimerCallback(); }, 1),
+    waveformDisplay(p)
 {
     // =====================================================
     // DRIVE
@@ -66,6 +71,15 @@ TriodeEditor::TriodeEditor(TriodeProcessor& p)
     buildCommonCathodeStage(*schematic);
     schematic->setVisible (true);
     addAndMakeVisible (schematic.get());
+    schematic->setListener (this);
+
+    // =====================================================
+    // WAVEFORM DISPLAY
+    // =====================================================
+    waveformDisplay.setBackgroundColour (juce::Colours::black);
+    waveformDisplay.setWaveformColour (juce::Colours::cyan);
+    waveformDisplay.setAmplitudeScale (1000.0f);
+    addAndMakeVisible (waveformDisplay);
     
 
     // =====================================================
@@ -77,6 +91,28 @@ TriodeEditor::TriodeEditor(TriodeProcessor& p)
 TriodeEditor::~TriodeEditor() = default;
 
 //==============================================================================
+
+void TriodeEditor::triodeTimerCallback()
+{
+    // Read DSP state (audio-thread writes, message-thread reads — safe for floats)
+    constexpr int ch = 0;
+    schematic->setMonitorVoltage ("Vp", audioProcessor.getPlateVoltage  (ch));
+    schematic->setMonitorVoltage ("Vg", audioProcessor.getGridVoltage   (ch));
+    schematic->setMonitorVoltage ("Vk", audioProcessor.getCathodeVoltage(ch));
+}
+
+void TriodeEditor::waveformTimerCallback()
+{
+    waveformDisplay.repaint();
+}
+
+//==============================================================================
+void TriodeEditor::schematicParameterChanged (const juce::String& paramName,
+                                               float newValue)
+{
+    audioProcessor.updateWDFcircuit (paramName, newValue);
+}
+
 void TriodeEditor::paint(juce::Graphics& g)
 {
     g.fillAll(juce::Colours::darkgrey);
@@ -86,7 +122,10 @@ void TriodeEditor::resized()
 {
     auto area = getLocalBounds().reduced(4);
 
-    // Schematic takes most of the space
+    // Waveform display at top
+    waveformDisplay.setBounds(area.removeFromTop(120));
+
+    // Schematic takes remaining space
     schematic->setBounds(area.removeFromTop(area.getHeight() - 100));
 
     // Bottom strip for drive / gain / oversample controls

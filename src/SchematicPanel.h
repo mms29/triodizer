@@ -4,6 +4,7 @@
 #include "SchematicElement.h"
 #include "TriodeElement.h"
 #include "TwoTermElement.h"
+#include "VoltmeterElement.h"
 //==============================================================================
 /**
  * A single wire connecting two terminal positions on the schematic.
@@ -15,6 +16,18 @@ struct Wire
 
     juce::Point<float> start;
     juce::Point<float> end;
+};
+
+//==============================================================================
+/** Listener interface for forwarding schematic parameter changes to the DSP. */
+class SchematicPanel;
+
+class SchematicPanelListener
+{
+public:
+    virtual ~SchematicPanelListener() = default;
+    virtual void schematicParameterChanged (const juce::String& paramName,
+                                            float newValue) = 0;
 };
 
 //==============================================================================
@@ -40,6 +53,11 @@ public:
 
     void clear();
 
+    void setListener (SchematicPanelListener* l) noexcept { listener = l; }
+
+    // Monitor / voltmeter interface
+    void setMonitorVoltage (const juce::String& elementName, float voltage);
+
     //==========================================================================
     void paint (juce::Graphics& g) override;
     void resized() override;
@@ -56,6 +74,7 @@ private:
     std::vector<std::unique_ptr<SchematicElement>> elements;
     std::vector<Wire>                              wires;
     SchematicElement*                              hoveredElement = nullptr;
+    SchematicPanelListener*                        listener       = nullptr;
 };
 
 

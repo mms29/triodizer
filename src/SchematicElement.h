@@ -38,20 +38,28 @@ public:
 
     virtual void draw (juce::Graphics& g) const = 0;
 
-    bool hitTest (juce::Point<float> point) const noexcept;
+    virtual bool hitTest (juce::Point<float> point) const;
 
     bool isHighlighted() const noexcept;
     void setHighlighted (bool shouldBeHighlighted) noexcept;
 
     void drawLabel(juce::Graphics& g, Terminal center) const noexcept;
 
+    // Monitor / voltmeter support
+    void  setMonitorValue (float v) noexcept;
+    float getMonitorValue() const noexcept;
+    void  enableMonitor (bool shouldEnable) noexcept;
+    bool  isMonitorEnabled() const noexcept;
+
 protected:
-    bool                               highlighted  = false;
+    bool                               highlighted      = false;
     mutable juce::Rectangle<float>     cachedBounds;
     juce::String                       name;
-    int                                paramIndex   = 0;
+    int                                paramIndex       = 0;
     std::vector<Terminal>              terminals;
     std::vector<ValueChoice>           parameters;
+    float                              displayVoltage   = 0.0f;
+    bool                               monitorEnabled   = false;
 
 };
 
@@ -60,7 +68,6 @@ class GroundElement : public SchematicElement
 public:
     GroundElement (Terminal termPosition);
     void draw (juce::Graphics& g) const override;
-    bool hitTest (juce::Point<float> point) const;
 };
 
 class JunctionElement : public SchematicElement
@@ -75,5 +82,4 @@ class VoltageElement : public SchematicElement
 public:
     using SchematicElement::SchematicElement;
     void draw (juce::Graphics& g) const override;
-    bool hitTest (juce::Point<float> point) const;
 };

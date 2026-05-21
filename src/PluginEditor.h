@@ -4,8 +4,27 @@
 #include "PluginProcessor.h"
 #include "SchematicPanel.h"
 #include "TriodeGainStage.h"
+#include "WaveformDisplay.h"
 
-class TriodeEditor : public juce::AudioProcessorEditor
+
+class CallbackTimer : public juce::Timer
+{
+public:
+    using Callback = std::function<void()>;
+    CallbackTimer(Callback cb, int hz): callback(std::move(cb)){
+        startTimerHz(hz);
+    }
+
+    void timerCallback() override
+    {
+        if (callback)callback();
+    }
+private:
+    Callback callback;
+};
+
+class TriodeEditor : public juce::AudioProcessorEditor,
+                     private SchematicPanelListener
 {
 public:
     TriodeEditor(TriodeProcessor&);
@@ -14,8 +33,21 @@ public:
     void paint(juce::Graphics&) override;
     void resized() override;
 
+    void triodeTimerCallback();
+    void waveformTimerCallback();
+
+    // SchematicPanel::Listener
+    void schematicParameterChanged (const juce::String& paramName,
+                                    float newValue) override;
+
 private:
     TriodeProcessor& audioProcessor;
+    int timerCount = 0;
+
+    // Waveform display for input/output comparison
+    WaveformDisplay waveformDisplay;
+    CallbackTimer waveformTimer;
+    CallbackTimer schematicTimer;
 
     // Schematic panel — the interactive circuit
     std::unique_ptr<SchematicPanel> schematic;
@@ -36,5 +68,4 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TriodeEditor)
 };
-
 
