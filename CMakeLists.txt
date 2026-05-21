@@ -6,8 +6,8 @@ add_subdirectory(juce)
 
 # Create the plugin target
 juce_add_plugin(TriodePlugin
-    COMPANY_NAME "YourName"
-    PLUGIN_MANUFACTURER_CODE "YrNm"
+    COMPANY_NAME "VuilzLab"
+    PLUGIN_MANUFACTURER_CODE "VzLb"
     PLUGIN_CODE "Trd1"
     FORMATS VST3 AU Standalone
     ProductName "Triode"
@@ -20,14 +20,14 @@ juce_add_plugin(TriodePlugin
 
 # Add source files
 target_sources(TriodePlugin PRIVATE
-    src/PluginProcessor.cpp
-    src/PluginEditor.cpp
-    src/WaveformDisplay.cpp
-    src/SchematicElement.cpp
-    src/VoltmeterElement.cpp
-    src/TwoTermElement.cpp
-    src/TriodeElement.cpp
-    src/SchematicPanel.cpp
+    src/plugin/PluginProcessor.cpp
+    src/plugin/PluginEditor.cpp
+    src/gui/WaveformDisplay.cpp
+    src/gui/SchematicElement.cpp
+    src/gui/VoltmeterElement.cpp
+    src/gui/TwoTermElement.cpp
+    src/gui/TriodeElement.cpp
+    src/gui/SchematicPanel.cpp
 )
 
 # Link JUCE modules
@@ -39,7 +39,8 @@ target_link_libraries(TriodePlugin PRIVATE
 # chowdsp_wdf include path (header-only library)
 target_include_directories(TriodePlugin PRIVATE
     ${CMAKE_SOURCE_DIR}/chowdsp_wdf/include
-)
+    src
+    )
 
 # C++ standard
 target_compile_features(TriodePlugin PRIVATE cxx_std_17)
