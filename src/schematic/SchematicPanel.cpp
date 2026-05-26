@@ -1,9 +1,8 @@
 #include "schematic/SchematicPanel.h"
 
 //==============================================================================
-SchematicPanel::SchematicPanel()
+SchematicPanel::SchematicPanel(SchematicPanelListener* l) : listener(l)
 {
-    setName ("SchematicPanel");
     setInterceptsMouseClicks (true, true);
 }
 
@@ -11,6 +10,19 @@ void SchematicPanel::addElement (std::unique_ptr<SchematicElement> element)
 {
     jassert (element != nullptr);
     elements.push_back (std::move (element));
+    
+    if (element->isControlable())
+    {
+        std::unique_ptr<Knob> driveKnob = std::make_unique<Knob>(
+            [this](float value) {return;},
+            element->getName(),
+            0.0f,
+            100.0f,
+            1.0f,
+            " %");
+
+        // controls.push_back (std::move (driveKnob));
+    }
 }
 
 void SchematicPanel::addWire (juce::Point<float> start, juce::Point<float> end)
@@ -30,12 +42,6 @@ SchematicElement* SchematicPanel::getElement (juce::String name) const noexcept
             return element.get();
 
     return nullptr;
-}
-
-void SchematicPanel::clear()
-{
-    elements.clear();
-    wires.clear();
 }
 
 void SchematicPanel::setMonitorVoltage (const juce::String& elementName, float voltage)
@@ -165,12 +171,6 @@ void SchematicPanel::showPopupMenuForElement (SchematicElement* element,
 }
 
 
-
-//==============================================================================
-void SchematicPanel::updateElemKnob (SchematicElement* element)
-{   
-
-}
 
 void buildCommonCathodeStage(SchematicPanel& schematic)
 {

@@ -10,10 +10,9 @@ TriodeEditor::TriodeEditor(TriodeProcessor& p)
     // =====================================================
     // SCHEMATIC PANEL
     // =====================================================
-    schematic = std::make_unique<SchematicPanel>();
+    schematic = std::make_unique<SchematicPanel>(this);
     buildCommonCathodeStage(*schematic);
     addAndMakeVisible (*schematic);
-    schematic->setListener(this);
 
     // =====================================================
     // WAVEFORM DISPLAY

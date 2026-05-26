@@ -5,6 +5,7 @@
 #include "schematic/TriodeElement.h"
 #include "schematic/TwoTermElement.h"
 #include "schematic/OneTermElement.h"
+#include "gui/Knob.h"
 //==============================================================================
 /**
  * A single wire connecting two terminal positions on the schematic.
@@ -42,16 +43,12 @@ class SchematicPanel : public juce::Component,
                         private juce::PopupMenu::Options
 {
 public:
-    SchematicPanel();
+    SchematicPanel(SchematicPanelListener* l);
     ~SchematicPanel() override = default;
     void addElement (std::unique_ptr<SchematicElement> element);
     void addWire (juce::Point<float> start, juce::Point<float> end);
     int getNumElements() const noexcept;
     SchematicElement* getElement (juce::String name) const noexcept;
-
-    void clear();
-
-    void setListener (SchematicPanelListener* l) noexcept { listener = l; }
 
     // Monitor / voltmeter interface
     void setMonitorVoltage (const juce::String& elementName, float voltage);
@@ -70,9 +67,10 @@ private:
 
     //==========================================================================
     std::vector<std::unique_ptr<SchematicElement>> elements;
+    std::vector<std::unique_ptr<Knob>>             controls; 
     std::vector<Wire>                              wires;
+    SchematicPanelListener*                        listener;
     SchematicElement*                              hoveredElement = nullptr;
-    SchematicPanelListener*                        listener       = nullptr;
 };
 
 

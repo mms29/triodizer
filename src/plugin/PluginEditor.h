@@ -44,7 +44,7 @@ private:
 };
 
 class TriodeEditor : public juce::AudioProcessorEditor,
-                     private SchematicPanelListener
+                     public SchematicPanelListener
 {
 public:
     TriodeEditor(TriodeProcessor&);
