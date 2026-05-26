@@ -23,11 +23,12 @@ target_sources(TriodePlugin PRIVATE
     src/plugin/PluginProcessor.cpp
     src/plugin/PluginEditor.cpp
     src/gui/WaveformDisplay.cpp
-    src/gui/SchematicElement.cpp
-    src/gui/VoltmeterElement.cpp
-    src/gui/TwoTermElement.cpp
-    src/gui/TriodeElement.cpp
-    src/gui/SchematicPanel.cpp
+    src/gui/Knob.cpp
+    src/schematic/SchematicElement.cpp
+    src/schematic/TwoTermElement.cpp
+    src/schematic/OneTermElement.cpp
+    src/schematic/TriodeElement.cpp
+    src/schematic/SchematicPanel.cpp
 )
 
 # Link JUCE modules

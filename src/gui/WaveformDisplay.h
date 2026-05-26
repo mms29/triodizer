@@ -1,0 +1,26 @@
+#pragma once
+
+#include <juce_gui_basics/juce_gui_basics.h>
+#include "plugin/PluginProcessor.h"
+
+class WaveformDisplay : public juce::Component
+{
+public:
+    WaveformDisplay (TriodeProcessor& p) : processor (p) {}
+    void paint (juce::Graphics& g) override;
+
+    void setWaveformColour (juce::Colour c) { waveformColour = c; }
+    void setBackgroundColour (juce::Colour c) { backgroundColour = c; }
+    void setAmplitudeScale (float scale) { amplitudeScale = scale; }
+
+private:
+    TriodeProcessor& processor;
+
+    static constexpr int displaySize = 1024;
+    std::array<float, displaySize> inputBuffer {};
+    std::array<float, displaySize> outputBuffer {};
+
+    juce::Colour waveformColour { juce::Colours::white };
+    juce::Colour backgroundColour { juce::Colours::black };
+    float amplitudeScale = 100.0f;
+};
