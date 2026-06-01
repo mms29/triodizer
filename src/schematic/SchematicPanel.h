@@ -19,15 +19,6 @@ struct Wire
     juce::Point<float> end;
 };
 
-//==============================================================================
-/** Listener interface for forwarding schematic parameter changes to the DSP. */
-
-class SchematicPanelListener
-{
-public:
-    virtual ~SchematicPanelListener() = default;
-    virtual void schematicParameterChanged (const juce::String& paramName, float newValue) = 0;
-};
 
 //==============================================================================
 /**
@@ -45,14 +36,17 @@ class SchematicPanel : public juce::Component,
 public:
     SchematicPanel(SchematicPanelListener* l);
     ~SchematicPanel() override = default;
+
+    void clear();
+    void syncSchematicToCircuit();
+
     void addElement (std::unique_ptr<SchematicElement> element);
     void addWire (juce::Point<float> start, juce::Point<float> end);
     int getNumElements() const noexcept;
     SchematicElement* getElement (juce::String name) const noexcept;
 
     // Monitor / voltmeter interface
-    void setMonitorVoltage (const juce::String& elementName, float voltage);
-
+    void updateMonitoring ();
     //==========================================================================
     void paint (juce::Graphics& g) override;
     void resized() override;
@@ -74,4 +68,7 @@ private:
 };
 
 
+void buildDefault(SchematicPanel& schematic);
 void buildCommonCathodeStage(SchematicPanel& schematic);
+void buildBassmanToneStack(SchematicPanel& schematic);
+void buildBassmanPreamp(SchematicPanel& schematic);

@@ -44,7 +44,8 @@ private:
 };
 
 class TriodeEditor : public juce::AudioProcessorEditor,
-                     public SchematicPanelListener
+                     public SchematicPanelListener,
+                     public juce::ChangeListener
 {
 public:
     TriodeEditor(TriodeProcessor&);
@@ -52,12 +53,25 @@ public:
 
     void paint(juce::Graphics&) override;
     void resized() override;
+    
+    void updateSchematic();
+    void changeListenerCallback(juce::ChangeBroadcaster*) override;
 
     void triodeTimerCallback();
     void waveformTimerCallback();
 
     // SchematicPanel::Listener
-    void schematicParameterChanged (const juce::String& paramName, float newValue) override;
+    void setCircuitParam (const int index, float newValue) override{
+        audioProcessor.setCircuitParam (index, newValue);}
+    void setCircuitControl (const int index, float newValue) override{
+        audioProcessor.setCircuitControl (index, newValue);}
+    float getCircuitMonitoring(const int index) override{
+         return audioProcessor.getCircuitMonitoring (index);}
+    float getCircuitParam(const int index) override{
+         return audioProcessor.getCircuitParam (index);}
+    float getCircuitControl(const int index) override{
+         return audioProcessor.getCircuitControl (index);}
+
 
 private:
     TriodeProcessor& audioProcessor;
@@ -79,6 +93,11 @@ private:
     juce::Label oversampleLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment>
         oversampleAttachment;
+
+    juce::ComboBox presetSelector;
+    juce::Label presetLabel;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment>
+        presetAttachment;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TriodeEditor)
 };

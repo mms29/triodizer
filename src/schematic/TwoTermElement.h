@@ -1,10 +1,18 @@
 #pragma once
 #include "schematic/SchematicElement.h"
 
-class ResistorElement : public SchematicElement
+class ResistorElement : public SchematicElement, public ParametrableElement
 {
 public:
-    using SchematicElement::SchematicElement;
+    ResistorElement(const juce::String& name,
+                    std::vector<Terminal> terminals,
+                    const int paramIndex,
+                    int choiceIndex,
+                    std::vector<ValueChoice> choices): 
+        
+        SchematicElement(name, terminals),
+        ParametrableElement(paramIndex, choiceIndex, choices)
+        {};
     void draw (juce::Graphics& g) const override;
 
 private:
@@ -15,10 +23,18 @@ private:
 };
 
 
-class CapacitorElement : public SchematicElement
+class CapacitorElement : public SchematicElement, public ParametrableElement
 {
 public:
-    using SchematicElement::SchematicElement;
+    CapacitorElement(const juce::String& name,
+                    std::vector<Terminal> terminals,
+                    const int paramIndex,
+                    int choiceIndex,
+                    std::vector<ValueChoice> choices): 
+        
+        SchematicElement(name, terminals),
+        ParametrableElement(paramIndex, choiceIndex, choices)
+        {};
     void draw (juce::Graphics& g) const override;
 private:
     //==========================================================================

@@ -3,7 +3,14 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_dsp/juce_dsp.h>
 
-#include "dsp/TriodeGainStage.h"
+#include "dsp/Circuit.h"
+#include "dsp/BassmanPreamp.h"
+
+
+const int PRESET_DEFAULT = 1;
+const int PRESET_COMMONCATHODE = 2;
+const int PRESET_BASSMAN_TS = 3;
+const int PRESET_BASSMAN_PREAMP = 4;
 
 class WaveformBuffer
 {
@@ -30,7 +37,8 @@ private:
     std::atomic<int> writeIndex { 0 };
 };
 
-class TriodeProcessor : public juce::AudioProcessor
+class TriodeProcessor : public juce::AudioProcessor,
+                        public juce::ChangeBroadcaster
 {
 public:
     TriodeProcessor();
@@ -45,6 +53,10 @@ public:
 
     void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
     void updateOversampler();
+
+    //PRESET
+    void updatePreset();
+    int getCurrentPreset() const {return currentPreset;}
 
     int getNumPrograms() override;
     int getCurrentProgram() override;
@@ -63,12 +75,22 @@ public:
     void prepareToPlay(double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
 
-    void updateWDFcircuit(juce::String paramName, float value);
 
-    // DSP monitor accessors (called from the message thread by the editor timer)
-    float getPlateVoltage  (int ch = 0) const  { return triode[ch].getPlateVoltage();   }
-    float getCathodeVoltage(int ch = 0) const  { return triode[ch].getCathodeVoltage(); }
-    // float getGain(int ch = 0) const  { return triode[ch].getGain(); }
+    inline float getCircuitMonitoring  (const int index, const int ch = 0) const  { 
+        return circuit[ch]->getMonitoring(index);   
+    }
+    inline float getCircuitParam  (const int index, const int ch = 0) const  { 
+        return circuit[ch]->getParam(index);   
+    }
+    inline float getCircuitControl  (const int index, const int ch = 0) const  { 
+        return circuit[ch]->getControl(index);   
+    }
+    inline void setCircuitParam(const int index, float value){
+        for (int ch = 0; ch < 2; ++ch) circuit[ch]->setParam(index, value);
+    }
+    inline void setCircuitControl(const int index, float value){
+        for (int ch = 0; ch < 2; ++ch) circuit[ch]->setControl(index, value);
+    }
 
     juce::AudioProcessorValueTreeState parameters;
 
@@ -82,8 +104,9 @@ public:
     }
 
 private:
-    TriodeGainStage triode[2];  // one per channel
+    std::unique_ptr<Circuit> circuit[2];  // one per channel
     double sampleRate = 48000.0;
+    double oversampleRate = 48000.0;
     int blockSize = 512;
     int oversamplingStages = -1;
 
@@ -93,6 +116,9 @@ private:
 
     // Oversampling
     std::unique_ptr<juce::dsp::Oversampling<float>> oversampler;
+
+    // Preset
+    int currentPreset = PRESET_DEFAULT;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TriodeProcessor)
 };

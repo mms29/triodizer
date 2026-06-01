@@ -16,28 +16,38 @@ public:
     void draw (juce::Graphics& g) const override;
 };
 
-class VoltageElement : public SchematicElement
+class VoltageElement : public SchematicElement,
+                            public ParametrableElement
 {
 public:
-    using SchematicElement::SchematicElement;
+    VoltageElement(const juce::String& name,
+                    std::vector<Terminal> terminals,
+                    const int paramIndex,
+                    int choiceIndex,
+                    std::vector<ValueChoice> choices): 
+        
+        SchematicElement(name, terminals),
+        ParametrableElement(paramIndex, choiceIndex, choices)
+        {};
     void draw (juce::Graphics& g) const override;
 };
 
 
-class VoltmeterElement : public SchematicElement
+class VoltmeterElement : 
+    public SchematicElement,
+    public MonitoringElement
 {
 public:
-    VoltmeterElement (const juce::String& name, Terminal center);
-
+    VoltmeterElement(const juce::String& name,
+                    Terminal terminal,
+                    const int monitorIndex): 
+        
+        SchematicElement(name, std::vector<Terminal> {terminal}),
+        MonitoringElement(monitorIndex)
+        {}; 
     void draw (juce::Graphics& g) const override;
     bool hitTest (juce::Point<float> point) const override;
-    // Monitor / voltmeter support
-    void  setMonitorValue (float v) noexcept;
-    float getMonitorValue() const noexcept;
-    void  enableMonitor (bool shouldEnable) noexcept;
-    bool  isMonitorEnabled() const noexcept;
+
 private:
-    float                              displayVoltage   = 0.0f;
-    bool                               monitorEnabled   = false;
     static constexpr float METER_RADIUS = 18.0f;
 };

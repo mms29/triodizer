@@ -32,9 +32,23 @@ TriodeProcessor::TriodeProcessor()
                         "4x",
                         "8x"
                     },
+                    0),
+                std::make_unique<juce::AudioParameterChoice>(
+                    "preset",
+                    "Preset",
+                    juce::StringArray
+                    {
+                        "Default",
+                        "Common Cathode Stage",
+                        "Fender Bassman Tone Stack",
+                        "Fender Bassman Preamp",
+                    },
                     0)
             })
 {
+    for (int ch = 0; ch < 2; ++ch)
+        circuit[ch] = std::make_unique<DefaultCircuit>();    
+    updatePreset();
 }
 
 TriodeProcessor::~TriodeProcessor() = default;
@@ -44,17 +58,13 @@ void TriodeProcessor::prepareToPlay(double sr, int samplesPerBlock)
 {
     sampleRate = sr;
     blockSize = samplesPerBlock;
-
     updateOversampler();
-
-    for (int ch = 0; ch < 2; ++ch)
-        triode[ch].prepare(sampleRate);
 }
 
 void TriodeProcessor::releaseResources()
 {
     for (int ch = 0; ch < 2; ++ch)
-        triode[ch].reset();
+        circuit[ch]->reset();
 }
 
 void TriodeProcessor::processBlock(juce::AudioBuffer<float>& buffer,
@@ -67,6 +77,8 @@ void TriodeProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
     // In case user changed oversampling factor
     updateOversampler();
+
+    updatePreset();
 
     // Read parameters
     float drive_dB = *parameters.getRawParameterValue("drive");
@@ -104,7 +116,7 @@ void TriodeProcessor::processBlock(juce::AudioBuffer<float>& buffer,
             double Vin = (double) samples[i] * (double) drive_G;
 
             // Your nonlinear WDF triode
-            double Vout = triode[ch].processSample(Vin);
+            double Vout = circuit[ch]->processSample(Vin);
 
             // Output gain
             samples[i] = (float) (Vout * (double) gain_G);
@@ -127,12 +139,6 @@ void TriodeProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 }
 
 
-void TriodeProcessor::updateWDFcircuit(juce::String paramName, float value){
-    for (int ch = 0; ch < 2; ++ch){
-        triode[ch].setParam(paramName, value);
-    }
-}
-
 //==============================================================================
 void TriodeProcessor::updateOversampler()
 {
@@ -144,6 +150,8 @@ void TriodeProcessor::updateOversampler()
 
     oversamplingStages = stages;
 
+    oversampleRate = sampleRate* (1 << oversamplingStages);
+
     oversampler = std::make_unique<juce::dsp::Oversampling<float>>(
         getTotalNumInputChannels(),
         stages, // 0=1x,1=2x,2=4x,3=8x
@@ -152,6 +160,52 @@ void TriodeProcessor::updateOversampler()
     oversampler->initProcessing((size_t) blockSize);
 
     oversampler->reset();
+
+
+    for (int ch = 0; ch < 2; ++ch){
+        circuit[ch]->reset();
+        circuit[ch]->prepare(oversampleRate);
+    }
+}
+//==============================================================================
+void TriodeProcessor::updatePreset()
+{
+    int presetChoice = (int) parameters.getRawParameterValue("preset")->load() +1;
+
+    // Avoid rebuilding every block
+    if (currentPreset == presetChoice)
+        return;
+
+    currentPreset = presetChoice; 
+    sendChangeMessage();
+
+    for (int ch = 0; ch < 2; ++ch){
+        switch(presetChoice){
+            case PRESET_COMMONCATHODE: 
+            {
+                circuit[ch] = std::make_unique<TriodeGainStage>();
+                break;
+            }
+            case PRESET_BASSMAN_TS: 
+            {
+                circuit[ch] = std::make_unique<BassmanToneStackCircuit>();
+                break;
+            }
+            case PRESET_BASSMAN_PREAMP: 
+            {
+                circuit[ch] = std::make_unique<BassmanPreampCircuit>();
+                break;
+            }
+            default: 
+            {
+                circuit[ch] = std::make_unique<DefaultCircuit>();
+                break;
+            }
+        }
+        circuit[ch]->prepare(oversampleRate);
+
+    }
+
 }
 //==============================================================================
 juce::AudioProcessorEditor* TriodeProcessor::createEditor()
@@ -169,16 +223,49 @@ void TriodeProcessor::changeProgramName(int, const juce::String&) {}
 //==============================================================================
 void TriodeProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
-    auto state = parameters.copyState();
-    std::unique_ptr<juce::XmlElement> xml(state.createXml());
-    copyXmlToBinary(*xml, destData);
+    std::cout << "Saving audio state ..." << std::endl;
+
+    juce::ValueTree root("PluginState");
+    root.addChild(parameters.copyState(), -1, nullptr);
+    root.addChild(circuit[0]->saveState(), -1, nullptr);
+
+    std::unique_ptr<juce::XmlElement> xml (root.createXml());
+    copyXmlToBinary (*xml, destData);
+
+
+    std::cout << "Done " << std::endl;
+    std::cout << xml->toString().toStdString() << std::endl;
 }
 
 void TriodeProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
-    std::unique_ptr<juce::XmlElement> xml(getXmlFromBinary(data, sizeInBytes));
-    if (xml.get() != nullptr && xml->hasTagName(parameters.state.getType()))
-        parameters.replaceState(juce::ValueTree::fromXml(*xml));
+    std::cout << "Loading audio state ..." << std::endl;
+    std::unique_ptr<juce::XmlElement> xml (getXmlFromBinary (data, sizeInBytes));
+    auto root = juce::ValueTree::fromXml(*xml);
+
+    // Audio parameter state
+    std::cout << "Trying to load " << parameters.state.getType().toString()<<""<< std::endl;
+    auto paramState = root.getChildWithName(parameters.state.getType());
+    if (!paramState.isValid())
+        return;
+
+    parameters.replaceState(paramState);
+    std::cout << "-> Loaded parameter state" << std::endl;
+    std::cout << xml->toString().toStdString() << std::endl;
+
+    auto circuitState = root.getChildWithName("Circuit");
+    if (!circuitState.isValid()){
+        std::cout << "Could not retrieve audio param state" << std::endl;
+        return;
+    }
+
+    updatePreset();
+
+    for (int ch = 0; ch < 2; ++ch)
+        circuit[ch]->loadState(circuitState);
+
+    std::cout << "-> Loaded circuit state" << std::endl;
+
 }
 
 //==============================================================================

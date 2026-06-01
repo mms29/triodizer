@@ -38,7 +38,7 @@ void ResistorElement::draw (juce::Graphics& g) const
     zigzag.lineTo(p1);
 
     // Zigzag line
-    g.setColour (juce::Colours::white);
+    g.setColour (isHighlighted() ? SCHEMATIC_HIGHLIGHT : SCHEMATIC_NORMAL);
     float thickness = isHighlighted() ? STROKE_HIGHLIGHT : STROKE_NORMAL;
     g.strokePath (zigzag, juce::PathStrokeType (thickness));
 
@@ -46,7 +46,7 @@ void ResistorElement::draw (juce::Graphics& g) const
     const float labelOff = -40.0f;
     const juce::Point<float> m = (p0 + p1) * 0.5f;
     const juce::Point<float> l = m + labelOff * v;
-    drawLabel(g, l);
+    drawLabel(g, l, getChoiceLabel());
 
 }
 
@@ -81,7 +81,7 @@ void CapacitorElement::draw (juce::Graphics& g) const
     negativePath.startNewSubPath (p1);
     negativePath.lineTo   (b);
 
-    g.setColour (juce::Colours::white);
+    g.setColour (isHighlighted() ? SCHEMATIC_HIGHLIGHT : SCHEMATIC_NORMAL);
     float thickness = isHighlighted() ? STROKE_HIGHLIGHT : STROKE_NORMAL;
     g.strokePath (leftPlate,  juce::PathStrokeType (thickness));
     g.strokePath (rightPlate, juce::PathStrokeType (thickness));
@@ -92,6 +92,6 @@ void CapacitorElement::draw (juce::Graphics& g) const
     const float labelOff = -42.0f;
     const juce::Point<float> m = (p0 + p1) * 0.5f;
     const juce::Point<float> l = m + labelOff * v;
-    drawLabel(g, l);
+    drawLabel(g, l, getChoiceLabel());
 
 }

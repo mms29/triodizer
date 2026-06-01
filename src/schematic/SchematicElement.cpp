@@ -1,46 +1,8 @@
 #include "schematic/SchematicElement.h"
 
-SchematicElement::SchematicElement (const juce::String& name,
-                                    int paramIndex,
-                                    std::vector<ValueChoice> parameters,
-                                    std::vector<Terminal> terminals)
-    : name (name),
-      paramIndex (paramIndex),
-      parameters (std::move (parameters)),
-      terminals (std::move (terminals))
-{
-}
-
 const juce::String& SchematicElement::getName() const noexcept       { return name; }
-void                SchematicElement::setName (const juce::String& n) { name = n; }
-int                 SchematicElement::getValueIndex() const noexcept  { return paramIndex; }
-void                SchematicElement::setValueIndex (int n) noexcept  { paramIndex = n; }
 bool                SchematicElement::isHighlighted() const noexcept  { return highlighted; }
-bool                SchematicElement::isControlable() const           { return false;}
-
-std::vector<ValueChoice> SchematicElement::getParameters() const{ return parameters; }
-
 void SchematicElement::setHighlighted (bool should) noexcept { highlighted = should; }
-
-juce::String SchematicElement::getParamLabel() const
-{
-    if (parameters.size() > (size_t)paramIndex){
-        return parameters[paramIndex].label;
-    }
-    return {};
-}
-
-float SchematicElement::getParamValue() const
-{
-    if (parameters.size() > (size_t)paramIndex){
-        return parameters[paramIndex].value;
-    }
-    return 0.0f;
-}
-const std::vector<Terminal>& SchematicElement::getTerminals() const noexcept
-{
-    return terminals;
-}
 
 bool SchematicElement::hitTest (juce::Point<float> point) const
 {
@@ -51,7 +13,13 @@ bool SchematicElement::hitTest (juce::Point<float> point) const
         return true;
     return false;
 }
-void SchematicElement::drawLabel(juce::Graphics& g, Terminal center) const noexcept{
+
+const std::vector<Terminal>& SchematicElement::getTerminals() const noexcept
+{
+    return terminals;
+}
+
+void SchematicElement::drawLabel(juce::Graphics& g, Terminal center, juce::String value) const{
     juce::Font font (juce::FontOptions (18.0f));
     if (isHighlighted())
         font = font.boldened();
@@ -65,7 +33,7 @@ void SchematicElement::drawLabel(juce::Graphics& g, Terminal center) const noexc
 
     // Value
     g.setColour (juce::Colours::lightblue);
-    g.drawText (getParamLabel(),
+    g.drawText (value,
                 center.getX() - 40, center.getY() + 2, 80, 18,
                 juce::Justification::centred, true);
 
@@ -73,10 +41,35 @@ void SchematicElement::drawLabel(juce::Graphics& g, Terminal center) const noexc
 }
 
 
+juce::String ParametrableElement::getChoiceLabel() const
+{
+    if (choices.size() > (size_t)choiceIndex){
+        return choices[choiceIndex].label;
+    }
+    return {};
+}
+
+float ParametrableElement::getChoiceValue() const
+{
+    if (choices.size() > (size_t)choiceIndex){
+        return choices[choiceIndex].value;
+    }
+    return 0.0f;
+}
+void PotElement::controlCallback(float value, SchematicPanelListener* listener)
+{
+    if (value <=0.1f) value = 0.1f;
+    if (value >=99.9f) value = 99.9f;
+    listener->setCircuitControl(getControlIndex(), value);
+    controlValue = value;
+    return;
+}
+
+
 void PotElement::draw (juce::Graphics& g) const
 {
     float thickness = isHighlighted() ? STROKE_HIGHLIGHT : STROKE_NORMAL;
-    g.setColour (juce::Colours::white);
+    g.setColour (isHighlighted() ? SCHEMATIC_HIGHLIGHT : SCHEMATIC_NORMAL);
 
     const auto& p0 = terminals[0];
     const auto& p1 = terminals[1];
@@ -94,6 +87,7 @@ void PotElement::draw (juce::Graphics& g) const
 
     const juce::Point<float> a = p0 + d*(length-zigzagLength)/(2*length);
     const juce::Point<float> b = p1 - d*(length-zigzagLength)/(2*length);
+    const juce::Point<float> ab = b-a;
 
     juce::Path zigzag;
     zigzag.startNewSubPath (p0);
@@ -115,14 +109,17 @@ void PotElement::draw (juce::Graphics& g) const
     zigzag.lineTo(p1);
 
     // Zigzag line
+    float ratio = (100.0f-controlValue)/100.0f ;
     g.strokePath (zigzag, juce::PathStrokeType (thickness));
-    g.drawArrow(juce::Line(p0 + d/2 -v*50.0f, p0 + d/2 -v*zigzagAmplitude), thickness, 10.0f, 10.0f);
-    g.drawLine(juce::Line(p0 + d/2 -v*50.0f, p2), thickness);
+    g.drawArrow(juce::Line(p0 + d*0.5f -v*zigzagLength, a + ab*ratio -v*zigzagAmplitude*1.3f), thickness, 10.0f, 10.0f);
+    g.drawLine(juce::Line(p0 + d*0.5f -v*zigzagLength, p2), thickness);
 
     // Labels
     const float labelOff = 40.0f;
     const juce::Point<float> m = (p0 + p1) * 0.5f;
     const juce::Point<float> l = m + labelOff * v;
-    drawLabel(g, l);
+    drawLabel(g, l, getChoiceLabel());
 
 }
+
+
