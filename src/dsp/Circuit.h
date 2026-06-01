@@ -19,7 +19,7 @@ public:
     int getNumControl() const { return (int) controls.size();}
     float getControl(const int index) const {return controls.at(index);}
     float getParam(const int index) const {return params.at(index);}
-    
+
     juce::ValueTree saveState() const
     {
         juce::ValueTree t ("Circuit");
@@ -72,5 +72,5 @@ public:
     void setParam(int, float) override {}
     void setControl(int, float) override {}
 
-    float getMonitoring(int) override{}
+    float getMonitoring(int) override{ return 0.0f;}
 };
