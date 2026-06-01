@@ -1,0 +1,67 @@
+name: Triodizer Plugin CI/CD
+
+on:
+  push:
+  pull_request:
+  release:
+    types: [created]
+
+jobs:
+  macos-build:
+    name: macOS Build (VST3 / AU / Standalone)
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          brew update
+          brew install cmake ninja
+
+      - name: Configure CMake
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build plugin
+        run: |
+          cmake --build build -j
+
+      - name: Locate built plugins
+        run: |
+          echo "Searching for built plugin artifacts..."
+          find build -type f \( -name "*.vst3" -o -name "*.component" -o -name "*.app" \) || true
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Triodizer-macOS-build
+          path: |
+            build/**/*.vst3
+            build/**/*.component
+            build/**/*.app
+
+  release:
+    name: Create GitHub Release
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: macos-build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Triodizer-macOS-build
+
+      - name: Inspect artifacts
+        run: ls -R
+
+      - name: Package plugin
+        run: |
+          zip -r Triodizer-macOS.zip .
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Triodizer-macOS.zip
