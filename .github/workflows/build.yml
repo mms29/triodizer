@@ -18,11 +18,11 @@ jobs:
       - name: Install dependencies
         run: |
           brew update
-          brew install cmake ninja
+          brew install cmake ninja ccache
 
       - name: Configure CMake
         run: |
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
       - name: Build plugin
         run: |

@@ -1,4 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
+set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0" CACHE STRING "" FORCE)
+
 project(TriodePlugin VERSION 1.0.0)
 
 include(FetchContent)
@@ -76,3 +78,4 @@ target_compile_definitions(TriodizerPlugin PRIVATE
 
 # Disable VST2 build globally
 set(JUCE_BUILD_VST2_CLIENT FALSE CACHE BOOL "" FORCE)
+
