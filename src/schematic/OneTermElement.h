@@ -17,19 +17,19 @@ public:
 };
 
 class VoltageElement : public SchematicElement,
-                            public ParametrableElement
+                            public SettableElement
 {
 public:
     VoltageElement(const juce::String& name,
                     std::vector<Terminal> terminals,
-                    const int paramIndex,
-                    int choiceIndex,
-                    std::vector<ValueChoice> choices): 
+                    const int paramIndex): 
         
         SchematicElement(name, terminals),
-        ParametrableElement(paramIndex, choiceIndex, choices)
+        SettableElement(paramIndex)
         {};
     void draw (juce::Graphics& g) const override;
+    juce::String valueToLabel (float v) override;
+    float labelToValue (const juce::String s) override;
 };
 
 

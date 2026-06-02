@@ -1,19 +1,21 @@
 #pragma once
 #include "schematic/SchematicElement.h"
 
-class ResistorElement : public SchematicElement, public ParametrableElement
+class ResistorElement : public SchematicElement, public SettableElement
 {
 public:
     ResistorElement(const juce::String& name,
                     std::vector<Terminal> terminals,
-                    const int paramIndex,
-                    int choiceIndex,
-                    std::vector<ValueChoice> choices): 
+                    const int paramIndex): 
         
         SchematicElement(name, terminals),
-        ParametrableElement(paramIndex, choiceIndex, choices)
+        SettableElement(paramIndex)
         {};
     void draw (juce::Graphics& g) const override;
+
+    juce::String valueToLabel (float v) override;
+    float labelToValue (const juce::String s) override;
+
 
 private:
     //==========================================================================
@@ -23,19 +25,19 @@ private:
 };
 
 
-class CapacitorElement : public SchematicElement, public ParametrableElement
+class CapacitorElement : public SchematicElement, public SettableElement
 {
 public:
     CapacitorElement(const juce::String& name,
                     std::vector<Terminal> terminals,
-                    const int paramIndex,
-                    int choiceIndex,
-                    std::vector<ValueChoice> choices): 
+                    const int paramIndex): 
         
         SchematicElement(name, terminals),
-        ParametrableElement(paramIndex, choiceIndex, choices)
+        SettableElement(paramIndex)
         {};
     void draw (juce::Graphics& g) const override;
+    juce::String valueToLabel (float v) override;
+    float labelToValue (const juce::String s) override;
 private:
     //==========================================================================
     static constexpr int    plateWidth    = 35;

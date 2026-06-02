@@ -153,6 +153,41 @@ private:
     }
 
 };
+
+
+/* 
+------------------------------------------------------------------------------------------------------------------------
+    Settable Element
+------------------------------------------------------------------------------------------------------------------------
+*/
+class SettableElement
+{
+public:
+    SettableElement (const int paramIndex): 
+        paramIndex(paramIndex)
+        {};
+    virtual ~SettableElement() = default;
+
+    // Accessors
+    const int getParamIndex() const {return paramIndex;};
+    void setValue(const float v) {
+        value=v;
+        label = valueToLabel(v);
+    }
+    void setLabel(const juce::String s) {
+        setValue(labelToValue(s));
+    }
+    juce::String getLabel() const {return label;}
+    float getValue() const {return value;}
+
+    virtual float labelToValue(const juce::String s) { return s.getFloatValue();}
+    virtual juce::String valueToLabel(const float v) {return juce::String(v);}
+
+protected:
+    const int paramIndex;
+    juce::String label = "";
+    float value = 0.0f;
+};
 /* 
 ------------------------------------------------------------------------------------------------------------------------
     Monitoring element

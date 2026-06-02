@@ -64,7 +64,12 @@ void SchematicPanel::syncSchematicToCircuit(){
                 }
             }
             ctrlElem->controlCallback(v, listener);
-        }    
+        }   
+        if (auto* setElem = dynamic_cast<SettableElement*>(element.get()))
+        {
+            float v = listener->getCircuitParam(setElem->getParamIndex());
+            setElem->setValue(v);
+        } 
     }
     std::cout << "Done."<< std::endl;
 
@@ -220,6 +225,42 @@ void SchematicPanel::showPopupMenuForElement (SchematicElement* element,
                 }
             });
     }
+    if (auto* setElem = dynamic_cast<SettableElement*>(element) )
+    {
+        auto* window = new juce::AlertWindow (element->getName(),
+                                      "Enter value:",
+                                      juce::AlertWindow::NoIcon);
+
+        window->addTextEditor ("text", setElem->getLabel());
+        auto* editor = window->getTextEditor("text");
+        if (editor != nullptr)
+        {
+            editor->setJustification (juce::Justification::centred);
+        }
+
+        window->addButton ("OK", 1);
+        window->addButton ("Cancel", 0);
+
+        // window->setSize (320, 140); 
+
+        window->enterModalState (
+            true,
+            juce::ModalCallbackFunction::create (
+                [this, window, setElem] (int result)
+                {
+                    if (result == 1)
+                    {
+                        auto textValue = window->getTextEditorContents ("text");
+
+                        setElem->setLabel(textValue);
+                        listener->setCircuitParam (setElem->getParamIndex(), setElem->getValue());
+
+                    }
+
+                    window->exitModalState (0);
+                    delete window;
+                }));
+    }
 }
 
 void SchematicPanel::clear()
@@ -258,12 +299,7 @@ void buildBassmanToneStack(SchematicPanel& schematic)
             { t1  + Terminal {0.0f, d} },
             { t1 }
         },
-        (int) BassmanToneStackCircuit::Param::R4,
-        0,
-        std::vector<ValueChoice>
-        {
-            { 56e3f, "56k" },
-        }
+        (int) BassmanToneStackCircuit::Param::R4
     ));
     schematic.addElement (std::make_unique<CapacitorElement> (
         "C1",
@@ -272,12 +308,7 @@ void buildBassmanToneStack(SchematicPanel& schematic)
             { t1  },
             { t1 + Terminal {d, 0.0f} }
         },
-        (int) BassmanToneStackCircuit::Param::C1,
-        0,
-        std::vector<ValueChoice>
-        {
-            { 0.25e-9f, "250pF" },
-        }
+        (int) BassmanToneStackCircuit::Param::C1
     ));
     schematic.addElement (std::make_unique<CapacitorElement> (
         "C2",
@@ -286,12 +317,7 @@ void buildBassmanToneStack(SchematicPanel& schematic)
             { t1 + Terminal {0.0f, d} },
             { t1 + Terminal {d, d} }
         },
-        (int) BassmanToneStackCircuit::Param::C2,
-        0,
-        std::vector<ValueChoice>
-        {
-            { 22e-9f, "22nF" },
-        }
+        (int) BassmanToneStackCircuit::Param::C2
     ));
 
     schematic.addElement (std::make_unique<PotElement> (
@@ -350,12 +376,7 @@ void buildBassmanToneStack(SchematicPanel& schematic)
             { schematic.getElement("Mid")->getTerminals()[2]  + Terminal {-d*0.5f, 0.0f} },
             { schematic.getElement("Mid")->getTerminals()[2]  }
         },
-        (int) BassmanToneStackCircuit::Param::C3,
-        0,
-        std::vector<ValueChoice>
-        {
-            { 22e-9f, "22nF" },
-        }
+        (int) BassmanToneStackCircuit::Param::C3
     ));
     // Grounds
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Mid")->getTerminals()[0]) );
@@ -415,15 +436,7 @@ void buildCommonCathodeStage(SchematicPanel& schematic)
             {  schematic.getElement("Triode")->getTerminals()[0]  + Terminal {-100.0f, 0.0f} },
             { schematic.getElement("Triode")->getTerminals()[0] }
         },
-        (int) TriodeGainStage::Param::Rg,
-        1,
-        std::vector<ValueChoice>
-        {
-            { 4.7e3f, "4.7k" },
-            { 10e3f,  "10k" },
-            { 20e3f,  "20k" },
-            { 47e3f,  "47k" },
-        }
+        (int) TriodeGainStage::Param::Rg
     ));
 
     schematic.addElement (std::make_unique<CapacitorElement> (
@@ -433,14 +446,7 @@ void buildCommonCathodeStage(SchematicPanel& schematic)
             { schematic.getElement("Rg")->getTerminals()[0]  + Terminal {-150.0f, 0.0f} },
             { schematic.getElement("Rg")->getTerminals()[0] }
         },
-        (int) TriodeGainStage::Param::Ci,
-        2,
-        std::vector<ValueChoice>
-        {
-            { 22.0e-9f, "22nF" },
-            { 47.0e-9f, "47nF" },
-            { 100.0e-9f, "100nF" },
-        }
+        (int) TriodeGainStage::Param::Ci
     ));
     schematic.addElement (std::make_unique<ResistorElement> (
         "Ri",
@@ -449,15 +455,7 @@ void buildCommonCathodeStage(SchematicPanel& schematic)
             { schematic.getElement("Rg")->getTerminals()[0] },
             { schematic.getElement("Rg")->getTerminals()[0] + Terminal {0.0f, 150.0f} }
         },
-        (int) TriodeGainStage::Param::Ri,
-        2,
-        std::vector<ValueChoice>
-        {
-            { 0.22e6f, "220K" },
-            { 0.47e6f, "470k" },
-            { 1.0e6f,  "1M" },
-            { 2.2e6f,  "2.2M" },
-        }
+        (int) TriodeGainStage::Param::Ri
     ));
 
 
@@ -469,18 +467,7 @@ void buildCommonCathodeStage(SchematicPanel& schematic)
             { schematic.getElement("Triode")->getTerminals()[2]+ Terminal { 0.0f, 150.0f} },
             { schematic.getElement("Triode")->getTerminals()[2]}
         },
-        (int) TriodeGainStage::Param::Rk,
-        2,
-        std::vector<ValueChoice>
-        {
-            { 820.0f, "820R" },
-            { 1.0e3f, "1k" },
-            { 1.5e3f,  "1.5k" },
-            { 2.2e3f,  "2.2k" },
-            { 4.7e3f,  "4.7k" },
-            { 6.8e3f,  "6.8k" },
-            { 10e3f,   "10k" },
-        }
+        (int) TriodeGainStage::Param::Rk
     ));
     schematic.addElement (std::make_unique<CapacitorElement> (
         "Ck",
@@ -489,15 +476,7 @@ void buildCommonCathodeStage(SchematicPanel& schematic)
             { schematic.getElement("Rk")->getTerminals()[1] +  Terminal {50.0f, 0.0f} },
             { schematic.getElement("Rk")->getTerminals()[0] +  Terminal {50.0f, 0.0f} },
         },
-        (int) TriodeGainStage::Param::Ck,
-        2,
-        std::vector<ValueChoice>
-        {
-            { 4.7e-6f, "4.7uF" },
-            { 10e-6f, "10uF" },
-            { 22e-6f, "22uF" },
-            { 47e-6f, "47uF" },
-        }
+        (int) TriodeGainStage::Param::Ck
     ));
 
     schematic.addElement (std::make_unique<ResistorElement> (
@@ -507,14 +486,7 @@ void buildCommonCathodeStage(SchematicPanel& schematic)
             { schematic.getElement("Triode")->getTerminals()[1]},
             { schematic.getElement("Triode")->getTerminals()[1] + Terminal { 0.0f, -150.0f} }
         },
-        (int) TriodeGainStage::Param::Rp,
-        1,
-        std::vector<ValueChoice>
-        {
-            { 47e3f, "47k" },
-            { 100.0e3f, "100k" },
-            { 220.0e3f, "220K" },
-        }
+        (int) TriodeGainStage::Param::Rp
     ));
     schematic.addElement (std::make_unique<CapacitorElement> (
         "Co",
@@ -523,14 +495,7 @@ void buildCommonCathodeStage(SchematicPanel& schematic)
             { schematic.getElement("Triode")->getTerminals()[1]},
             { schematic.getElement("Triode")->getTerminals()[1] + Terminal { 250.0f, 0.0f} }
         },
-        (int) TriodeGainStage::Param::Co,
-        1,
-        std::vector<ValueChoice>
-        {
-            { 22.0e-9f, "22nF" },
-            { 47.0e-9f, "47nF" },
-            { 100.0e-9f, "100nF" },
-        }
+        (int) TriodeGainStage::Param::Co
     ));
 
 
@@ -559,14 +524,7 @@ void buildCommonCathodeStage(SchematicPanel& schematic)
     schematic.addElement (std::make_unique<VoltageElement>(
         "B+",
         std::vector<Terminal>{schematic.getElement("Rp")->getTerminals()[1]}, 
-        (int) TriodeGainStage::Param::E,
-        0, 
-        std::vector<ValueChoice>{
-            { 250, "250V" },
-            { 275, "275V" },
-            { 300, "300V" },
-            { 325, "325V" },
-        }
+        (int) TriodeGainStage::Param::E
     ));
 
     // Grounds
@@ -649,15 +607,7 @@ void buildBassmanPreamp(SchematicPanel& schematic)
             {  schematic.getElement("Triode")->getTerminals()[0]  + Terminal {-100.0f, 0.0f} },
             { schematic.getElement("Triode")->getTerminals()[0] }
         },
-        (int) Param::Rg,
-        1,
-        std::vector<ValueChoice>
-        {
-            { 4.7e3f, "4.7k" },
-            { 10e3f,  "10k" },
-            { 20e3f,  "20k" },
-            { 47e3f,  "47k" },
-        }
+        (int) Param::Rg
     ));
 
     schematic.addElement (std::make_unique<CapacitorElement> (
@@ -667,14 +617,7 @@ void buildBassmanPreamp(SchematicPanel& schematic)
             { schematic.getElement("Rg")->getTerminals()[0]  + Terminal {-150.0f, 0.0f} },
             { schematic.getElement("Rg")->getTerminals()[0] }
         },
-        (int) Param::Ci,
-        2,
-        std::vector<ValueChoice>
-        {
-            { 22.0e-9f, "22nF" },
-            { 47.0e-9f, "47nF" },
-            { 100.0e-9f, "100nF" },
-        }
+        (int) Param::Ci
     ));
     schematic.addElement (std::make_unique<ResistorElement> (
         "Ri",
@@ -683,15 +626,7 @@ void buildBassmanPreamp(SchematicPanel& schematic)
             { schematic.getElement("Rg")->getTerminals()[0] },
             { schematic.getElement("Rg")->getTerminals()[0] + Terminal {0.0f, 150.0f} }
         },
-        (int) Param::Ri,
-        2,
-        std::vector<ValueChoice>
-        {
-            { 0.22e6f, "220K" },
-            { 0.47e6f, "470k" },
-            { 1.0e6f,  "1M" },
-            { 2.2e6f,  "2.2M" },
-        }
+        (int) Param::Ri
     ));
 
 
@@ -703,18 +638,7 @@ void buildBassmanPreamp(SchematicPanel& schematic)
             { schematic.getElement("Triode")->getTerminals()[2]+ Terminal { 0.0f, 150.0f} },
             { schematic.getElement("Triode")->getTerminals()[2]}
         },
-        (int) Param::Rk,
-        2,
-        std::vector<ValueChoice>
-        {
-            { 820.0f, "820R" },
-            { 1.0e3f, "1k" },
-            { 1.5e3f,  "1.5k" },
-            { 2.2e3f,  "2.2k" },
-            { 4.7e3f,  "4.7k" },
-            { 6.8e3f,  "6.8k" },
-            { 10e3f,   "10k" },
-        }
+        (int) Param::Rk
     ));
     schematic.addElement (std::make_unique<CapacitorElement> (
         "Ck",
@@ -723,15 +647,7 @@ void buildBassmanPreamp(SchematicPanel& schematic)
             { schematic.getElement("Rk")->getTerminals()[1] +  Terminal {50.0f, 0.0f} },
             { schematic.getElement("Rk")->getTerminals()[0] +  Terminal {50.0f, 0.0f} },
         },
-        (int) Param::Ck,
-        2,
-        std::vector<ValueChoice>
-        {
-            { 4.7e-6f, "4.7uF" },
-            { 10e-6f, "10uF" },
-            { 22e-6f, "22uF" },
-            { 47e-6f, "47uF" },
-        }
+        (int) Param::Ck
     ));
 
     schematic.addElement (std::make_unique<ResistorElement> (
@@ -741,28 +657,14 @@ void buildBassmanPreamp(SchematicPanel& schematic)
             { schematic.getElement("Triode")->getTerminals()[1]},
             { schematic.getElement("Triode")->getTerminals()[1] + Terminal { 0.0f, -150.0f} }
         },
-        (int) Param::Rp,
-        1,
-        std::vector<ValueChoice>
-        {
-            { 47e3f, "47k" },
-            { 100.0e3f, "100k" },
-            { 220.0e3f, "220K" },
-        }
+        (int) Param::Rp
     ));
 
     //Voltages
     schematic.addElement (std::make_unique<VoltageElement>(
         "B+",
         std::vector<Terminal>{schematic.getElement("Rp")->getTerminals()[1]}, 
-        (int) Param::E,
-        0, 
-        std::vector<ValueChoice>{
-            { 250, "250V" },
-            { 275, "275V" },
-            { 300, "300V" },
-            { 325, "325V" },
-        }
+        (int) Param::E
     ));
 
     float d=160.0f;
@@ -775,12 +677,7 @@ void buildBassmanPreamp(SchematicPanel& schematic)
             { t1  + Terminal {0.0f, d} },
             { t1 }
         },
-        (int) Param::R4,
-        0,
-        std::vector<ValueChoice>
-        {
-            { 56e3f, "56k" },
-        }
+        (int) Param::R4
     ));
     schematic.addElement (std::make_unique<CapacitorElement> (
         "C1",
@@ -789,12 +686,7 @@ void buildBassmanPreamp(SchematicPanel& schematic)
             { t1  },
             { t1 + Terminal {d, 0.0f} }
         },
-        (int) Param::C1,
-        0,
-        std::vector<ValueChoice>
-        {
-            { 0.25e-9f, "250pF" },
-        }
+        (int) Param::C1
     ));
     schematic.addElement (std::make_unique<CapacitorElement> (
         "C2",
@@ -803,12 +695,7 @@ void buildBassmanPreamp(SchematicPanel& schematic)
             { t1 + Terminal {0.0f, d} },
             { t1 + Terminal {d, d} }
         },
-        (int) Param::C2,
-        0,
-        std::vector<ValueChoice>
-        {
-            { 22e-9f, "22nF" },
-        }
+        (int) Param::C2
     ));
 
     schematic.addElement (std::make_unique<PotElement> (
@@ -867,12 +754,7 @@ void buildBassmanPreamp(SchematicPanel& schematic)
             { schematic.getElement("Mid")->getTerminals()[2]  + Terminal {-d*0.5f, 0.0f} },
             { schematic.getElement("Mid")->getTerminals()[2]  }
         },
-        (int) Param::C3,
-        0,
-        std::vector<ValueChoice>
-        {
-            { 22e-9f, "22nF" },
-        }
+        (int) Param::C3
     ));
     // Grounds
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Mid")->getTerminals()[0]) );
