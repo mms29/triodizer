@@ -2,7 +2,7 @@
 #include "dsp/TriodeGainStage.h"
 #include "dsp/BassmanPreamp.h"
 
-
+#include <format>
 //==============================================================================
 SchematicPanel::SchematicPanel(SchematicPanelListener* l) : listener(l)
 {
@@ -42,7 +42,7 @@ void SchematicPanel::syncSchematicToCircuit(){
             std::cout <<"Searching for param element "<< element->getName()<<" value in choices ..."<< std::endl;
             int index = paramElem->getIndexChoiceFromValue(v);
             if (index< 0) {
-                paramElem->addChoice(v, "val");
+                paramElem->addChoice(v, juce::String(v, 2));
                 paramElem->setChoiceIndex(paramElem->getChoices().size()-1);
                 std::cout <<"Not Found! "<< std::endl;
             }
@@ -302,8 +302,8 @@ void buildBassmanToneStack(SchematicPanel& schematic)
             { schematic.getElement("C2")->getTerminals()[1] + Terminal {0.0f, d} },
             { schematic.getElement("C2")->getTerminals()[1] + Terminal {0.5f*d, 0.5f*d} }
         },
-        (int) BassmanToneStackCircuit::Control::BASS,
-        (int) BassmanToneStackCircuit::Param::BASS,
+        (int) BassmanToneStackCircuit::Control::Bass,
+        (int) BassmanToneStackCircuit::Param::RBass,
         0,
         std::vector<ValueChoice>
         {
@@ -319,8 +319,8 @@ void buildBassmanToneStack(SchematicPanel& schematic)
             { schematic.getElement("C2")->getTerminals()[1] },
             { schematic.getElement("C1")->getTerminals()[1] + Terminal {0.25f*d, .5f*d} }
         },
-        (int) BassmanToneStackCircuit::Control::TREBBLE,
-        (int) BassmanToneStackCircuit::Param::TREBBLE,
+        (int) BassmanToneStackCircuit::Control::Trebble,
+        (int) BassmanToneStackCircuit::Param::RTrebble,
         0,
         std::vector<ValueChoice>
         {
@@ -335,8 +335,8 @@ void buildBassmanToneStack(SchematicPanel& schematic)
             { schematic.getElement("Bass")->getTerminals()[1]  },
             { schematic.getElement("Bass")->getTerminals()[1]  + Terminal {-d*0.25f, .5f*d} }
         },
-        (int) BassmanToneStackCircuit::Control::MID,
-        (int) BassmanToneStackCircuit::Param::MID,
+        (int) BassmanToneStackCircuit::Control::Mid,
+        (int) BassmanToneStackCircuit::Param::RMid,
         0,
         std::vector<ValueChoice>
         {

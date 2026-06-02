@@ -31,7 +31,7 @@ public:
 
     juce::Slider& getSlider();
 
-    juce::String getName(){return label.getText(); };
+    juce::String getName(){return label.getText(); }
 
 private:
     juce::Slider slider;

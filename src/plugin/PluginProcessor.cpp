@@ -188,7 +188,7 @@ void TriodeProcessor::updatePreset()
             }
             case PRESET_BASSMAN_TS: 
             {
-                circuit[ch] = std::make_unique<BassmanToneStackCircuit>();
+                circuit[ch] = std::make_unique<BassmanToneStackCircuitT<float>>();
                 break;
             }
             case PRESET_BASSMAN_PREAMP: 

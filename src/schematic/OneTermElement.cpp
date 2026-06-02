@@ -81,7 +81,7 @@ void VoltmeterElement::draw (juce::Graphics& g) const
     g.setFont (font);
     g.setColour (juce::Colours::greenyellow);
 
-    juce::String text = juce::String (monitorValue) + " V";
+    juce::String text = juce::String (monitorValue, 1) + " V";
     g.drawText (text,
                 p0.x - METER_RADIUS * 2.0f + 4,
                 p0.y - METER_RADIUS + 4,

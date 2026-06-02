@@ -155,30 +155,46 @@ public:
     {
         params.resize((int)Param::Count, 0.0f);
         controls.resize((int)Control::Count, 0.0f);
+
+        setDefaultParam();
+        setDefaultControl();
     };
 
     enum class Monitoring : int {  Count };
-    enum class Param : int {BASS, MID, TREBBLE, R1_plus, R1_minus, R2, R3_plus, R3_minus, C1, C2, C3, R4,Count };
-    enum class Control : int {BASS, MID, TREBBLE, Count };
+    enum class Param : int {RBass, RMid, RTrebble, C1, C2, C3, R4,Count };
+    enum class Control : int {Bass, Mid, Trebble, Count };
 
+    void setDefaultParam () 
+    {
+        setParam((int)Param::C1, 0.25e-9);      
+        setParam((int)Param::C2, 22.0e-9);      
+        setParam((int)Param::C3, 22.0e-9);      
+        setParam((int)Param::R4, 56.0e3);      
+        setParam((int)Param::RBass, 250e3f);    
+        setParam((int)Param::RMid, 10e3f);     
+        setParam((int)Param::RTrebble, 250e3f); 
+    }
+    void setDefaultControl () 
+    { 
+        setControl((int)Control::Bass, 50.0f);    
+        setControl((int)Control::Mid, 50.0f);     
+        setControl((int)Control::Trebble, 50.0f); 
+    }
     // Runtime setters — updates the WDF node and re-propagates impedance
 
     void setParam (const int index, float value) override
     {
+        params.at(index) = value;
+
         switch (index)
         {
-            case (int)Param::R1_plus:  w_bts.setR1_plus(value); break;
-            case (int)Param::R1_minus: w_bts.setR1_minus(value); break;
-            case (int)Param::R2:       w_bts.setR2(value); break;
-            case (int)Param::R3_plus:  w_bts.setR3_plus(value); break;
-            case (int)Param::R3_minus: w_bts.setR3_minus(value); break;
             case (int)Param::C1:       w_bts.setC1(value); break;
             case (int)Param::C2:       w_bts.setC2(value); break;
             case (int)Param::C3:       w_bts.setC3(value); break;
             case (int)Param::R4:       w_bts.setR4(value); break;
-            case (int)Param::BASS:     w_bts.setBass(value); break;
-            case (int)Param::MID:      w_bts.setMid(value); break;
-            case (int)Param::TREBBLE:  w_bts.setTrebble(value); break;
+            case (int)Param::RBass:     w_bts.setBass(value); break;
+            case (int)Param::RMid:      w_bts.setMid(value); break;
+            case (int)Param::RTrebble:  w_bts.setTrebble(value); break;
 
             case (int)Param::Count:
             default:
@@ -188,26 +204,29 @@ public:
     }
     void setControl (const int index, float value) override
     {
+        controls.at(index) = value;
+        float controlVal = getParam(index);
+
         switch (index)
         {
-            case (int)Control::BASS: 
+            case (int)Control::Bass: 
             {
                 auto ratio = (100.0f-value)/100.0f; 
-                setParam((int)Param::R2, w_bts.getP2()*(1.0f - ratio));
+                w_bts.setR2(controlVal*(1.0f - ratio));
                 break;
             }
-            case (int)Control::TREBBLE: 
+            case (int)Control::Trebble: 
             {
                 auto ratio = (100.0f-value)/100.0f; 
-                setParam((int)Param::R1_plus, w_bts.getP1()*ratio);
-                setParam((int)Param::R1_minus, w_bts.getP1()*(1.0f - ratio));
+                w_bts.setR1_plus( controlVal*ratio);
+                w_bts.setR1_minus( controlVal*(1.0f - ratio));
                 break;
             }
-            case (int)Control::MID: 
+            case (int)Control::Mid: 
             {
                 auto ratio = (100.0f-value)/100.0f; 
-                setParam((int)Param::R3_plus, w_bts.getP3()*ratio);
-                setParam((int)Param::R3_minus, w_bts.getP3()*(1.0f - ratio));
+                w_bts.setR3_plus( controlVal*ratio);
+                w_bts.setR3_minus( controlVal*(1.0f - ratio));
                 break;
             }
             default: jassertfalse; break;
@@ -235,4 +254,116 @@ public:
 private: 
     BassmanToneStack<float> w_bts {};
     IdealVoltageSourceT<float, decltype(w_bts)> w_vin {w_bts};
+};
+
+
+
+
+template <typename T>
+class BassmanToneStackCircuitT : public Circuit
+{
+public:
+    BassmanToneStackCircuitT(): Circuit()
+    {
+        params.resize((int)Param::Count, 0.0f);
+        controls.resize((int)Control::Count, 0.0f);
+
+        setDefaultParam();
+        setDefaultControl();
+    };
+
+    enum class Monitoring : int {  Count };
+    enum class Param : int {RBass, RMid, RTrebble, C1, C2, C3, R4,Count };
+    enum class Control : int {Bass, Mid, Trebble, Count };
+
+    void setDefaultParam () 
+    {
+        setParam((int)Param::C1, 0.25e-9);      
+        setParam((int)Param::C2, 22.0e-9);      
+        setParam((int)Param::C3, 22.0e-9);      
+        setParam((int)Param::R4, 56.0e3);      
+        setParam((int)Param::RBass, 250e3f);    
+        setParam((int)Param::RMid, 10e3f);     
+        setParam((int)Param::RTrebble, 250e3f); 
+    }
+    void setDefaultControl () 
+    { 
+        setControl((int)Control::Bass, 50.0f);    
+        setControl((int)Control::Mid, 50.0f);     
+        setControl((int)Control::Trebble, 50.0f); 
+    }
+    // Runtime setters — updates the WDF node and re-propagates impedance
+
+    void setParam (const int index, T value) override
+    {
+        params.at(index) = value;
+
+        switch (index)
+        {
+            case (int)Param::C1:       w_bts.setC1(value); break;
+            case (int)Param::C2:       w_bts.setC2(value); break;
+            case (int)Param::C3:       w_bts.setC3(value); break;
+            case (int)Param::R4:       w_bts.setR4(value); break;
+            case (int)Param::RBass:     w_bts.setBass(value); break;
+            case (int)Param::RMid:      w_bts.setMid(value); break;
+            case (int)Param::RTrebble:  w_bts.setTrebble(value); break;
+
+            case (int)Param::Count:
+            default:
+                jassertfalse;
+                break;
+        }
+    }
+    void setControl (const int index, T value) override
+    {
+        controls.at(index) = value;
+        T controlVal = getParam(index);
+
+        switch (index)
+        {
+            case (int)Control::Bass: 
+            {
+                auto ratio = (100.0f-value)/100.0f; 
+                w_bts.setR2(controlVal*(1.0f - ratio));
+                break;
+            }
+            case (int)Control::Trebble: 
+            {
+                auto ratio = (100.0f-value)/100.0f; 
+                w_bts.setR1_plus( controlVal*ratio);
+                w_bts.setR1_minus( controlVal*(1.0f - ratio));
+                break;
+            }
+            case (int)Control::Mid: 
+            {
+                auto ratio = (100.0f-value)/100.0f; 
+                w_bts.setR3_plus( controlVal*ratio);
+                w_bts.setR3_minus( controlVal*(1.0f - ratio));
+                break;
+            }
+            default: jassertfalse; break;
+        }
+    }
+
+    void prepare(double sr) override {
+        w_bts.prepare(sr);
+    }
+    void reset() override {
+        w_bts.reset();
+    }
+
+    T processSample(T x) override {
+        w_vin.setVoltage (x);
+        w_vin.incident(w_bts.reflected());
+        w_bts.incident(w_vin.reflected());
+
+        return w_bts.getVoltage();
+
+    }
+
+    T getMonitoring(int) override{ return 0.0f;}
+    
+private: 
+    BassmanToneStack<T> w_bts {};
+    IdealVoltageSourceT<T, decltype(w_bts)> w_vin {w_bts};
 };

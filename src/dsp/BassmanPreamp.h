@@ -4,6 +4,7 @@
 
 #include <chowdsp_wdf/chowdsp_wdf.h>
 #include "dsp/TriodeWDF.h"
+#include "dsp/TriodeQuadricWDF.h"
 #include <dsp/Circuit.h>
 #include <dsp/BassmanToneStack.h>
 
@@ -46,12 +47,12 @@ public:
         setParam((int)Param::Rp, 100.0e3f);
         
         setParam((int)Param::C1, 0.25e-9);      
-        setParam((int)Param::C2, 20.0e-9);      
-        setParam((int)Param::C3, 20.0e-9);      
+        setParam((int)Param::C2, 22.0e-9);      
+        setParam((int)Param::C3, 22.0e-9);      
         setParam((int)Param::R4, 56.0e3);      
         setParam((int)Param::RBass, 250e3f);    
-        setParam((int)Param::RMid, 250e3f);     
-        setParam((int)Param::RTrebble, 10e3f); 
+        setParam((int)Param::RMid, 10e3f);     
+        setParam((int)Param::RTrebble, 250e3f); 
     }
     void setDefaultControl () 
     { 
@@ -186,7 +187,10 @@ private:
     PolarityInverterT<float, decltype (w_SJg)> w_PIg { w_SJg };
 
     // Triode WDF
-    TriodeWDF<float, decltype(w_PIg), decltype(w_PJk), decltype(w_PJp)> w_Triode{
-            w_PIg, w_PJk, w_PJp, 0.0f, 0.0f
+    // TriodeWDF<float, decltype(w_PIg), decltype(w_PJk), decltype(w_PJp)> w_Triode{
+    //         w_PIg, w_PJk, w_PJp, 0.0f, 0.0f
+    // };
+    TriodeQuadricWDF<float, decltype(w_PIg), decltype(w_PJk), decltype(w_PJp)> w_Triode{
+            w_PIg, w_PJk, w_PJp, 1.014e-5f, 5.498e-8f, 1.076e-5f
     };
 };
