@@ -60,7 +60,9 @@ void PotElement::controlCallback(float value, SchematicPanelListener* listener)
 {
     if (value <=0.1f) value = 0.1f;
     if (value >=99.9f) value = 99.9f;
+
     listener->setCircuitControl(getControlIndex(), value);
+
     controlValue = value;
     return;
 }
@@ -118,8 +120,52 @@ void PotElement::draw (juce::Graphics& g) const
     const float labelOff = 40.0f;
     const juce::Point<float> m = (p0 + p1) * 0.5f;
     const juce::Point<float> l = m + labelOff * v;
-    drawLabel(g, l, getChoiceLabel());
+    drawLabel(g, l, label);
 
 }
 
 
+
+float PotElement::labelToValue (const juce::String s)
+{
+    auto str = s.trim().toLowerCase();
+    if (str.isEmpty()) return getValue(); // fallback to original
+
+    float multiplier = 1.0;
+
+    // handle suffixes
+    if (str.endsWith ("k"))
+    {
+        multiplier = 1e3;
+        str = str.dropLastCharacters (1);
+    }
+    else if (str.endsWith ("m") ){
+        multiplier = 1e6;
+        str = str.dropLastCharacters (1);
+    }
+    else if (str.endsWith ("meg") ){
+        multiplier = 1e6;
+        str = str.dropLastCharacters (3);
+    }
+    else if (str.endsWith ("r"))
+    {
+        multiplier = 1.0;
+        str = str.dropLastCharacters (1);
+    }
+
+    // parse numeric part
+    float value = str.getFloatValue();
+
+    if (value == 0.0)
+        return getValue();
+
+    return (float) (value * multiplier);
+}
+juce::String PotElement::valueToLabel (float v)
+{
+    if (v >= 1e6) return juce::String (v / 1e6, 0) + "M";
+    if (v >= 1e3) return juce::String (v / 1e3, 0) + "k";
+    if (v >= 1) return juce::String (v, 0) + "R";
+    if (v < 1 ) return juce::String (v * 1e3, 2) + "m";
+    return juce::String (v);
+}

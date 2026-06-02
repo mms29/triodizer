@@ -26,12 +26,10 @@ public:
 
         for (int i = 0; i < getNumParam(); ++i){
             t.setProperty ("P" + juce::String(i), getParam(i), nullptr);
-            std::cout << "Saved : "<<"P" << i<< "="<<getParam(i)<<std::endl;
         }
 
         for (int i = 0; i < getNumControl(); ++i){
             t.setProperty ("C" + juce::String(i), getControl(i), nullptr);
-            std::cout << "Saved : "<<"C"<<i<< "="<<getControl(i)<<std::endl;
         }
 
         return t;
@@ -39,19 +37,16 @@ public:
 
     void loadState (const juce::ValueTree& t)
     {
-        std::cout << "Loading state ... " <<std::endl;
 
         for (int i = 0; i < getNumParam(); ++i)
         {
             auto name = "P" + juce::String(i);
             if (t.hasProperty(name)) setParam(i, (float)t[name]);
-            std::cout << "Loaded : "<<name<< "="<<(float)t[name]<<std::endl;
         }
         for (int i = 0; i < getNumControl(); ++i)
         {
             auto name = "C" + juce::String(i);
             if (t.hasProperty(name)) setControl(i, (float)t[name]);
-            std::cout << "Loaded : "<<name<< "="<<(float)t[name]<<std::endl;
         }
     }
 

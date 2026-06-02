@@ -21,10 +21,10 @@ class VoltageElement : public SchematicElement,
 {
 public:
     VoltageElement(const juce::String& name,
-                    std::vector<Terminal> terminals,
+                    Terminal termPosition,
                     const int paramIndex): 
         
-        SchematicElement(name, terminals),
+        SchematicElement(name, std::vector<Terminal>{termPosition}),
         SettableElement(paramIndex)
         {};
     void draw (juce::Graphics& g) const override;

@@ -212,22 +212,24 @@ protected:
 */
 class PotElement :  public SchematicElement, 
                     public ControllableElement, 
-                    public ParametrableElement
+                    public SettableElement
 {
 public:
     PotElement(const juce::String& name,
-                    std::vector<Terminal> terminals,
+                    Terminal termA,
+                    Terminal termB,
+                    Terminal termC,
                     const int controlIndex,
-                    const int paramIndex,
-                    int choiceIndex,
-                    std::vector<ValueChoice> choices): 
+                    const int paramIndex): 
         
-        SchematicElement(name, terminals),
+        SchematicElement(name, std::vector<Terminal>{termA, termB, termC}),
         ControllableElement(controlIndex),
-        ParametrableElement(paramIndex, choiceIndex, choices)
+        SettableElement(paramIndex)
         {};
     void draw (juce::Graphics& g) const override;
     void controlCallback(float value, SchematicPanelListener* l) override;
+    juce::String valueToLabel (float v) override;
+    float labelToValue (const juce::String s) override;
 
 private:
     static constexpr int    zigzagCount    = 6;

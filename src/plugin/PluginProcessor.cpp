@@ -41,6 +41,7 @@ TriodeProcessor::TriodeProcessor()
                         "Default",
                         "Common Cathode Stage",
                         "Fender Bassman Tone Stack",
+                        "Fender Bassman Preamp Small",
                         "Fender Bassman Preamp",
                     },
                     0)
@@ -177,7 +178,6 @@ void TriodeProcessor::updatePreset()
         return;
 
     currentPreset = presetChoice; 
-    sendChangeMessage();
 
     for (int ch = 0; ch < 2; ++ch){
         switch(presetChoice){
@@ -191,9 +191,14 @@ void TriodeProcessor::updatePreset()
                 circuit[ch] = std::make_unique<BassmanToneStackCircuitT<float>>();
                 break;
             }
-            case PRESET_BASSMAN_PREAMP: 
+            case PRESET_BASSMAN_PREAMP_SMALL: 
             {
                 circuit[ch] = std::make_unique<BassmanPreampCircuit>();
+                break;
+            }
+            case PRESET_BASSMAN_PREAMP: 
+            {
+                circuit[ch] = std::make_unique<FullBassmanPreampCircuit>();
                 break;
             }
             default: 
@@ -202,9 +207,8 @@ void TriodeProcessor::updatePreset()
                 break;
             }
         }
-        circuit[ch]->prepare(oversampleRate);
-
     }
+    sendChangeMessage();
 
 }
 //==============================================================================
@@ -223,39 +227,28 @@ void TriodeProcessor::changeProgramName(int, const juce::String&) {}
 //==============================================================================
 void TriodeProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
-    std::cout << "Saving audio state ..." << std::endl;
-
     juce::ValueTree root("PluginState");
     root.addChild(parameters.copyState(), -1, nullptr);
     root.addChild(circuit[0]->saveState(), -1, nullptr);
 
     std::unique_ptr<juce::XmlElement> xml (root.createXml());
     copyXmlToBinary (*xml, destData);
-
-
-    std::cout << "Done " << std::endl;
-    std::cout << xml->toString().toStdString() << std::endl;
 }
 
 void TriodeProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
-    std::cout << "Loading audio state ..." << std::endl;
     std::unique_ptr<juce::XmlElement> xml (getXmlFromBinary (data, sizeInBytes));
     auto root = juce::ValueTree::fromXml(*xml);
 
     // Audio parameter state
-    std::cout << "Trying to load " << parameters.state.getType().toString()<<""<< std::endl;
     auto paramState = root.getChildWithName(parameters.state.getType());
     if (!paramState.isValid())
         return;
 
     parameters.replaceState(paramState);
-    std::cout << "-> Loaded parameter state" << std::endl;
-    std::cout << xml->toString().toStdString() << std::endl;
 
     auto circuitState = root.getChildWithName("Circuit");
     if (!circuitState.isValid()){
-        std::cout << "Could not retrieve audio param state" << std::endl;
         return;
     }
 
@@ -263,8 +256,6 @@ void TriodeProcessor::setStateInformation(const void* data, int sizeInBytes)
 
     for (int ch = 0; ch < 2; ++ch)
         circuit[ch]->loadState(circuitState);
-
-    std::cout << "-> Loaded circuit state" << std::endl;
 
 }
 

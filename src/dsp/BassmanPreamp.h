@@ -53,6 +53,14 @@ public:
         setParam((int)Param::RBass, 250e3f);    
         setParam((int)Param::RMid, 10e3f);     
         setParam((int)Param::RTrebble, 250e3f); 
+
+
+        w_Triode.setTriodeParameters(
+            1.014e-5f, 5.498e-8f, 1.076e-5f,
+            getParam((int)Param::Rp),
+            getParam((int)Param::Rk),
+            getParam((int)Param::E)
+        );
     }
     void setDefaultControl () 
     { 
@@ -191,6 +199,6 @@ private:
     //         w_PIg, w_PJk, w_PJp, 0.0f, 0.0f
     // };
     TriodeQuadricWDF<float, decltype(w_PIg), decltype(w_PJk), decltype(w_PJp)> w_Triode{
-            w_PIg, w_PJk, w_PJp, 1.014e-5f, 5.498e-8f, 1.076e-5f
+            w_PIg, w_PJk, w_PJp, 0.0f,0.0f,0.0f,0.0f,0.0f,0.0f
     };
 };

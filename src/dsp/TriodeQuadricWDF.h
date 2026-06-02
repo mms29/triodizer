@@ -33,9 +33,10 @@ class TriodeQuadricWDF final : public RootWDF
 {
 public:
     TriodeQuadricWDF (PortGType& pg, PortKType& pk, PortPType& pp,
-                      T kp_init, T kp2_init, T kpg_init)
+                      T kp_init, T kp2_init, T kpg_init, T Rp_init, T Rk_init, T E_init)
         : port_g (pg), port_k (pk), port_p (pp),
-          kp (kp_init), kp2 (kp2_init), kpg (kpg_init)
+          kp (kp_init), kp2 (kp2_init), kpg (kpg_init),
+          Rp(Rp_init), Rk(Rk_init), E(E_init)
     {
         // Connect ports to the WDF tree
         port_g.connectToParent (this);
@@ -81,11 +82,14 @@ public:
      *   kp2 – linear term coefficient
      *   kpg – grid‑voltage coefficient
      */
-    void setTriodeParameters (T kp_val, T kp2_val, T kpg_val) noexcept
+    void setTriodeParameters (T kp_val, T kp2_val, T kpg_val, T Rp_val, T Rk_val, T E_val) noexcept
     {
         kp  = kp_val;
         kp2 = kp2_val;
         kpg = kpg_val;
+        Rp  = Rp_val;
+        Rk  = Rk_val;
+        E   = E_val;
         initialiseOperatingPoint();
     }
 
@@ -187,28 +191,21 @@ private:
     // ---------------------------------------------------------------------
     void initialiseOperatingPoint () noexcept
     {
-        // The MATLAB code uses the following intermediates:
-        //   k1 = kpg/(2*kp2) + Rp/Rk + 1;
-        //   k2 = k1 * (kp/kp2 + 2*E) * kp2;
-        //   k3 = Rk * k2 + 1;
-        //   Vk0 = (k3 - sign(k1) * sqrt(2*k3 - 1)) / (2 * Rk * k1 * k1 * kp2);
-        //   Vp0 = E - Rp/Rk * Vk0;
-        //
-        // In the WDF network the plate supply E, plate resistor Rp, cathode
-        // resistor Rk are held constant in the surrounding circuit (they are
-        // supplied as part of the port resistances). For the purpose of the
-        // model we can retrieve them from the port resistances of the surrounding
-        // WDF elements after the first process call – however the original C++
-        // implementation stores them separately. To keep things simple we expose
-        // a small set of setter functions that the owning circuit can call with
-        // the correct values. For now we initialise Vk and Vp to zero; they will
-        // be overwritten on the first call to compute() when R0* values are
-        // known.
-        Vk = static_cast<T>(0);
-        Vp = static_cast<T>(0);
+        T k1 = kpg/(2*kp2) + Rp/Rk + 1;
+        T k2 = k1 * (kp/kp2 + 2*E) * kp2;
+        T k3 = Rk * k2 + 1;
+        T k1sign = (k1 > 0.0f) ? 1.0f : (k1 < 0.0f ? -1.0f : 0.0f);
+        T Vk0 = (k3 - k1sign * std::sqrt(2*k3 - 1)) / (2 * Rk * k1 * k1 * kp2);
+        T Vp0 = E - Rp/Rk * Vk0;
+
+        Vk = Vk0;
+        Vp = Vp0;
         Vg = static_cast<T>(0);
-        Vgk_acc = static_cast<T>(0);
-        Vpk_acc = static_cast<T>(0);
+        Vgk_acc = -Vk0;
+        Vpk_acc = Vp0-Vk0;
+
+        std::cout <<"Vk0 = "<<Vk0<< std::endl;
+        std::cout <<"Vp0 = "<<Vp0<< std::endl;
     }
 
     // ---------------------------------------------------------------------
@@ -222,6 +219,11 @@ private:
     T kp;   // constant term
     T kp2;  // linear term
     T kpg;  // grid‑voltage coefficient
+
+    // Circuit comps for operating point
+    T Rp; 
+    T Rk; 
+    T E; 
 
     // Port resistances (filled each compute call)
     T R0g{}, R0k{}, R0p{};

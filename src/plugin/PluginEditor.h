@@ -84,6 +84,7 @@ private:
 
     // Schematic panel — the interactive circuit
     std::unique_ptr<SchematicPanel> schematic;
+    SchematicBuilder schematicBuilder;
 
     // Sliders for drive / gain 
     std::unique_ptr<Knob> driveKnob;
@@ -98,6 +99,9 @@ private:
     juce::Label presetLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment>
         presetAttachment;
+
+    // Zoom controls
+    juce::TextButton resetViewButton {"Reset View"};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TriodeEditor)
 };

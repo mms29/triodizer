@@ -5,10 +5,10 @@ class ResistorElement : public SchematicElement, public SettableElement
 {
 public:
     ResistorElement(const juce::String& name,
-                    std::vector<Terminal> terminals,
+                    Terminal termA, Terminal termB,
                     const int paramIndex): 
         
-        SchematicElement(name, terminals),
+        SchematicElement(name, std::vector<Terminal>{termA, termB}),
         SettableElement(paramIndex)
         {};
     void draw (juce::Graphics& g) const override;
@@ -29,10 +29,10 @@ class CapacitorElement : public SchematicElement, public SettableElement
 {
 public:
     CapacitorElement(const juce::String& name,
-                    std::vector<Terminal> terminals,
+                    Terminal termA, Terminal termB,
                     const int paramIndex): 
         
-        SchematicElement(name, terminals),
+        SchematicElement(name, std::vector<Terminal>{termA, termB}),
         SettableElement(paramIndex)
         {};
     void draw (juce::Graphics& g) const override;

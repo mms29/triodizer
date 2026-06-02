@@ -5,12 +5,14 @@
 
 #include "dsp/Circuit.h"
 #include "dsp/BassmanPreamp.h"
+#include "dsp/FullBassmanPreamp.h"
 
 
 const int PRESET_DEFAULT = 1;
 const int PRESET_COMMONCATHODE = 2;
 const int PRESET_BASSMAN_TS = 3;
-const int PRESET_BASSMAN_PREAMP = 4;
+const int PRESET_BASSMAN_PREAMP_SMALL = 4;
+const int PRESET_BASSMAN_PREAMP = 5;
 
 class WaveformBuffer
 {
@@ -86,10 +88,15 @@ public:
         return circuit[ch]->getControl(index);   
     }
     inline void setCircuitParam(const int index, float value){
-        for (int ch = 0; ch < 2; ++ch) circuit[ch]->setParam(index, value);
+        for (int ch = 0; ch < 2; ++ch) {
+            circuit[ch]->setParam(index, value);
+        }
     }
     inline void setCircuitControl(const int index, float value){
-        for (int ch = 0; ch < 2; ++ch) circuit[ch]->setControl(index, value);
+        for (int ch = 0; ch < 2; ++ch) {
+            circuit[ch]->setControl(index, value);
+
+        }
     }
 
     juce::AudioProcessorValueTreeState parameters;

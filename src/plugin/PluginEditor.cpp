@@ -69,6 +69,7 @@ TriodeEditor::TriodeEditor(TriodeProcessor& p)
     presetSelector.addItem("Default", PRESET_DEFAULT);
     presetSelector.addItem("Common Cathode Stage", PRESET_COMMONCATHODE);
     presetSelector.addItem("Fender Bassman Tone Stack", PRESET_BASSMAN_TS);
+    presetSelector.addItem("Fender Bassman Preamp Small", PRESET_BASSMAN_PREAMP_SMALL);
     presetSelector.addItem("Fender Bassman Preamp", PRESET_BASSMAN_PREAMP);
     addAndMakeVisible(presetSelector);
     presetLabel.setText("Preset", juce::dontSendNotification);
@@ -92,29 +93,32 @@ TriodeEditor::~TriodeEditor()
 void TriodeEditor::changeListenerCallback(
     juce::ChangeBroadcaster*)
 {
-    schematic->clear();
     updateSchematic();
-    schematic->resized();
-    schematic->repaint();
 }
 
 void TriodeEditor::updateSchematic(){
+    schematic->clear();
     switch (audioProcessor.getCurrentPreset())
     {
     case PRESET_COMMONCATHODE:
-        buildCommonCathodeStage(*schematic);
+        // buildCommonCathodeStage(*schematic);
         break;
     case PRESET_BASSMAN_TS:
-        buildBassmanToneStack(*schematic);
+        schematicBuilder.buildBassmanToneStack(*schematic);
+        break;
+    case PRESET_BASSMAN_PREAMP_SMALL:
+        schematicBuilder.buildBassmanPreampSmall(*schematic);
         break;
     case PRESET_BASSMAN_PREAMP:
-        buildBassmanPreamp(*schematic);
+        schematicBuilder.buildBassmanPreamp(*schematic);
         break;
     default:
-        buildDefault(*schematic);
+        schematicBuilder.buildDefault(*schematic);
         break;
     }
     schematic->syncSchematicToCircuit();
+    schematic->resized();
+    schematic->repaint();
 }
 //==============================================================================
 void TriodeEditor::triodeTimerCallback()
@@ -153,7 +157,12 @@ void TriodeEditor::resized()
 
     //preset
     presetLabel.setBounds(bottom.removeFromRight(80).reduced(0, 30));
-    presetSelector.setBounds(bottom.removeFromRight(100).reduced(0, 30));
+   presetSelector.setBounds(bottom.removeFromRight(100).reduced(0, 30));
+
+    // Reset view button
+    resetViewButton.onClick = [this] { schematic->resetView(); };
+    addAndMakeVisible(resetViewButton);
+    resetViewButton.setBounds(bottom.removeFromRight(80).reduced(0, 30));
 
     driveKnob->setBounds(bottom.removeFromLeft(120).reduced(0, 10));
     bottom.removeFromLeft(20);
