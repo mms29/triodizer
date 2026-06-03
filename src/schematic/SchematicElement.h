@@ -193,18 +193,39 @@ protected:
     Monitoring element
 ------------------------------------------------------------------------------------------------------------------------
 */
-class MonitoringElement 
+class MonitoringElement
 {
 public:
-    MonitoringElement (const int monitorIndex): monitorIndex(monitorIndex) {};
-    void  setMonitorValue (float v) noexcept  { monitorValue =v; }
-    int  getMonitorIndex () noexcept {return monitorIndex;}
+    explicit MonitoringElement(std::vector<int> indices)
+        : circuitIndices(std::move(indices))
+    {
+        monitorValues.resize(circuitIndices.size(), 0.0f);
+    }
 
-protected:
-    float                              monitorValue   = 0.0f;
-    int                              monitorIndex;
+    int getNumMonitors() const noexcept
+    {
+        return (int) circuitIndices.size();
+    }
+
+    void setMonitorValue(int monitorIndex, float v) noexcept
+    {
+        monitorValues[(size_t) monitorIndex] = v;
+    }
+
+    int getCircuitIndex(int monitorIndex) const noexcept
+    {
+        return circuitIndices[(size_t) monitorIndex];
+    }
+
+    float getMonitorValue(int monitorIndex) const noexcept
+    {
+        return monitorValues[(size_t) monitorIndex];
+    }
+
+private:
+    std::vector<float> monitorValues;
+    std::vector<int> circuitIndices;
 };
-
 /* 
 ------------------------------------------------------------------------------------------------------------------------
     Potentiometer element

@@ -104,6 +104,7 @@ void VoltmeterElement::draw (juce::Graphics& g) const
 {
     const auto& p0 = terminals[0];
 
+
     // Circle background
     g.setColour (juce::Colours::darkgrey);
     g.fillEllipse (p0.x - METER_RADIUS * 2.0f, p0.y - METER_RADIUS,
@@ -119,7 +120,7 @@ void VoltmeterElement::draw (juce::Graphics& g) const
     g.setFont (font);
     g.setColour (juce::Colours::greenyellow);
 
-    juce::String text = juce::String (monitorValue, 1) + " V";
+    juce::String text = juce::String (getMonitorValue(0), 1) + " V";
     g.drawText (text,
                 p0.x - METER_RADIUS * 2.0f + 4,
                 p0.y - METER_RADIUS + 4,

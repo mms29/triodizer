@@ -32,7 +32,7 @@ void SchematicElement::drawLabel(juce::Graphics& g, Terminal center, juce::Strin
                 juce::Justification::centred, true);
 
     // Value
-    g.setColour (juce::Colours::lightblue);
+    g.setColour (juce::Colours::cyan);
     g.drawText (value,
                 center.getX() - 40, center.getY() + 2, 80, 18,
                 juce::Justification::centred, true);

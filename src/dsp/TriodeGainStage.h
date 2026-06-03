@@ -19,6 +19,7 @@ class TriodeGainStage: public Circuit
         {
             params.resize((int)Param::Count, 0.0f);
             controls.resize((int)Control::Count, 0.0f);
+            monitors.resize((int)Control::Count, 0.0f);
         };
         enum class Monitoring : int { Vg, Vk, Vp, Count };
         enum class Param : int {Triode, Volume, Ri ,Rg,Ci,Rk,Ck,E,Rp,Co,Cp, Ro1, Ro2, Count };
@@ -58,7 +59,8 @@ class TriodeGainStage: public Circuit
             w_Triode.compute();
             auto y = voltage<float> (w_Ro2);
             // auto y = w_BTS.getVoltage();
-
+            
+            updateMonitors();
             return y* gainOutput;
         }
 
@@ -121,17 +123,10 @@ class TriodeGainStage: public Circuit
             // else if (paramName == "Cp") setCp(value);
         }
 
-        float getMonitoring(const int index) override{
+        void updateMonitors() override{
 
-            switch (index)
-            {
-                case (int) Monitoring::Vk: 
-                    return getCathodeVoltage(); 
-                case (int) Monitoring::Vp: 
-                    return getPlateVoltage(); 
-                default: jassertfalse; 
-                    return 0.0f;
-            }
+            monitors.at((int) Monitoring::Vk)= getCathodeVoltage(); 
+            monitors.at((int) Monitoring::Vp)= getPlateVoltage(); 
         }
 
         // Accessor methods for monitoring internal WDF variables

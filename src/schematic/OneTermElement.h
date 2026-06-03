@@ -43,7 +43,7 @@ public:
                     const int monitorIndex): 
         
         SchematicElement(name, std::vector<Terminal> {terminal}),
-        MonitoringElement(monitorIndex)
+        MonitoringElement(std::vector<int>{monitorIndex})
         {}; 
     void draw (juce::Graphics& g) const override;
     bool hitTest (juce::Point<float> point) const override;

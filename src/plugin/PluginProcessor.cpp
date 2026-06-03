@@ -4,11 +4,11 @@
 
 
 //==============================================================================
-TriodeProcessor::TriodeProcessor()
+TubeLabProcessor::TubeLabProcessor()
     : AudioProcessor(BusesProperties().withInput("Input", juce::AudioChannelSet::stereo())
                              .withOutput("Output", juce::AudioChannelSet::stereo())),
         parameters(*this, nullptr,
-            juce::Identifier("TriodeParameters"),
+            juce::Identifier("TubeLabParameters"),
             {
                 std::make_unique<juce::AudioParameterFloat>(
                     "drive",
@@ -52,23 +52,23 @@ TriodeProcessor::TriodeProcessor()
     updatePreset();
 }
 
-TriodeProcessor::~TriodeProcessor() = default;
+TubeLabProcessor::~TubeLabProcessor() = default;
 
 //==============================================================================
-void TriodeProcessor::prepareToPlay(double sr, int samplesPerBlock)
+void TubeLabProcessor::prepareToPlay(double sr, int samplesPerBlock)
 {
     sampleRate = sr;
     blockSize = samplesPerBlock;
     updateOversampler();
 }
 
-void TriodeProcessor::releaseResources()
+void TubeLabProcessor::releaseResources()
 {
     for (int ch = 0; ch < 2; ++ch)
         circuit[ch]->reset();
 }
 
-void TriodeProcessor::processBlock(juce::AudioBuffer<float>& buffer,
+void TubeLabProcessor::processBlock(juce::AudioBuffer<float>& buffer,
                                    juce::MidiBuffer&)
 {
     juce::ScopedNoDenormals noDenormals;
@@ -141,7 +141,7 @@ void TriodeProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
 
 //==============================================================================
-void TriodeProcessor::updateOversampler()
+void TubeLabProcessor::updateOversampler()
 {
     int stages = (int) parameters.getRawParameterValue("oversample")->load();
 
@@ -169,7 +169,7 @@ void TriodeProcessor::updateOversampler()
     }
 }
 //==============================================================================
-void TriodeProcessor::updatePreset()
+void TubeLabProcessor::updatePreset()
 {
     int presetChoice = (int) parameters.getRawParameterValue("preset")->load() +1;
 
@@ -212,20 +212,20 @@ void TriodeProcessor::updatePreset()
 
 }
 //==============================================================================
-juce::AudioProcessorEditor* TriodeProcessor::createEditor()
+juce::AudioProcessorEditor* TubeLabProcessor::createEditor()
 {
-    return new TriodeEditor(*this);
+    return new TubeLabEditor(*this);
 }
 
 //==============================================================================
-int TriodeProcessor::getNumPrograms() { return 1; }
-int TriodeProcessor::getCurrentProgram() { return 0; }
-void TriodeProcessor::setCurrentProgram(int) {}
-const juce::String TriodeProcessor::getProgramName(int) { return {}; }
-void TriodeProcessor::changeProgramName(int, const juce::String&) {}
+int TubeLabProcessor::getNumPrograms() { return 1; }
+int TubeLabProcessor::getCurrentProgram() { return 0; }
+void TubeLabProcessor::setCurrentProgram(int) {}
+const juce::String TubeLabProcessor::getProgramName(int) { return {}; }
+void TubeLabProcessor::changeProgramName(int, const juce::String&) {}
 
 //==============================================================================
-void TriodeProcessor::getStateInformation(juce::MemoryBlock& destData)
+void TubeLabProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
     juce::ValueTree root("PluginState");
     root.addChild(parameters.copyState(), -1, nullptr);
@@ -235,7 +235,7 @@ void TriodeProcessor::getStateInformation(juce::MemoryBlock& destData)
     copyXmlToBinary (*xml, destData);
 }
 
-void TriodeProcessor::setStateInformation(const void* data, int sizeInBytes)
+void TubeLabProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
     std::unique_ptr<juce::XmlElement> xml (getXmlFromBinary (data, sizeInBytes));
     auto root = juce::ValueTree::fromXml(*xml);
@@ -260,7 +260,7 @@ void TriodeProcessor::setStateInformation(const void* data, int sizeInBytes)
 }
 
 //==============================================================================
-bool TriodeProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
+bool TubeLabProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
 {
     if (layouts.getMainInputChannelSet() != juce::AudioChannelSet::stereo())
         return false;
@@ -272,5 +272,5 @@ bool TriodeProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
 //==============================================================================
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
-    return new TriodeProcessor();
+    return new TubeLabProcessor();
 }

@@ -17,7 +17,7 @@ public:
         port_g.connectToParent (this);
         port_k.connectToParent (this);
         port_p.connectToParent (this);
-        setTriodeParameters ();
+        setTubeLabParameters ();
     }
     inline void calcImpedance() override
     {
@@ -237,7 +237,7 @@ public:
              + R0g * R0p * akVk) / (R0k * (R0g * beta + R0p)) - Vg_val;
     }
 
-    void setTriodeParameters() noexcept
+    void setTubeLabParameters() noexcept
     {
         // G polynomial coefficients
         // G(Vgk) = G0 + G1*Vgk + G2*Vgk² + G3*Vgk³

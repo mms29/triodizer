@@ -39,12 +39,12 @@ private:
     std::atomic<int> writeIndex { 0 };
 };
 
-class TriodeProcessor : public juce::AudioProcessor,
+class TubeLabProcessor : public juce::AudioProcessor,
                         public juce::ChangeBroadcaster
 {
 public:
-    TriodeProcessor();
-    ~TriodeProcessor() override;
+    TubeLabProcessor();
+    ~TubeLabProcessor() override;
 
     const juce::String getName() const override { return "Triode"; }
 
@@ -127,7 +127,7 @@ private:
     // Preset
     int currentPreset = PRESET_DEFAULT;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TriodeProcessor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TubeLabProcessor)
 };
 
 

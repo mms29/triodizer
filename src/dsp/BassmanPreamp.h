@@ -17,6 +17,7 @@ public:
     {
         params.resize((int)Param::Count, 0.0f);
         controls.resize((int)Control::Count, 0.0f);
+        monitors.resize((int)Monitoring::Count, 0.0f);
 
         setDefaultParam();
         setDefaultControl();
@@ -29,12 +30,12 @@ public:
     enum class Param : int 
     {
         Triode, Ri ,Rg,Ci,Rk,Ck,E,Rp, // common cathode
-        RBass, RMid, RTrebble, C1, C2, C3, R4, // tone stack
+        RBass, RMid, RTreble, C1, C2, C3, R4, // tone stack
         Count 
     };
     enum class Control : int 
     {
-        Bass, Mid, Trebble, Count 
+        Bass, Mid, Treble, Count 
     };
     void setDefaultParam () 
     {
@@ -52,10 +53,10 @@ public:
         setParam((int)Param::R4, 56.0e3);      
         setParam((int)Param::RBass, 250e3f);    
         setParam((int)Param::RMid, 10e3f);     
-        setParam((int)Param::RTrebble, 250e3f); 
+        setParam((int)Param::RTreble, 250e3f); 
 
 
-        w_Triode.setTriodeParameters(
+        w_Triode.setTubeLabParameters(
             1.014e-5f, 5.498e-8f, 1.076e-5f,
             getParam((int)Param::Rp),
             getParam((int)Param::Rk),
@@ -66,7 +67,7 @@ public:
     { 
         setControl((int)Control::Bass, 50.0f);    
         setControl((int)Control::Mid, 50.0f);     
-        setControl((int)Control::Trebble, 50.0f); 
+        setControl((int)Control::Treble, 50.0f); 
     }
     void setParam (const int index, float value) override
     {
@@ -90,7 +91,7 @@ public:
             case (int)Param::R4:       w_bts.setR4(value); break;
             case (int)Param::RBass:     w_bts.setBass(value); break;
             case (int)Param::RMid:      w_bts.setMid(value); break;
-            case (int)Param::RTrebble:  w_bts.setTrebble(value); break;
+            case (int)Param::RTreble:  w_bts.setTreble(value); break;
 
             case (int)Param::Count:
             default:
@@ -111,7 +112,7 @@ public:
                 w_bts.setR2(controlVal*(1.0f - ratio));
                 break;
             }
-            case (int)Control::Trebble: 
+            case (int)Control::Treble: 
             {
                 auto ratio = std::pow((100.0f-value)/100.0f, 3.0f); // audio taper
                 w_bts.setR1_plus( controlVal*ratio);
@@ -133,7 +134,6 @@ public:
         w_Vi.prepare ((float) sr);
         w_Ck.prepare ((float) sr);
         w_bts.prepare((float) sr);
-        w_Triode.prepare ((float) sr);
 
         float duration = 0.1f;
         for (int i = 0; i < (int) sr *duration; ++i)
@@ -153,22 +153,15 @@ public:
         w_Triode.compute();
         return w_bts.getVoltage();
     }
-    float getMonitoring(const int index) override{
+    void updateMonitors() override{
 
-        switch (index)
-        {
-            case (int) Monitoring::Vk: 
-                return getCathodeVoltage(); 
-            case (int) Monitoring::Vp: 
-                return getPlateVoltage(); 
-            default: jassertfalse; 
-                return 0.0f;
-        }
+        monitors.at((int) Monitoring::Vk)= getCathodeVoltage(); 
+        monitors.at((int) Monitoring::Vp)= getPlateVoltage(); 
     }
 
     // Accessor methods for monitoring internal WDF variables
-    float getCathodeVoltage() const { return -w_Triode.getVgkAcc(); }
-    float getPlateVoltage() const { return w_Triode.getVpkAcc() - w_Triode.getVgkAcc(); }
+    float getCathodeVoltage() const { return voltage<float> (w_Rk); }
+    float getPlateVoltage() const { return voltage<float> (w_E_Rp); }
     float getGridVoltage() const { return voltage<float> (w_Ri); }
     float getPlateCurrent() const { return (getParam((int)Param::E)-getPlateVoltage())/getParam((int)Param::Rp) ; }
     

@@ -42,6 +42,15 @@ void TriodeElement::draw (juce::Graphics& g) const
     cachedBounds = juce::Rectangle<float> (center.x - TUBE_WIDTH*0.5f, center.y - TUBE_HEIGHT*0.5f, TUBE_WIDTH, TUBE_HEIGHT);
 
     // Labels
-    Terminal labelcenter = center + Terminal {115.0f, 0.0f};
+    Terminal labelcenter = center + Terminal {100.0f, -50.0f};
     drawLabel(g, labelcenter, getChoiceLabel());
+
+    //Monitor
+    if (getNumMonitors()>0){
+        Terminal monitor = center + Terminal {100.0f, -30.0f};
+        g.setColour (juce::Colours::red);
+        g.drawText (juce::String(getMonitorValue(0)*1e3f, 2) + " mA",
+                    center.getX() - 40, center.getY() + 2, 80, 18,
+                    juce::Justification::centred, true);
+    }
 }

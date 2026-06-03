@@ -13,12 +13,15 @@ public:
 
     virtual void setParam(const int index , float value) = 0;
     virtual void setControl(const int index , float value) = 0;
-    virtual float getMonitoring(const int index ) = 0;
+    virtual void updateMonitors() = 0;
+
+    float getControl(const int index) const {return controls.at(index);}
+    float getParam(const int index) const {return params.at(index);}
+    float getMonitoring(const int index ) {return monitors.at(index);};
 
     int getNumParam() const { return (int) params.size();}
     int getNumControl() const { return (int) controls.size();}
-    float getControl(const int index) const {return controls.at(index);}
-    float getParam(const int index) const {return params.at(index);}
+    int getNumMonitor() const { return (int) monitors.size();}
 
     juce::ValueTree saveState() const
     {
@@ -54,6 +57,7 @@ public:
 protected :
     std::vector<float> params;
     std::vector<float> controls;
+    std::vector<float> monitors;
 };
 
 class DefaultCircuit : public Circuit
@@ -66,6 +70,5 @@ public:
 
     void setParam(int, float) override {}
     void setControl(int, float) override {}
-
-    float getMonitoring(int) override{ return 0.0f;}
+    void updateMonitors() override {}
 };

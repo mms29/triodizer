@@ -90,8 +90,14 @@ SchematicElement* SchematicPanel::getElement (juce::String name) const noexcept
 void SchematicPanel::updateMonitoring ()
 {
     for (const auto& element : elements){
-        if (auto* voltmeter = dynamic_cast<VoltmeterElement*>(element.get())){
-            voltmeter->setMonitorValue(listener->getCircuitMonitoring(voltmeter->getMonitorIndex()));
+        if (auto* monitor = dynamic_cast<MonitoringElement*>(element.get())){
+            for (int i = 0; i < monitor->getNumMonitors(); ++i)
+            {
+                monitor->setMonitorValue(
+                    i,
+                    listener->getCircuitMonitoring(monitor->getCircuitIndex(i))
+                );
+            }
         }
     }
     repaint();
@@ -438,12 +444,12 @@ void SchematicBuilder::buildBassmanToneStack(SchematicPanel& schematic)
     ));
 
     schematic.addElement (std::make_unique<PotElement> (
-        "Trebble",
+        "Treble",
         schematic.getElement("C1")->getTerminals()[1],
         schematic.getElement("C2")->getTerminals()[1],
         schematic.getElement("C1")->getTerminals()[1] + Terminal {0.25f*d, .5f*d} ,
-        (int) BassmanToneStackCircuit::Control::Trebble,
-        (int) BassmanToneStackCircuit::Param::RTrebble
+        (int) BassmanToneStackCircuit::Control::Treble,
+        (int) BassmanToneStackCircuit::Param::RTreble
     ));
     schematic.addElement (std::make_unique<PotElement> (
         "Mid",     
@@ -484,11 +490,11 @@ void SchematicBuilder::buildBassmanToneStack(SchematicPanel& schematic)
         schematic.getElement("C1")->getTerminals()[0] + Terminal {-d*0.5f, 0.0f}
     );
     schematic.addWire (
-        schematic.getElement("Trebble")->getTerminals()[2] ,
-        schematic.getElement("Trebble")->getTerminals()[2] + Terminal {d, 0.0f}
+        schematic.getElement("Treble")->getTerminals()[2] ,
+        schematic.getElement("Treble")->getTerminals()[2] + Terminal {d, 0.0f}
     );
     schematic.addElement (std::make_unique<JunctionElement>(schematic.getElement("C1")->getTerminals()[0] + Terminal {-d*0.5f, 0.0f}));
-    schematic.addElement (std::make_unique<JunctionElement>(schematic.getElement("Trebble")->getTerminals()[2] + Terminal {d, 0.0f}));
+    schematic.addElement (std::make_unique<JunctionElement>(schematic.getElement("Treble")->getTerminals()[2] + Terminal {d, 0.0f}));
 
 }
 
@@ -725,12 +731,12 @@ void SchematicBuilder::buildBassmanPreampSmall(SchematicPanel& schematic)
     ));
 
     schematic.addElement (std::make_unique<PotElement> (
-        "Trebble",
+        "Treble",
         schematic.getElement("C1")->getTerminals()[1],
         schematic.getElement("C2")->getTerminals()[1],
         schematic.getElement("C1")->getTerminals()[1] + rightXS + bottomL*0.5f ,
-        (int) Control::Trebble,
-        (int) Param::RTrebble
+        (int) Control::Treble,
+        (int) Param::RTreble
     ));
     schematic.addElement (std::make_unique<PotElement> (
         "Bass",
@@ -789,8 +795,8 @@ void SchematicBuilder::buildBassmanPreampSmall(SchematicPanel& schematic)
         schematic.getElement("C2")->getTerminals()[1] + rightXS
     );
     schematic.addWire (
-        schematic.getElement("Trebble")->getTerminals()[2] ,
-        schematic.getElement("Trebble")->getTerminals()[2] + rightL
+        schematic.getElement("Treble")->getTerminals()[2] ,
+        schematic.getElement("Treble")->getTerminals()[2] + rightL
     );
     schematic.addWire (
         triodeTerms[1] ,
@@ -798,7 +804,7 @@ void SchematicBuilder::buildBassmanPreampSmall(SchematicPanel& schematic)
     );
 
     // I/O
-    schematic.addElement (std::make_unique<JunctionElement>(schematic.getElement("Trebble")->getTerminals()[2] + rightL));
+    schematic.addElement (std::make_unique<JunctionElement>(schematic.getElement("Treble")->getTerminals()[2] + rightL));
     schematic.addElement (std::make_unique<JunctionElement>(schematic.getElement("Ci")->getTerminals()[0]) );
 
 }
@@ -829,7 +835,8 @@ void SchematicBuilder::buildBassmanPreamp(SchematicPanel& schematic)
         "V1", 
         Terminal {250, 350},
         (int) Param::V1,
-        0, std::vector<ValueChoice>{{ 0.0f, "12AX7" },{ 0.0f, "12AT7" } }
+        0, std::vector<ValueChoice>{{ 0.0f, "12AX7" },{ 0.0f, "12AT7" } },
+        (int) Monitoring::Ik1
     ));
     auto V1pos = schematic.getElement("V1")->getTerminals();
 
@@ -902,7 +909,8 @@ void SchematicBuilder::buildBassmanPreamp(SchematicPanel& schematic)
         "V2", 
         schematic.getElement("Volume")->getTerminals()[2]+ rightM,
         (int) Param::V2,
-        0, std::vector<ValueChoice>{{ 0.0f, "12AX7" },{ 0.0f, "12AT7" } }
+        0, std::vector<ValueChoice>{{ 0.0f, "12AX7" },{ 0.0f, "12AT7" } },
+        (int) Monitoring::Ik2
     ));
     auto V2pos = schematic.getElement("V2")->getTerminals();
     schematic.addElement (std::make_unique<ResistorElement> (
@@ -929,7 +937,8 @@ void SchematicBuilder::buildBassmanPreamp(SchematicPanel& schematic)
         "V3", 
         V2pos[1]+ rightL*2.0f,
         (int) Param::V3,
-        0, std::vector<ValueChoice>{{ 0.0f, "12AX7" },{ 0.0f, "12AT7" } }
+        0, std::vector<ValueChoice>{{ 0.0f, "12AX7" },{ 0.0f, "12AT7" } },
+        (int) Monitoring::Ik3
     ));
     auto V3pos = schematic.getElement("V3")->getTerminals();
     schematic.addElement (std::make_unique<ResistorElement> (
@@ -974,12 +983,12 @@ void SchematicBuilder::buildBassmanPreamp(SchematicPanel& schematic)
     ));
 
     schematic.addElement (std::make_unique<PotElement> (
-        "Trebble",
+        "Treble",
         schematic.getElement("C1")->getTerminals()[1],
         schematic.getElement("C2")->getTerminals()[1],
         schematic.getElement("C1")->getTerminals()[1] + rightXS + bottomL*0.5f ,
-        (int) Control::Trebble,
-        (int) Param::RTrebble
+        (int) Control::Treble,
+        (int) Param::RTreble
     ));
     schematic.addElement (std::make_unique<PotElement> (
         "Bass",
@@ -1010,33 +1019,33 @@ void SchematicBuilder::buildBassmanPreamp(SchematicPanel& schematic)
     schematic.addElement (std::make_unique<VoltmeterElement> (
         "Vp1", 
         V1pos[1] + leftXS,
-        (int) Monitoring::Vp1
+        (int) Monitoring::VDCp1
     ));
     schematic.addElement (std::make_unique<VoltmeterElement> (
         "Vk1", 
         V1pos[2] + leftXS,
-        (int) Monitoring::Vk1
+        (int) Monitoring::VDCk1
     ));
 
     schematic.addElement (std::make_unique<VoltmeterElement> (
         "Vp2", 
         V2pos[1] + leftXS,
-        (int) Monitoring::Vp2
+        (int) Monitoring::VDCp2
     ));
     schematic.addElement (std::make_unique<VoltmeterElement> (
         "Vk2", 
         V2pos[2] + leftXS,
-        (int) Monitoring::Vk2
+        (int) Monitoring::VDCk2
     ));
     schematic.addElement (std::make_unique<VoltmeterElement> (
         "Vp3", 
         V3pos[1] + leftXS,
-        (int) Monitoring::Vp3
+        (int) Monitoring::VDCp3
     ));
     schematic.addElement (std::make_unique<VoltmeterElement> (
         "Vk3", 
         V3pos[2] + leftXS,
-        (int) Monitoring::Vk3
+        (int) Monitoring::VDCk3
     ));
 
 
@@ -1066,8 +1075,8 @@ void SchematicBuilder::buildBassmanPreamp(SchematicPanel& schematic)
         schematic.getElement("C2")->getTerminals()[1] + rightXS
     );
     schematic.addWire (
-        schematic.getElement("Trebble")->getTerminals()[2] ,
-        schematic.getElement("Trebble")->getTerminals()[2] + rightL
+        schematic.getElement("Treble")->getTerminals()[2] ,
+        schematic.getElement("Treble")->getTerminals()[2] + rightL
     );
     schematic.addWire (
         V3pos[2] ,
@@ -1079,7 +1088,7 @@ void SchematicBuilder::buildBassmanPreamp(SchematicPanel& schematic)
     );
 
     // I/O
-    schematic.addElement (std::make_unique<JunctionElement>(schematic.getElement("Trebble")->getTerminals()[2] + rightL));
+    schematic.addElement (std::make_unique<JunctionElement>(schematic.getElement("Treble")->getTerminals()[2] + rightL));
     schematic.addElement (std::make_unique<JunctionElement>(schematic.getElement("Ci1")->getTerminals()[0]) );
 
 }

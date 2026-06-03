@@ -70,11 +70,7 @@ public:
         port_g.incident (bg);
         port_k.incident (bk);
         port_p.incident (bp);
-
-        // 4. Low‑pass filtered monitoring values (same as Cardarilli version)
-        Vgk_acc += alpha_acc * (Vg - Vk - Vgk_acc);
-        Vpk_acc += alpha_acc * (Vp - Vk - Vpk_acc);
-}
+    }
 
     /** Set the quadratic model parameters.
      *  The values are taken from the MATLAB implementation:
@@ -82,7 +78,7 @@ public:
      *   kp2 – linear term coefficient
      *   kpg – grid‑voltage coefficient
      */
-    void setTriodeParameters (T kp_val, T kp2_val, T kpg_val, T Rp_val, T Rk_val, T E_val) noexcept
+    void setTubeLabParameters (T kp_val, T kp2_val, T kpg_val, T Rp_val, T Rk_val, T E_val) noexcept
     {
         kp  = kp_val;
         kp2 = kp2_val;
@@ -97,21 +93,9 @@ public:
     T getVg() const { return Vg; }
     T getVk() const { return Vk; }
     T getVp() const { return Vp; }
-    T getVgkAcc() const { return Vgk_acc; }
-    T getVpkAcc() const { return Vpk_acc; }
     T getR0g() const { return R0g; }
     T getR0k() const { return R0k; }
     T getR0p() const { return R0p; }
-    int getVgIters() const { return 0; } // not used
-    int getVkIters() const { return 0; }
-    int getPPIters() const { return 0; }
-
-    /** Prepare smoothing coefficient for monitoring values. */
-    void prepare (T sampleRate)
-    {
-        const T tauSeconds = static_cast<T>(1.0);
-        alpha_acc = static_cast<T>(1.0) - std::exp (-static_cast<T>(1.0) / (sampleRate * tauSeconds));
-    }
 
 private:
     // ---------------------------------------------------------------------
@@ -201,11 +185,6 @@ private:
         Vk = Vk0;
         Vp = Vp0;
         Vg = static_cast<T>(0);
-        Vgk_acc = -Vk0;
-        Vpk_acc = Vp0-Vk0;
-
-        std::cout <<"Vk0 = "<<Vk0<< std::endl;
-        std::cout <<"Vp0 = "<<Vp0<< std::endl;
     }
 
     // ---------------------------------------------------------------------
@@ -236,9 +215,6 @@ private:
 
     // Node voltages for monitoring
     T Vg{}, Vk{}, Vp{};
-
-    // Accumulators for smoothed monitoring values
-    T Vgk_acc{}, Vpk_acc{}, alpha_acc{};
 
     // No iterative counters needed for the quadric model
     static constexpr T eps = static_cast<T>(1e-9);

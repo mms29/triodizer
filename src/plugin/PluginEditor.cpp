@@ -1,10 +1,10 @@
 #include "plugin/PluginEditor.h"
 
 //==============================================================================
-TriodeEditor::TriodeEditor(TriodeProcessor& p)
+TubeLabEditor::TubeLabEditor(TubeLabProcessor& p)
     : AudioProcessorEditor(&p), audioProcessor(p),     
     waveformTimer([this] { waveformTimerCallback(); }, 20),
-    schematicTimer([this] { triodeTimerCallback(); }, 5),
+    schematicTimer([this] { circuitTimerCallback(); }, 5),
     waveformDisplay(p)
 {
 
@@ -85,18 +85,18 @@ TriodeEditor::TriodeEditor(TriodeProcessor& p)
     setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
 }
 
-TriodeEditor::~TriodeEditor()
+TubeLabEditor::~TubeLabEditor()
 {
     audioProcessor.removeChangeListener(this);
 }
 //==============================================================================
-void TriodeEditor::changeListenerCallback(
+void TubeLabEditor::changeListenerCallback(
     juce::ChangeBroadcaster*)
 {
     updateSchematic();
 }
 
-void TriodeEditor::updateSchematic(){
+void TubeLabEditor::updateSchematic(){
     schematic->clear();
     switch (audioProcessor.getCurrentPreset())
     {
@@ -121,24 +121,24 @@ void TriodeEditor::updateSchematic(){
     schematic->repaint();
 }
 //==============================================================================
-void TriodeEditor::triodeTimerCallback()
+void TubeLabEditor::circuitTimerCallback()
 { //TODO
     schematic->updateMonitoring();
 }
 
-void TriodeEditor::waveformTimerCallback()
+void TubeLabEditor::waveformTimerCallback()
 {
     waveformDisplay.repaint();
 }
 
 //==============================================================================
 
-void TriodeEditor::paint(juce::Graphics& g)
+void TubeLabEditor::paint(juce::Graphics& g)
 {
     g.fillAll(juce::Colours::darkgrey);
 }
 
-void TriodeEditor::resized()
+void TubeLabEditor::resized()
 {
     auto area = getLocalBounds().reduced(4);
 

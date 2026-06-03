@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0" CACHE STRING "" FORCE)
 
-project(TriodePlugin VERSION 1.0.0)
+project(TubeLab VERSION 1.0.0)
 
 include(FetchContent)
 
@@ -22,12 +22,12 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(chowdsp_wdf)
 
 # Create the plugin target
-juce_add_plugin(TriodizerPlugin
+juce_add_plugin(TubeLabPlugin
     COMPANY_NAME "VuilzAudio"
     PLUGIN_MANUFACTURER_CODE "VzAu"
     PLUGIN_CODE "TRDZ"
     FORMATS VST3 AU Standalone
-    ProductName "Triodizer"
+    ProductName "TubeLab"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
@@ -36,7 +36,7 @@ juce_add_plugin(TriodizerPlugin
 )
 
 # Add source files
-target_sources(TriodizerPlugin PRIVATE
+target_sources(TubeLabPlugin PRIVATE
     src/plugin/PluginProcessor.cpp
     src/plugin/PluginEditor.cpp
     src/gui/WaveformDisplay.cpp
@@ -49,7 +49,7 @@ target_sources(TriodizerPlugin PRIVATE
 )
 
 # Link JUCE modules
-target_link_libraries(TriodizerPlugin PRIVATE
+target_link_libraries(TubeLabPlugin PRIVATE
     juce::juce_audio_processors
     juce::juce_audio_utils
     juce::juce_dsp
@@ -61,15 +61,15 @@ target_link_libraries(TriodizerPlugin PRIVATE
 #     ${CMAKE_SOURCE_DIR}/chowdsp_wdf/include
 #     src
 #     )
-target_include_directories(TriodizerPlugin PRIVATE
+target_include_directories(TubeLabPlugin PRIVATE
     ${chowdsp_wdf_SOURCE_DIR}/include
     src
 )
 # C++ standard
-target_compile_features(TriodizerPlugin PRIVATE cxx_std_17)
+target_compile_features(TubeLabPlugin PRIVATE cxx_std_17)
 
 # Enable useful warnings
-target_compile_definitions(TriodizerPlugin PRIVATE
+target_compile_definitions(TubeLabPlugin PRIVATE
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
     JUCE_VST2_ENABLED=0

@@ -17,6 +17,7 @@ public:
     {
         params.resize((int)Param::Count, 0.0f);
         controls.resize((int)Control::Count, 0.0f);
+        monitors.resize((int)Monitoring::Count, 0.0f);
 
         setDefaultParam();
         setDefaultControl();
@@ -24,7 +25,12 @@ public:
 
     enum class Monitoring : int 
     {
-        Vk1, Vp1, Vk2, Vp2, Vk3, Vp3, Count 
+        VDCk1, VDCk2, VDCk3, 
+        VDCp1, VDCp2, VDCp3, 
+        VACk1, VACk2, VACk3, 
+        VACp1, VACp2, VACp3, 
+        Ik1  , Ik2  , Ik3  , 
+        Count 
     };
     enum class Param : int 
     {
@@ -34,12 +40,12 @@ public:
         V2, Rg2 ,Rk2, Rp2, E2,
         // V3
         V3, Rg3 , Rk3, Rp3, E3, 
-        RBass, RMid, RTrebble, C1, C2, C3, R4, // tone stack
+        RBass, RMid, RTreble, C1, C2, C3, R4, // tone stack
         Count 
     };
     enum class Control : int 
     {
-        Volume, Bass, Mid, Trebble, Count 
+        Volume, Bass, Mid, Treble, Count 
     };
     void setDefaultParam () 
     {
@@ -70,22 +76,22 @@ public:
         setParam((int)Param::R4, 56.0e3);      
         setParam((int)Param::RBass, 250e3f);    
         setParam((int)Param::RMid, 10e3f);     
-        setParam((int)Param::RTrebble, 250e3f); 
+        setParam((int)Param::RTreble, 250e3f); 
 
 
-        w_V1.setTriodeParameters(
+        w_V1.setTubeLabParameters(
             1.014e-5f, 5.498e-8f, 1.076e-5f,
             getParam((int)Param::Rp1),
             getParam((int)Param::Rk1),
             getParam((int)Param::E1)
         );
-        w_V2.setTriodeParameters(
+        w_V2.setTubeLabParameters(
             1.014e-5f, 5.498e-8f, 1.076e-5f,
             getParam((int)Param::Rp2),
             getParam((int)Param::Rk2),
             getParam((int)Param::E2)
         );
-        w_V3.setTriodeParameters(
+        w_V3.setTubeLabParameters(
             1.014e-5f, 5.498e-8f, 1.076e-5f,
             getParam((int)Param::Rp3),
             getParam((int)Param::Rk3),
@@ -98,7 +104,7 @@ public:
         setControl((int)Control::Volume, 50.0f);    
         setControl((int)Control::Bass, 50.0f);    
         setControl((int)Control::Mid, 50.0f);     
-        setControl((int)Control::Trebble, 50.0f); 
+        setControl((int)Control::Treble, 50.0f); 
     }
     void setParam (const int index, float value) override
     {
@@ -138,7 +144,7 @@ public:
             case (int)Param::R4:       w_bts.setR4(value); break;
             case (int)Param::RBass:     setControl((int)Control::Bass, 50.0f); break; 
             case (int)Param::RMid:      setControl((int)Control::Mid, 50.0f); break; 
-            case (int)Param::RTrebble:  setControl((int)Control::Trebble, 50.0f); break; 
+            case (int)Param::RTreble:  setControl((int)Control::Treble, 50.0f); break; 
 
             case (int)Param::Count:
             default:
@@ -168,10 +174,10 @@ public:
                 w_bts.setR2(controlVal*(1.0f - ratio));
                 break;
             }
-            case (int)Control::Trebble: 
+            case (int)Control::Treble: 
             {
 
-                float controlVal = getParam((int)Param::RTrebble);
+                float controlVal = getParam((int)Param::RTreble);
                 auto ratio = std::pow((100.0f-value)/100.0f, 3.0f); // audio taper
                 w_bts.setR1_plus( controlVal*ratio);
                 w_bts.setR1_minus( controlVal*(1.0f - ratio));
@@ -188,21 +194,118 @@ public:
             default: jassertfalse; break;
         }
     }
+    void updateMonitors() override{
+        // ======================
+        // K1
+        // ======================
+        {
+            auto& vdc = monitors[(int)Monitoring::VDCk1];
+            auto& vac = monitors[(int)Monitoring::VACk1];
+
+            const float x = getVk1();
+
+            vdc = lowPass(x, vdc);
+            vac = variance(x, vdc, vac);
+        }
+
+        // ======================
+        // K2
+        // ======================
+        {
+            auto& vdc = monitors[(int)Monitoring::VDCk2];
+            auto& vac = monitors[(int)Monitoring::VACk2];
+
+            const float x = getVk2();
+
+            vdc = lowPass(x, vdc);
+            vac = variance(x, vdc, vac);
+        }
+
+        // ======================
+        // K3
+        // ======================
+        {
+            auto& vdc = monitors[(int)Monitoring::VDCk3];
+            auto& vac = monitors[(int)Monitoring::VACk3];
+
+            const float x = getVk3();
+
+            vdc = lowPass(x, vdc);
+            vac = variance(x, vdc, vac);
+        }
+
+        // ======================
+        // P1
+        // ======================
+        {
+            auto& vdc = monitors[(int)Monitoring::VDCp1];
+            auto& vac = monitors[(int)Monitoring::VACp1];
+
+            const float x = getVp1();
+
+            vdc = lowPass(x, vdc);
+            vac = variance(x, vdc, vac);
+        }
+
+        // ======================
+        // P2
+        // ======================
+        {
+            auto& vdc = monitors[(int)Monitoring::VDCp2];
+            auto& vac = monitors[(int)Monitoring::VACp2];
+
+            const float x = getVp2();
+
+            vdc = lowPass(x, vdc);
+            vac = variance(x, vdc, vac);
+        }
+
+        // ======================
+        // P3
+        // ======================
+        {
+            auto& vdc = monitors[(int)Monitoring::VDCp3];
+            auto& vac = monitors[(int)Monitoring::VACp3];
+
+            const float x = getVp3();
+
+            vdc = lowPass(x, vdc);
+            vac = variance(x, vdc, vac);
+        }
+
+        // ======================
+        // CURRENT (DC only)
+        // ======================
+        {
+            auto& ik1 = monitors[(int)Monitoring::Ik1];
+            ik1 = lowPass(getIk1(), ik1);
+        }
+
+        {
+            auto& ik2 = monitors[(int)Monitoring::Ik2];
+            ik2 = lowPass(getIk2(), ik2);
+        }
+
+        {
+            auto& ik3 = monitors[(int)Monitoring::Ik3];
+            ik3 = lowPass(getIk3(), ik3);
+        }
+    }
+
 
     void prepare(double sr) override {
         w_Vin.prepare ((float) sr);
         w_Ck1.prepare ((float) sr);
         w_Cp1.prepare ((float) sr);
         w_bts.prepare((float) sr);
-        w_V1.prepare ((float) sr);
-        w_V2.prepare ((float) sr);
-        w_V3.prepare ((float) sr);
 
         float duration = 0.1f;
         for (int i = 0; i < (int) sr *duration; ++i)
         {
             auto y = processSample(0.0f);
         }
+
+        alpha = 1.0f / (sr * 0.5f); 
     }
     void reset() override {
         w_bts.reset();
@@ -218,8 +321,6 @@ public:
         w_V1.compute();
         auto V1_out = voltage<float> (w_Ro1_minus);
 
-        // return V1_out;
-
         //V2
         w_V_Rg2.setVoltage (V1_out);
         w_E2_Rp2.setVoltage(getParam((int)Param::E2));
@@ -231,27 +332,8 @@ public:
         w_E3.setVoltage(getParam((int)Param::E3));
         w_V3.compute();
 
+        updateMonitors();
         return w_bts.getVoltage();
-    }
-    float getMonitoring(const int index) override{
-
-        switch (index)
-        {
-            case (int) Monitoring::Vk1: 
-                return getVk1(); 
-            case (int) Monitoring::Vp1: 
-                return getVp1(); 
-            case (int) Monitoring::Vk2: 
-                return getVk2(); 
-            case (int) Monitoring::Vp2: 
-                return getVp2(); 
-            case (int) Monitoring::Vk3: 
-                return getVk3(); 
-            case (int) Monitoring::Vp3: 
-                return getVp3(); 
-            default: jassertfalse; 
-                return 0.0f;
-        }
     }
 
     // Accessor methods for monitoring internal WDF variables
@@ -261,11 +343,25 @@ public:
     float getVp1() const { return voltage<float>(w_E1_Rp1); }
     float getVk2() const { return voltage<float>(w_Rk2); }
     float getVp2() const { return voltage<float>(w_E2_Rp2); }
-    float getVk3() const { return -w_V3.getVgkAcc(); }
-    float getVp3() const { return w_V3.getVpkAcc() - w_V3.getVgkAcc(); }
+    float getVk3() const { return voltage<float>(w_Rk3); }
+    float getVp3() const { return voltage<float>(w_E3); }
 
-    
+    float getIk1() const { return current<float>(w_Rk1); }
+    float getIk2() const { return current<float>(w_Rk2); }
+    float getIk3() const { return current<float>(w_Rk3); }
+
 private: 
+
+// Monitoring utils
+    float alpha;
+
+    float lowPass(float x, float mean){
+        return mean + alpha * (x - mean);
+    }
+    float variance(float x, float mean, float var){
+        return var + alpha * ((x - mean)*(x - mean) - var);
+    }
+
     // ==================================================================================================== 
     // =  First stage 
     // ==================================================================================================== 

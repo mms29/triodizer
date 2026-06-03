@@ -43,13 +43,13 @@ private:
     Callback callback;
 };
 
-class TriodeEditor : public juce::AudioProcessorEditor,
+class TubeLabEditor : public juce::AudioProcessorEditor,
                      public SchematicPanelListener,
                      public juce::ChangeListener
 {
 public:
-    TriodeEditor(TriodeProcessor&);
-    ~TriodeEditor() override;
+    TubeLabEditor(TubeLabProcessor&);
+    ~TubeLabEditor() override;
 
     void paint(juce::Graphics&) override;
     void resized() override;
@@ -57,7 +57,7 @@ public:
     void updateSchematic();
     void changeListenerCallback(juce::ChangeBroadcaster*) override;
 
-    void triodeTimerCallback();
+    void circuitTimerCallback();
     void waveformTimerCallback();
 
     // SchematicPanel::Listener
@@ -74,7 +74,7 @@ public:
 
 
 private:
-    TriodeProcessor& audioProcessor;
+    TubeLabProcessor& audioProcessor;
     int timerCount = 0;
 
     // Waveform display for input/output comparison
@@ -103,6 +103,6 @@ private:
     // Zoom controls
     juce::TextButton resetViewButton {"Reset View"};
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TriodeEditor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TubeLabEditor)
 };
 

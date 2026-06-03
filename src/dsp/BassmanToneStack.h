@@ -61,7 +61,7 @@ public:
         P2 = v;
         setR2(v*0.5f);    
     }
-    void setTrebble(float v)       { 
+    void setTreble(float v)       { 
         P1 = v;
         setR1_plus(v*0.5f);    
         setR1_minus(v*0.5f);    
@@ -155,14 +155,15 @@ public:
     {
         params.resize((int)Param::Count, 0.0f);
         controls.resize((int)Control::Count, 0.0f);
+        monitors.resize((int)Monitoring::Count, 0.0f);
 
         setDefaultParam();
         setDefaultControl();
     };
 
     enum class Monitoring : int {  Count };
-    enum class Param : int {RBass, RMid, RTrebble, C1, C2, C3, R4,Count };
-    enum class Control : int {Bass, Mid, Trebble, Count };
+    enum class Param : int {RBass, RMid, RTreble, C1, C2, C3, R4,Count };
+    enum class Control : int {Bass, Mid, Treble, Count };
 
     void setDefaultParam () 
     {
@@ -172,13 +173,13 @@ public:
         setParam((int)Param::R4, 56.0e3);      
         setParam((int)Param::RBass, 250e3f);    
         setParam((int)Param::RMid, 10e3f);     
-        setParam((int)Param::RTrebble, 250e3f); 
+        setParam((int)Param::RTreble, 250e3f); 
     }
     void setDefaultControl () 
     { 
         setControl((int)Control::Bass, 50.0f);    
         setControl((int)Control::Mid, 50.0f);     
-        setControl((int)Control::Trebble, 50.0f); 
+        setControl((int)Control::Treble, 50.0f); 
     }
     // Runtime setters — updates the WDF node and re-propagates impedance
 
@@ -194,7 +195,7 @@ public:
             case (int)Param::R4:       w_bts.setR4(value); break;
             case (int)Param::RBass:     w_bts.setBass(value); break;
             case (int)Param::RMid:      w_bts.setMid(value); break;
-            case (int)Param::RTrebble:  w_bts.setTrebble(value); break;
+            case (int)Param::RTreble:  w_bts.setTreble(value); break;
 
             case (int)Param::Count:
             default:
@@ -215,7 +216,7 @@ public:
                 w_bts.setR2(controlVal*(1.0f - ratio));
                 break;
             }
-            case (int)Control::Trebble: 
+            case (int)Control::Treble: 
             {
                 auto ratio = (100.0f-value)/100.0f; 
                 w_bts.setR1_plus( controlVal*ratio);
@@ -248,8 +249,7 @@ public:
         return w_bts.getVoltage();
 
     }
-
-    float getMonitoring(int) override{ return 0.0f;}
+    void updateMonitors() override {}
     
 private: 
     BassmanToneStack<float> w_bts {};
@@ -273,8 +273,8 @@ public:
     };
 
     enum class Monitoring : int {  Count };
-    enum class Param : int {RBass, RMid, RTrebble, C1, C2, C3, R4,Count };
-    enum class Control : int {Bass, Mid, Trebble, Count };
+    enum class Param : int {RBass, RMid, RTreble, C1, C2, C3, R4,Count };
+    enum class Control : int {Bass, Mid, Treble, Count };
 
     void setDefaultParam () 
     {
@@ -284,13 +284,13 @@ public:
         setParam((int)Param::R4, 56.0e3);      
         setParam((int)Param::RBass, 250e3f);    
         setParam((int)Param::RMid, 10e3f);     
-        setParam((int)Param::RTrebble, 250e3f); 
+        setParam((int)Param::RTreble, 250e3f); 
     }
     void setDefaultControl () 
     { 
         setControl((int)Control::Bass, 50.0f);    
         setControl((int)Control::Mid, 50.0f);     
-        setControl((int)Control::Trebble, 50.0f); 
+        setControl((int)Control::Treble, 50.0f); 
     }
     // Runtime setters — updates the WDF node and re-propagates impedance
 
@@ -306,7 +306,7 @@ public:
             case (int)Param::R4:       w_bts.setR4(value); break;
             case (int)Param::RBass:     w_bts.setBass(value); break;
             case (int)Param::RMid:      w_bts.setMid(value); break;
-            case (int)Param::RTrebble:  w_bts.setTrebble(value); break;
+            case (int)Param::RTreble:  w_bts.setTreble(value); break;
 
             case (int)Param::Count:
             default:
@@ -327,7 +327,7 @@ public:
                 w_bts.setR2(controlVal*(1.0f - ratio));
                 break;
             }
-            case (int)Control::Trebble: 
+            case (int)Control::Treble: 
             {
                 auto ratio = (100.0f-value)/100.0f; 
                 w_bts.setR1_plus( controlVal*ratio);
@@ -361,7 +361,7 @@ public:
 
     }
 
-    T getMonitoring(int) override{ return 0.0f;}
+    void updateMonitors() override{ }
     
 private: 
     BassmanToneStack<T> w_bts {};
