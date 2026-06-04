@@ -1,4 +1,4 @@
-name: Triodizer Plugin CI/CD
+name: TubeLab Plugin CI/CD
 
 on:
   push:
@@ -36,7 +36,7 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Triodizer-macOS-build
+          name: TubeLab-macOS-build
           path: |
             build/**/*.vst3
             build/**/*.component
@@ -55,11 +55,11 @@ jobs:
 
       - name: Install dependencies
         run: |
-          choco install cmake ninja -y
+          choco install cmake ninja sccache -y
 
       - name: Configure CMake
         run: |
-          cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release
+          cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
 
       - name: Build plugin
         run: |
@@ -73,7 +73,7 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Triodizer-Windows-build
+          name: TubeLab-Windows-build
           path: |
             build/**/*.vst3
             build/**/*.exe
@@ -88,21 +88,21 @@ jobs:
       - name: Download macOS artifacts
         uses: actions/download-artifact@v4
         with:
-          name: Triodizer-macOS-build
+          name: TubeLab-macOS-build
 
       - name: Download Windows artifacts
         uses: actions/download-artifact@v4
         with:
-          name: Triodizer-Windows-build
+          name: TubeLab-Windows-build
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            Triodizer-macOS-build/**/*.vst3
-            Triodizer-macOS-build/**/*.component
-            Triodizer-macOS-build/**/*.app
-            Triodizer-Windows-build/**/*.vst3
-            Triodizer-Windows-build/**/*.exe
+            TubeLab-macOS-build/**/*.vst3
+            TubeLab-macOS-build/**/*.component
+            TubeLab-macOS-build/**/*.app
+            TubeLab-Windows-build/**/*.vst3
+            TubeLab-Windows-build/**/*.exe
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
