@@ -6,6 +6,7 @@
 #include "dsp/Circuit.h"
 #include "dsp/BassmanPreamp.h"
 #include "dsp/FullBassmanPreamp.h"
+#include "dsp/DualRectifierPreamp.h"
 
 
 const int PRESET_DEFAULT = 1;
@@ -13,6 +14,7 @@ const int PRESET_COMMONCATHODE = 2;
 const int PRESET_BASSMAN_TS = 3;
 const int PRESET_BASSMAN_PREAMP_SMALL = 4;
 const int PRESET_BASSMAN_PREAMP = 5;
+const int PRESET_DUAL_RECTIFIER_PREAMP = 6;
 
 class WaveformBuffer
 {

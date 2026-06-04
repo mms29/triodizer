@@ -51,7 +51,7 @@ public:
     void zoomOut();
     void resetView();
     void setOffset (juce::Point<float> newOffset);
-    juce::Point<float> getViewPosition (juce::Point<float> worldPos) const;
+    void initOffset ();
 
     // Monitor / voltmeter interface
     void updateMonitoring ();
@@ -80,12 +80,9 @@ private:
 
     // Viewport state for pan/zoom
     juce::Point<float>                             viewOffset     = {0.0f, 0.0f};
+    juce::Point<float>                             dragStartMouse = {0.0f, 0.0f};
+    juce::Point<float>                             dragStartOffset = {0.0f, 0.0f};
     float                                          zoomFactor     = 1.0f;
-    bool                                           isPanning      = false;
-    bool                                           isGrabbing     = false;
-    juce::Point<float>                             grabStartPos;
-    juce::Point<float>                             grabStartOffset;
-    juce::Point<float>                             lastMousePos;
 };
 
 
@@ -99,6 +96,7 @@ public:
     void buildBassmanToneStack(SchematicPanel& schematic);
     void buildBassmanPreampSmall(SchematicPanel& schematic);
     void buildBassmanPreamp(SchematicPanel& schematic);
+    void buildDualRectifierPreamp(SchematicPanel& schematic);
 
 private:
 

@@ -43,6 +43,7 @@ TubeLabProcessor::TubeLabProcessor()
                         "Fender Bassman Tone Stack",
                         "Fender Bassman Preamp Small",
                         "Fender Bassman Preamp",
+                        "Mesa/Boogie Dual Rectifier",
                     },
                     0)
             })
@@ -201,14 +202,21 @@ void TubeLabProcessor::updatePreset()
                 circuit[ch] = std::make_unique<FullBassmanPreampCircuit>();
                 break;
             }
+            case PRESET_DUAL_RECTIFIER_PREAMP: 
+            {
+                circuit[ch] = std::make_unique<DualRectifierPreampCircuit>();
+                break;
+            }
             default: 
             {
                 circuit[ch] = std::make_unique<DefaultCircuit>();
                 break;
             }
         }
+        circuit[ch]->prepare(oversampleRate);
     }
     sendChangeMessage();
+
 
 }
 //==============================================================================

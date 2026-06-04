@@ -22,7 +22,7 @@ inline constexpr float  GAIN_MAX = 0.0f;
 inline constexpr float  GAIN_DEFAULT = 0.0f;
 inline constexpr float  GAIN_STEP = 0.1f;
 
-inline constexpr int WINDOW_WIDTH = 1200;
+inline constexpr int WINDOW_WIDTH = 1600;
 inline constexpr int WINDOW_HEIGHT = 920;
 
 

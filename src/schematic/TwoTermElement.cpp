@@ -139,10 +139,10 @@ float CapacitorElement:: labelToValue (const juce::String s)
 
 juce::String CapacitorElement::valueToLabel (float v)
 {
-    if (v >= 1e-3) return juce::String (v * 1e3, 0) + "m";   // mF
-    if (v >= 1e-6) return juce::String (v * 1e6, 0) + "u";   // µF
-    if (v >= 1e-9) return juce::String (v * 1e9, 0) + "n";   // nF
-    if (v >= 1e-12) return juce::String (v * 1e12, 0) + "p";  // pF
+    if (v > 1e-3) return juce::String (v * 1e3, 0) + "m";   // mF
+    if (v > 1e-6) return juce::String (v * 1e6, 0) + "u";   // µF
+    if (v > 1e-9) return juce::String (v * 1e9, 0) + "n";   // nF
+    if (v > 1e-12) return juce::String (v * 1e12, 0) + "p";  // pF
 
     return juce::String (v);
 }

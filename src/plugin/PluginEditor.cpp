@@ -71,6 +71,7 @@ TubeLabEditor::TubeLabEditor(TubeLabProcessor& p)
     presetSelector.addItem("Fender Bassman Tone Stack", PRESET_BASSMAN_TS);
     presetSelector.addItem("Fender Bassman Preamp Small", PRESET_BASSMAN_PREAMP_SMALL);
     presetSelector.addItem("Fender Bassman Preamp", PRESET_BASSMAN_PREAMP);
+    presetSelector.addItem("Mesa/Boogie Dual Rectifier", PRESET_DUAL_RECTIFIER_PREAMP);
     addAndMakeVisible(presetSelector);
     presetLabel.setText("Preset", juce::dontSendNotification);
     presetLabel.attachToComponent(&presetSelector, false);
@@ -83,6 +84,8 @@ TubeLabEditor::TubeLabEditor(TubeLabProcessor& p)
     // SIZE
     // =====================================================
     setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
+    schematic->resetView();
+
 }
 
 TubeLabEditor::~TubeLabEditor()
@@ -112,13 +115,16 @@ void TubeLabEditor::updateSchematic(){
     case PRESET_BASSMAN_PREAMP:
         schematicBuilder.buildBassmanPreamp(*schematic);
         break;
+    case PRESET_DUAL_RECTIFIER_PREAMP:
+        schematicBuilder.buildDualRectifierPreamp(*schematic);
+        break;
     default:
         schematicBuilder.buildDefault(*schematic);
         break;
     }
     schematic->syncSchematicToCircuit();
     schematic->resized();
-    schematic->repaint();
+    schematic->resetView();
 }
 //==============================================================================
 void TubeLabEditor::circuitTimerCallback()

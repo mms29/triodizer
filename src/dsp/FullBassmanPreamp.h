@@ -353,7 +353,7 @@ public:
 private: 
 
 // Monitoring utils
-    float alpha;
+    float alpha=1.0f;
 
     float lowPass(float x, float mean){
         return mean + alpha * (x - mean);

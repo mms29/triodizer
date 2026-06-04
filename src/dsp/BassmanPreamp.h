@@ -25,7 +25,8 @@ public:
 
     enum class Monitoring : int 
     {
-        Vk, Vp, Count 
+        Vk, Vp, 
+        Count 
     };
     enum class Param : int 
     {

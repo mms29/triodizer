@@ -2,6 +2,7 @@
 #include "dsp/TriodeGainStage.h"
 #include "dsp/BassmanPreamp.h"
 #include "dsp/FullBassmanPreamp.h"
+#include "dsp/DualRectifierPreamp.h"
 
 #include <format>
 //==============================================================================
@@ -91,6 +92,7 @@ void SchematicPanel::updateMonitoring ()
 {
     for (const auto& element : elements){
         if (auto* monitor = dynamic_cast<MonitoringElement*>(element.get())){
+
             for (int i = 0; i < monitor->getNumMonitors(); ++i)
             {
                 monitor->setMonitorValue(
@@ -106,7 +108,7 @@ void SchematicPanel::updateMonitoring ()
 void SchematicPanel::paint (juce::Graphics& g)
 {
     // Background
-    g.fillAll (isGrabbing ? juce::Colours::darkgrey.brighter() : SCHEMATIC_BACKGROUND);
+    g.fillAll (SCHEMATIC_BACKGROUND);
 
     // Apply zoom and pan transform
     g.addTransform(juce::AffineTransform::scale(zoomFactor).followedBy(
@@ -162,6 +164,7 @@ void SchematicPanel::resetView()
 {
     viewOffset = {0.0f, 0.0f};
     zoomFactor = 1.0f;
+    initOffset();
     repaint();
 }
 
@@ -171,76 +174,95 @@ void SchematicPanel::setOffset (juce::Point<float> newOffset)
     repaint();
 }
 
-juce::Point<float> SchematicPanel::getViewPosition (juce::Point<float> worldPos) const
+void SchematicPanel::initOffset()
 {
-    return { (worldPos.x - viewOffset.x) / zoomFactor,
-             (worldPos.y - viewOffset.y) / zoomFactor };
+    float minx = std::numeric_limits<float>::max();
+    float miny = std::numeric_limits<float>::max();
+
+    float maxx = std::numeric_limits<float>::lowest();
+    float maxy = std::numeric_limits<float>::lowest();
+
+    float meanx = 0.0f;
+    float meany = 0.0f;
+    int count = 0;
+
+    for (auto& element : elements)
+    {
+        for (const auto& t : element->getTerminals())
+        {
+            minx = std::min(minx, t.x);
+            miny = std::min(miny, t.y);
+
+            maxx = std::max(maxx, t.x);
+            maxy = std::max(maxy, t.y);
+
+            meanx += t.x;
+            meany += t.y;
+            ++count;
+        }
+    }
+
+    if (count == 0)
+        return;
+
+    const float centerX = meanx / (float) count;
+    const float centerY = meany / (float) count;
+
+    const float circuitWidth  = maxx - minx;
+    const float circuitHeight = maxy - miny;
+
+    constexpr float margin = 100.0f; // pixels
+
+    const float availableWidth  = getWidth()  - 2.0f * margin;
+    const float availableHeight = getHeight() - 2.0f * margin;
+
+    const float zoomX = availableWidth  / circuitWidth;
+    const float zoomY = availableHeight / circuitHeight;
+
+
+    zoomFactor = std::min(zoomX, zoomY);
+
+    // Optional clamp
+    zoomFactor = juce::jlimit(0.2f, 5.0f, zoomFactor);
+
+    // Center circuit in window
+    viewOffset.x = getWidth()  * 0.5f - centerX * zoomFactor;
+    viewOffset.y = getHeight() * 0.5f - centerY * zoomFactor;
 }
+
+// juce::Point<float> SchematicPanel::getViewPosition (juce::Point<float> worldPos) const
+// {
+//     return { (worldPos.x - viewOffset.x) / zoomFactor,
+//              (worldPos.y - viewOffset.y) / zoomFactor };
+// }
 
 //==============================================================================
 void SchematicPanel::mouseDown (const juce::MouseEvent& e)
 {
-    if (isGrabbing)
-    {
-        // If we're in grab mode, exit grab mode on click
-        isGrabbing = false;
-        repaint();
-        return;
-    }
+    auto* hit = getElementAt (e.getPosition());
+    if (hit != nullptr)
+        showPopupMenuForElement (hit, e.getPosition());
 
-    if (e.mods.isMiddleButtonDown())
-    {
-        isPanning = true;
-        lastMousePos = e.position.toFloat();
-    }
-    else
-    {
-        auto* hit = getElementAt (e.getPosition());
-        if (hit != nullptr)
-            showPopupMenuForElement (hit, e.getPosition());
-    }
+    dragStartMouse  = e.position;
+    dragStartOffset = viewOffset;
+
 }
 
 void SchematicPanel::mouseDrag (const juce::MouseEvent& e)
 {
-    if (isGrabbing)
-    {
-        // In grab mode, move view inversely to mouse movement
-        auto delta = e.position.toFloat() - grabStartPos;
-        viewOffset.x = grabStartOffset.x - delta.x;
-        viewOffset.y = grabStartOffset.y - delta.y;
-        repaint();
-    }
-    else if (isPanning)
-    {
-        auto delta = e.position.toFloat() - lastMousePos;
-        viewOffset.x += delta.x;
-        viewOffset.y += delta.y;
-        lastMousePos = e.position.toFloat();
-        repaint();
-    }
+    const auto delta = e.position - dragStartMouse;
+
+    viewOffset = dragStartOffset + delta;
+
+    repaint();
 }
 
 void SchematicPanel::mouseUp (const juce::MouseEvent& e)
 {
-    if (isPanning)
-    {
-        isPanning = false;
-    }
-    // In grab mode, exit on mouse up
-    if (isGrabbing)
-    {
-        isGrabbing = false;
-    }
-    repaint();
 }
 
 void SchematicPanel::mouseDoubleClick (const juce::MouseEvent& e)
 {
-    // Enter grab mode - next mouse drag will move the view
-    isGrabbing = true;
-    grabStartPos = e.position.toFloat();
-    grabStartOffset = viewOffset;
 }
 
 //==============================================================================
@@ -822,6 +844,371 @@ void SchematicBuilder::buildBassmanPreampSmall(SchematicPanel& schematic)
 
 
 // ===================================================================================================================
+// DUAL RECTIFIER
+// ===================================================================================================================
+void SchematicBuilder::buildDualRectifierPreamp(SchematicPanel& schematic)
+{
+    using Param         =  DualRectifierPreampCircuit::Param;
+    using Control       =  DualRectifierPreampCircuit::Control;
+    using Monitoring    =  DualRectifierPreampCircuit::Monitoring;
+
+    //V1
+    schematic.addElement (std::make_unique<TriodeElement> (
+        "V1", 
+        Terminal {0, 0},
+        (int) Param::V1,
+        0, std::vector<ValueChoice>{{ 0.0f, "12AX7" },{ 0.0f, "12AT7" } },
+        (int) Monitoring::Ik1
+    ));
+    auto V1pos = schematic.getElement("V1")->getTerminals();
+
+
+    // Grid circuit
+    schematic.addElement (std::make_unique<ResistorElement> (
+        "Rg1",
+        V1pos[0]  + leftL,
+        V1pos[0] ,
+        (int) Param::Rg1 
+    ));
+
+    // Cathode Circuit
+    schematic.addElement (std::make_unique<ResistorElement> (
+        "Rk1",
+        V1pos[2]+ bottomL,
+        V1pos[2],
+        (int) Param::Rk1
+    ));
+    schematic.addElement (std::make_unique<CapacitorElement> (
+        "Ck1",
+        schematic.getElement("Rk1")->getTerminals()[1] +  rightXS,
+        schematic.getElement("Rk1")->getTerminals()[0] +  rightXS,
+        (int) Param::Ck1
+    ));
+
+    // Plate Circuit
+    schematic.addElement (std::make_unique<ResistorElement> (
+        "Rp1",
+        V1pos[1],
+        V1pos[1] + topL,
+        (int) Param::Rp1
+    ));
+    schematic.addElement (std::make_unique<VoltageElement>(
+        "E1",
+        schematic.getElement("Rp1")->getTerminals()[1], 
+        (int) Param::E1
+    ));
+    schematic.addElement (std::make_unique<CapacitorElement> (
+        "Cp1",
+        V1pos[1],
+        V1pos[1] + rightXL,
+        (int) Param::Cp1
+    ));
+
+    // Tone stack 1
+    schematic.addElement (std::make_unique<CapacitorElement> (
+        "Ca1",
+        schematic.getElement("Cp1")->getTerminals()[1],
+        schematic.getElement("Cp1")->getTerminals()[1] + rightM,
+        (int) Param::Ca1
+    ));
+    schematic.addElement (std::make_unique<ResistorElement> (
+        "Ra1",
+        schematic.getElement("Ca1")->getTerminals()[1] + bottomXS,
+        schematic.getElement("Ca1")->getTerminals()[0] + bottomXS,
+        (int) Param::Ra1
+    ));
+    schematic.addElement (std::make_unique<CapacitorElement> (
+        "Cb1",
+        schematic.getElement("Ra1")->getTerminals()[1] + bottomL,
+        schematic.getElement("Ra1")->getTerminals()[0] + bottomL,
+        (int) Param::Cb1
+    ));
+    schematic.addElement (std::make_unique<ResistorElement> (
+        "Rb1",
+        schematic.getElement("Cb1")->getTerminals()[1] + bottomXS,
+        schematic.getElement("Cb1")->getTerminals()[0] + bottomXS,
+        (int) Param::Rb1
+    ));
+    schematic.addElement (std::make_unique<ResistorElement> (
+        "Rc1",
+        schematic.getElement("Rb1")->getTerminals()[1] + bottomM,
+        schematic.getElement("Rb1")->getTerminals()[1],
+        (int) Param::Rb1
+    ));
+
+    schematic.addElement (std::make_unique<PotElement> (
+        "Volume",
+        schematic.getElement("Ca1")->getTerminals()[1] + rightM,
+        schematic.getElement("Ca1")->getTerminals()[1] + rightM + bottomXL,
+        schematic.getElement("Ca1")->getTerminals()[1] + rightM + rightS + bottomXL*0.5f ,
+        (int) Control::Volume,
+        (int) Param::RVol
+    ));
+
+    schematic.addElement (std::make_unique<CapacitorElement> (
+        "Cbright",
+        schematic.getElement("Volume")->getTerminals()[0] +bottomXS,
+        schematic.getElement("Volume")->getTerminals()[0] + rightS+bottomXS,
+        (int) Param::Cbright
+    ));
+
+    // V2
+    schematic.addElement (std::make_unique<TriodeElement> (
+        "V2", 
+        schematic.getElement("Volume")->getTerminals()[2]+ rightL,
+        (int) Param::V2,
+        0, std::vector<ValueChoice>{{ 0.0f, "12AX7" },{ 0.0f, "12AT7" } },
+        (int) Monitoring::Ik2
+    ));
+    auto V2pos = schematic.getElement("V2")->getTerminals();
+    schematic.addElement (std::make_unique<ResistorElement> (
+        "Rg2",
+        schematic.getElement("Volume")->getTerminals()[2],
+        V2pos[0],
+        (int) Param::Rg2
+    ));
+    schematic.addElement (std::make_unique<ResistorElement> (
+        "Rk2",
+        V2pos[2]+ bottomL,
+        V2pos[2],
+        (int) Param::Rk2
+    ));
+    schematic.addElement (std::make_unique<ResistorElement> (
+        "Rp2",
+        V2pos[1],
+        V2pos[1] + topL,
+        (int) Param::Rp2
+    ));
+    schematic.addElement (std::make_unique<CapacitorElement> (
+        "Ck2",
+        schematic.getElement("Rk2")->getTerminals()[1] +  rightXS,
+        schematic.getElement("Rk2")->getTerminals()[0] +  rightXS,
+        (int) Param::Ck2
+    ));
+    schematic.addElement (std::make_unique<VoltageElement>(
+        "E2",
+        schematic.getElement("Rp2")->getTerminals()[1], 
+        (int) Param::E2
+    ));
+    schematic.addElement (std::make_unique<CapacitorElement> (
+        "Cp2",
+        V2pos[1],
+        V2pos[1] + rightXL,
+        (int) Param::Cp2
+    ));
+    schematic.addElement (std::make_unique<ResistorElement> (
+        "Ra2",
+        schematic.getElement("Cp2")->getTerminals()[1],
+        schematic.getElement("Cp2")->getTerminals()[1] + bottomM,
+        (int) Param::Ra2
+    ));
+    schematic.addElement (std::make_unique<ResistorElement> (
+        "Rb2",
+        schematic.getElement("Ra2")->getTerminals()[1],
+        schematic.getElement("Ra2")->getTerminals()[1] + bottomXL,
+        (int) Param::Rb2
+    ));
+
+    // V3
+    schematic.addElement (std::make_unique<TriodeElement> (
+        "V3", 
+        schematic.getElement("Ra2")->getTerminals()[1] +rightL,
+        (int) Param::V3,
+        0, std::vector<ValueChoice>{{ 0.0f, "12AX7" },{ 0.0f, "12AT7" } },
+        (int) Monitoring::Ik3
+    ));
+    auto V3pos = schematic.getElement("V3")->getTerminals();
+
+    schematic.addElement (std::make_unique<ResistorElement> (
+        "Rk3",
+        V3pos[2]+ bottomL,
+        V3pos[2],
+        (int) Param::Rk3
+    ));
+    schematic.addElement (std::make_unique<ResistorElement> (
+        "Rp3",
+        V3pos[1],
+        V3pos[1] + topL,
+        (int) Param::Rp3
+    ));
+    schematic.addElement (std::make_unique<VoltageElement>(
+        "E3",
+        schematic.getElement("Rp3")->getTerminals()[1], 
+        (int) Param::E3
+    ));
+    schematic.addElement (std::make_unique<CapacitorElement> (
+        "Cp3",
+        V3pos[1],
+        V3pos[1] + rightL,
+        (int) Param::Cp3
+    ));
+    schematic.addElement (std::make_unique<ResistorElement> (
+        "Ra3",
+        schematic.getElement("Cp3")->getTerminals()[1]+ bottomM,
+        schematic.getElement("Cp3")->getTerminals()[1]+ bottomM + bottomXL,
+        (int) Param::Ra3
+    ));
+
+
+    // V4
+    schematic.addElement (std::make_unique<TriodeElement> (
+        "V4", 
+        schematic.getElement("Ra3")->getTerminals()[0] +rightXL,
+        (int) Param::V4,
+        0, std::vector<ValueChoice>{{ 0.0f, "12AX7" },{ 0.0f, "12AT7" } },
+        (int) Monitoring::Ik4
+    ));
+    auto V4pos = schematic.getElement("V4")->getTerminals();
+    schematic.addElement (std::make_unique<ResistorElement> (
+        "Rg4",
+        V4pos[0]  + leftM,
+        V4pos[0] ,
+        (int) Param::Rg4
+    ));
+    schematic.addElement (std::make_unique<ResistorElement> (
+        "Rk4",
+        V4pos[2]+ bottomL,
+        V4pos[2],
+        (int) Param::Rk4
+    ));
+    schematic.addElement (std::make_unique<ResistorElement> (
+        "Rp4",
+        V4pos[1],
+        V4pos[1] + topL,
+        (int) Param::Rp4
+    ));
+    schematic.addElement (std::make_unique<CapacitorElement> (
+        "Ck4",
+        schematic.getElement("Rk4")->getTerminals()[1] +  rightXS,
+        schematic.getElement("Rk4")->getTerminals()[0] +  rightXS,
+        (int) Param::Ck4
+    ));
+    schematic.addElement (std::make_unique<VoltageElement>(
+        "E4",
+        schematic.getElement("Rp4")->getTerminals()[1], 
+        (int) Param::E4
+    ));
+
+    // V5
+    schematic.addElement (std::make_unique<TriodeElement> (
+        "V5", 
+        V4pos[1] +rightXL,
+        (int) Param::V5,
+        0, std::vector<ValueChoice>{{ 0.0f, "12AX7" },{ 0.0f, "12AT7" } },
+        (int) Monitoring::Ik5
+    ));
+    auto V5pos = schematic.getElement("V5")->getTerminals();
+    schematic.addElement (std::make_unique<VoltageElement>(
+        "E5",
+        V5pos[1] + topXS, 
+        (int) Param::E5
+    ));
+
+    schematic.addElement (std::make_unique<ResistorElement> (
+        "Rk5",
+        V5pos[2]+ bottomXL,
+        V5pos[2],
+        (int) Param::Rk5
+    ));
+    // Grounds
+    schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Rk1")->getTerminals()[0]) );
+    schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Ck1")->getTerminals()[1]) );
+    schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Rc1")->getTerminals()[0]) );
+    schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Rk2")->getTerminals()[0]) );
+    schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Ck2")->getTerminals()[1]) );
+    schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Volume")->getTerminals()[1]) );
+    schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Rb2")->getTerminals()[1]) );
+    schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Rk3")->getTerminals()[0]) );
+    schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Ra3")->getTerminals()[1]) );
+    schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Rk4")->getTerminals()[0]) );
+    schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Ck4")->getTerminals()[1]) );
+    schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Rk5")->getTerminals()[0]) );
+
+    // Monitors
+    schematic.addElement (std::make_unique<VoltmeterElement> (
+        "Vp1", 
+        V1pos[1] + leftXS,
+        (int) Monitoring::VDCp1
+    ));
+    schematic.addElement (std::make_unique<VoltmeterElement> (
+        "Vk1", 
+        V1pos[2] + leftXS,
+        (int) Monitoring::VDCk1
+    ));
+
+    schematic.addElement (std::make_unique<VoltmeterElement> (
+        "Vp2", 
+        V2pos[1] + leftXS,
+        (int) Monitoring::VDCp2
+    ));
+    schematic.addElement (std::make_unique<VoltmeterElement> (
+        "Vk2", 
+        V2pos[2] + leftXS,
+        (int) Monitoring::VDCk2
+    ));
+    schematic.addElement (std::make_unique<VoltmeterElement> (
+        "Vp3", 
+        V3pos[1] + leftXS,
+        (int) Monitoring::VDCp3
+    ));
+    schematic.addElement (std::make_unique<VoltmeterElement> (
+        "Vk3", 
+        V3pos[2] + leftXS,
+        (int) Monitoring::VDCk3
+    ));
+
+    schematic.addElement (std::make_unique<VoltmeterElement> (
+        "Vp4", 
+        V4pos[1] + leftXS,
+        (int) Monitoring::VDCp4
+    ));
+    schematic.addElement (std::make_unique<VoltmeterElement> (
+        "Vk4", 
+        V4pos[2] + leftXS,
+        (int) Monitoring::VDCk4
+    ));
+
+    schematic.addElement (std::make_unique<VoltmeterElement> (
+        "Vp5", 
+        V5pos[1] + leftXS,
+        (int) Monitoring::VDCp5
+    ));
+    schematic.addElement (std::make_unique<VoltmeterElement> (
+        "Vk5", 
+        V5pos[2] + leftXS,
+        (int) Monitoring::VDCk5
+    ));
+
+    // Wires
+    schematic.addWire (
+        schematic.getElement("Ck1")->getTerminals()[0],
+        schematic.getElement("Rk1")->getTerminals()[1]
+    );
+    schematic.addWire (
+        schematic.getElement("Ck2")->getTerminals()[0],
+        schematic.getElement("Rk2")->getTerminals()[1]
+    );
+    schematic.addWire (
+        schematic.getElement("Rb1")->getTerminals()[0],
+        schematic.getElement("Ca1")->getTerminals()[1]
+    );
+    schematic.addWire (
+        schematic.getElement("Rb1")->getTerminals()[1],
+        schematic.getElement("Ca1")->getTerminals()[0]
+    );
+    schematic.addWire (
+        schematic.getElement("Ca1")->getTerminals()[1],
+        schematic.getElement("Volume")->getTerminals()[0]
+    );
+    schematic.addWire (
+        schematic.getElement("Cbright")->getTerminals()[1],
+        schematic.getElement("Volume")->getTerminals()[2]
+    );
+}
+
+
+
+// ===================================================================================================================
 // BASSMAN PREAMP
 // ===================================================================================================================
 void SchematicBuilder::buildBassmanPreamp(SchematicPanel& schematic)
@@ -890,7 +1277,7 @@ void SchematicBuilder::buildBassmanPreamp(SchematicPanel& schematic)
     schematic.addElement (std::make_unique<CapacitorElement> (
         "Cp1",
         V1pos[1],
-        V1pos[1] + rightL*2.0f,
+        V1pos[1] + rightXL,
         (int) Param::Cp1
     ));
 
@@ -907,12 +1294,18 @@ void SchematicBuilder::buildBassmanPreamp(SchematicPanel& schematic)
     // V2
     schematic.addElement (std::make_unique<TriodeElement> (
         "V2", 
-        schematic.getElement("Volume")->getTerminals()[2]+ rightM,
+        schematic.getElement("Volume")->getTerminals()[2]+ rightL,
         (int) Param::V2,
         0, std::vector<ValueChoice>{{ 0.0f, "12AX7" },{ 0.0f, "12AT7" } },
         (int) Monitoring::Ik2
     ));
     auto V2pos = schematic.getElement("V2")->getTerminals();
+    schematic.addElement (std::make_unique<ResistorElement> (
+        "Rg2",
+        schematic.getElement("Volume")->getTerminals()[2],
+        V2pos[0],
+        (int) Param::Rg2
+    ));
     schematic.addElement (std::make_unique<ResistorElement> (
         "Rk2",
         V2pos[2]+ bottomL,
@@ -1050,10 +1443,6 @@ void SchematicBuilder::buildBassmanPreamp(SchematicPanel& schematic)
 
 
     // Wires
-    schematic.addWire (
-        schematic.getElement("Volume")->getTerminals()[2],
-        V2pos[0]
-    );
     schematic.addWire (
         schematic.getElement("Ck1")->getTerminals()[0],
         schematic.getElement("Rk1")->getTerminals()[1]
