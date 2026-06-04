@@ -1,4 +1,4 @@
-name: Triodizer Plugin CI/CD
+name: TubeLab Plugin CI/CD
 
 on:
   push:
@@ -36,48 +36,37 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Triodizer-macOS-build
+          name: TubeLab-macOS-build
           path: |
             build/**/*.vst3
             build/**/*.component
             build/**/*.app
-
+  
   windows-build:
     name: Windows Build (VST3 / Standalone)
     runs-on: windows-latest
-
+  
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup MSVC
-        uses: ilammy/msvc-dev-cmd@v1
-
+      - uses: actions/checkout@v4
+  
       - name: Install dependencies
-        run: |
-          choco install cmake ninja -y
-
+        run: choco install cmake ninja ccache -y
+  
       - name: Configure CMake
         run: |
-          cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release
-
-      - name: Build plugin
-        run: |
-          cmake --build build --config Release
-
-      - name: Locate built plugins
-        run: |
-          echo "Searching for built plugin artifacts..."
-          Get-ChildItem -Path build -Recurse -Include "*.vst3","*.exe" -ErrorAction SilentlyContinue
-
-      - name: Upload build artifacts
+          cmake -S . -B build -G Ninja ^
+            -DCMAKE_BUILD_TYPE=Release ^
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache ^
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+  
+      - name: Build
+        run: cmake --build build -- -j
+  
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Triodizer-Windows-build
-          path: |
-            build/**/*.vst3
-            build/**/*.exe
-
+          name: TubeLab-Windows-build
+          path: build/**/*.exe
   release:
     name: Create GitHub Release
     if: startsWith(github.ref, 'refs/tags/')
@@ -88,21 +77,21 @@ jobs:
       - name: Download macOS artifacts
         uses: actions/download-artifact@v4
         with:
-          name: Triodizer-macOS-build
+          name: TubeLab-macOS-build
 
       - name: Download Windows artifacts
         uses: actions/download-artifact@v4
         with:
-          name: Triodizer-Windows-build
+          name: TubeLab-Windows-build
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            Triodizer-macOS-build/**/*.vst3
-            Triodizer-macOS-build/**/*.component
-            Triodizer-macOS-build/**/*.app
-            Triodizer-Windows-build/**/*.vst3
-            Triodizer-Windows-build/**/*.exe
+            TubeLab-macOS-build/**/*.vst3
+            TubeLab-macOS-build/**/*.component
+            TubeLab-macOS-build/**/*.app
+            TubeLab-Windows-build/**/*.vst3
+            TubeLab-Windows-build/**/*.exe
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
