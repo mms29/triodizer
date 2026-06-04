@@ -98,6 +98,7 @@ public:
     T getR0p() const { return R0p; }
 
 private:
+
     // ---------------------------------------------------------------------
     // 1)  Closed‑form triode computation (port‑wave formulation)
     // ---------------------------------------------------------------------
