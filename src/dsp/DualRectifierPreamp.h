@@ -193,11 +193,15 @@ public:
 
         // V5
         V5, Rk5, E5,
+
+        // Tone Stack
+        C1, C2, C3, R4, RTreble, RBass, RMid,
         Count 
     };
     enum class Control : int 
     {
         Volume,
+        Bass, Treble, Mid,
          Count 
     };
     void setDefaultParam () 
@@ -218,7 +222,7 @@ public:
         setParam((int)Param::Rc1, 2200.0e3f);
 
         // Vol
-        setParam((int)Param::Cbright, 10e-12f);
+        setParam((int)Param::Cbright, 1e-9f);
         setParam((int)Param::RVol, 1.0e6f);
 
         //V2
@@ -249,6 +253,15 @@ public:
         //V5
         setParam((int)Param::Rk5, 100e3f);
         setParam((int)Param::E5, 400.0f);
+
+        //Tone stack
+        setParam((int)Param::C1, 680e-12f);      
+        setParam((int)Param::C2, 20.0e-9);      
+        setParam((int)Param::C3, 20.0e-9);      
+        setParam((int)Param::R4, 47.0e3);      
+        setParam((int)Param::RBass, 1e6f);    
+        setParam((int)Param::RMid, 25e3f);     
+        setParam((int)Param::RTreble, 220e3f); 
   
 
         w_V1.setTubeLabParameters(
@@ -345,6 +358,15 @@ public:
             case (int)Param::Rk5: w_Rk5.setResistanceValue(value); break;
             case (int)Param::E5:  w_E5.setVoltage(value);  break;
 
+
+            case (int)Param::C1:       w_TS.setC1(value); break;
+            case (int)Param::C2:       w_TS.setC2(value); break;
+            case (int)Param::C3:       w_TS.setC3(value); break;
+            case (int)Param::R4:       w_TS.setR4(value); break;
+            case (int)Param::RBass:     setControl((int)Control::Bass, 50.0f); break; 
+            case (int)Param::RMid:      setControl((int)Control::Mid, 50.0f); break; 
+            case (int)Param::RTreble:  setControl((int)Control::Treble, 50.0f); break; 
+
             case (int)Param::Count:
             default:
                 jassertfalse;
@@ -364,6 +386,32 @@ public:
                 auto ratio = (100.0f-value)/100.0f; 
                 w_RVol_plus.setResistanceValue(controlVal*ratio);
                 w_RVol_minus.setResistanceValue(controlVal*(1.0f - ratio));
+                break;
+            }
+            case (int)Control::Bass: 
+            {
+                float controlVal = getParam((int)Param::RBass);
+                // auto ratio = std::pow((100.0f-value)/100.0f, 3.0f); // audio taper
+                auto ratio = (100.0f-value)/100.0f;
+                w_TS.setR2(controlVal*(1.0f - ratio));
+                break;
+            }
+            case (int)Control::Treble: 
+            {
+
+                float controlVal = getParam((int)Param::RTreble);
+                // auto ratio = std::pow((100.0f-value)/100.0f, 3.0f); // audio taper
+                auto ratio = (100.0f-value)/100.0f;
+                w_TS.setR1_plus( controlVal*ratio);
+                w_TS.setR1_minus( controlVal*(1.0f - ratio));
+                break;
+            }
+            case (int)Control::Mid: 
+            {
+                float controlVal = getParam((int)Param::RMid);
+                auto ratio = (100.0f-value)/100.0f; 
+                w_TS.setR3_plus( controlVal*ratio);
+                w_TS.setR3_minus( controlVal*(1.0f - ratio));
                 break;
             }
             default: jassertfalse; break;
@@ -433,6 +481,7 @@ public:
         w_Cp2.prepare((float) sr);
         w_Cp3.prepare((float) sr);
         w_Ck4.prepare((float) sr);
+        w_TS.prepare((float) sr);
 
         float duration = 0.1f;
         for (int i = 0; i < (int) sr *duration; ++i)
@@ -453,6 +502,7 @@ public:
         w_Cp2.reset();
         w_Cp3.reset();
         w_Ck4.reset();
+        w_TS.reset();
     }
 
     float processSample(float x) override { 
@@ -487,7 +537,7 @@ public:
         auto V5_out = voltage<float> (w_Rk5);
 
         updateMonitors();
-        return V5_out;
+        return w_TS.getVoltage();
     }
 
     // Accessor methods for monitoring internal WDF variables
@@ -646,11 +696,13 @@ private:
 
     // Cathode Circuit    
     ResistorT<float> w_Rk5 { 0.0f };
+    BassmanToneStack<float> w_TS {};
+    WDFParallelT<float, decltype (w_Rk5), decltype (w_TS)> w_PJ_k5 { w_Rk5, w_TS};
 
     // Plate Circuit
     ResistiveVoltageSourceT<float> w_E5 { 0.0f };
 
-    TriodeQuadricWDF<float, decltype(w_V_R5), decltype(w_Rk5), decltype(w_E5)> w_V5{
-            w_V_R5, w_Rk5, w_E5, 0.0f,0.0f,0.0f,0.0f,0.0f,0.0f
+    TriodeQuadricWDF<float, decltype(w_V_R5), decltype(w_PJ_k5), decltype(w_E5)> w_V5{
+            w_V_R5, w_PJ_k5, w_E5, 0.0f,0.0f,0.0f,0.0f,0.0f,0.0f
     }; 
 };

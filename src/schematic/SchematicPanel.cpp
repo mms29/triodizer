@@ -1110,6 +1110,60 @@ void SchematicBuilder::buildDualRectifierPreamp(SchematicPanel& schematic)
         V5pos[2],
         (int) Param::Rk5
     ));
+
+    auto toneStackPosition = V5pos[2] + rightM;
+
+    // Tone Stack
+    schematic.addElement (std::make_unique<ResistorElement> (
+        "R4",
+        toneStackPosition + bottomL,
+        toneStackPosition,
+        (int) Param::R4
+    ));
+    schematic.addElement (std::make_unique<CapacitorElement> (
+        "C1",
+        toneStackPosition,
+        toneStackPosition + rightL,
+        (int) Param::C1
+    ));
+    schematic.addElement (std::make_unique<CapacitorElement> (
+        "C2",
+        toneStackPosition + bottomL,
+        toneStackPosition + bottomL + rightL,
+        (int) Param::C2
+    ));
+    schematic.addElement (std::make_unique<CapacitorElement> (
+        "C3",
+        toneStackPosition + bottomL*2.0f + rightL*0.25f,
+        toneStackPosition + bottomL*2.0f + rightL*0.75f,
+        (int) Param::C3
+    ));
+
+    schematic.addElement (std::make_unique<PotElement> (
+        "Treble",
+        schematic.getElement("C1")->getTerminals()[1],
+        schematic.getElement("C2")->getTerminals()[1],
+        schematic.getElement("C1")->getTerminals()[1] + rightXS + bottomL*0.5f ,
+        (int) Control::Treble,
+        (int) Param::RTreble
+    ));
+    schematic.addElement (std::make_unique<PotElement> (
+        "Bass",
+        schematic.getElement("C2")->getTerminals()[1],
+        schematic.getElement("C2")->getTerminals()[1] + bottomM,
+        schematic.getElement("C2")->getTerminals()[1] + bottomM*0.5f + rightXS,
+        (int) Control::Bass,
+        (int) Param::RBass
+    ));
+    schematic.addElement (std::make_unique<PotElement> (
+        "Mid",
+        schematic.getElement("Bass")->getTerminals()[1]  + bottomM,
+        schematic.getElement("Bass")->getTerminals()[1] ,
+        schematic.getElement("Bass")->getTerminals()[1]  + bottomM*0.5f + leftXS,
+        (int) Control::Mid,
+        (int) Param::RMid
+    ));
+
     // Grounds
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Rk1")->getTerminals()[0]) );
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Ck1")->getTerminals()[1]) );
@@ -1123,6 +1177,7 @@ void SchematicBuilder::buildDualRectifierPreamp(SchematicPanel& schematic)
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Rk4")->getTerminals()[0]) );
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Ck4")->getTerminals()[1]) );
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Rk5")->getTerminals()[0]) );
+    schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Mid")->getTerminals()[0]) );
 
     // Monitors
     schematic.addElement (std::make_unique<VoltmeterElement> (
@@ -1204,6 +1259,61 @@ void SchematicBuilder::buildDualRectifierPreamp(SchematicPanel& schematic)
         schematic.getElement("Cbright")->getTerminals()[1],
         schematic.getElement("Volume")->getTerminals()[2]
     );
+    schematic.addWire (
+        schematic.getElement("Cp3")->getTerminals()[1],
+        schematic.getElement("Ra3")->getTerminals()[0]
+    );
+    schematic.addWire (
+        schematic.getElement("Ck4")->getTerminals()[0],
+        schematic.getElement("Rk4")->getTerminals()[1]
+    );
+    schematic.addWire (
+        V3pos[0],
+        schematic.getElement("Ra2")->getTerminals()[1]
+    );
+    schematic.addWire (
+        V4pos[1],
+        V5pos[0]
+    );
+    schematic.addWire (
+        schematic.getElement("E5")->getTerminals()[0],
+        V5pos[1]
+    );
+    schematic.addWire (
+        schematic.getElement("Ck1")->getTerminals()[0],
+        schematic.getElement("Rk1")->getTerminals()[1]
+    );
+    schematic.addWire (
+        schematic.getElement("C3")->getTerminals()[0] ,
+        schematic.getElement("C3")->getTerminals()[0] + leftL*0.25f
+    );
+    schematic.addWire (
+        schematic.getElement("C3")->getTerminals()[0]+ leftL*0.25f,
+        schematic.getElement("C2")->getTerminals()[0]
+    );
+    schematic.addWire (
+        schematic.getElement("Bass")->getTerminals()[2],
+        schematic.getElement("C2")->getTerminals()[1] + rightXS
+    );
+    schematic.addWire (
+        schematic.getElement("C2")->getTerminals()[1] ,
+        schematic.getElement("C2")->getTerminals()[1] + rightXS
+    );
+    schematic.addWire (
+        schematic.getElement("Treble")->getTerminals()[2] ,
+        schematic.getElement("Treble")->getTerminals()[2] + rightS
+    );
+    schematic.addWire (
+        V5pos[2] ,
+        schematic.getElement("C1")->getTerminals()[0] 
+    );
+    schematic.addWire (
+        schematic.getElement("Rg4")->getTerminals()[0] ,
+        schematic.getElement("Ra3")->getTerminals()[0] 
+    );
+
+    schematic.addElement (std::make_unique<JunctionElement>(schematic.getElement("Treble")->getTerminals()[2] + rightS));
+    schematic.addElement (std::make_unique<JunctionElement>(schematic.getElement("Rg1")->getTerminals()[0]) );
 }
 
 
