@@ -14,7 +14,7 @@ void WaveformDisplay::paint (juce::Graphics& g)
     auto inputArea  = bounds.removeFromLeft (halfWidth);
     auto outputArea = bounds;
 
-    auto drawGrid = [&g](juce::Rectangle<float> area)
+    auto drawGrid = [&g, this](juce::Rectangle<float> area)
     {
         g.setColour (juce::Colours::darkgrey);
 
@@ -23,6 +23,9 @@ void WaveformDisplay::paint (juce::Graphics& g)
             auto y = area.getY() + (area.getHeight() * i / 4.0f);
             g.drawLine (area.getX(), y, area.getRight(), y, 1.0f);
         }
+        g.drawText(juce::String((float) area.getHeight()/(4.0f*amplitudeScale), 2 ) +"V", 
+            area,
+            juce::Justification::bottomLeft, true);
     };
     g.setColour (juce::Colours::darkgrey);
     g.drawLine (juce::Line(inputArea.getTopRight() , inputArea.getBottomRight()), 1.5f);

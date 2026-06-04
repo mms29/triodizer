@@ -22,7 +22,6 @@ TubeLabEditor::TubeLabEditor(TubeLabProcessor& p)
     // =====================================================
     waveformDisplay.setBackgroundColour (juce::Colours::black);
     waveformDisplay.setWaveformColour (juce::Colours::cyan);
-    waveformDisplay.setAmplitudeScale (100.0f);
     addAndMakeVisible (waveformDisplay);
     
     // =====================================================

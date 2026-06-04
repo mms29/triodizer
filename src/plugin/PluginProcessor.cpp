@@ -89,6 +89,8 @@ void TubeLabProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     float drive_G = juce::Decibels::decibelsToGain(drive_dB);
     float gain_G  = juce::Decibels::decibelsToGain(gain_dB);
 
+    buffer.applyGain(drive_G);
+
     // Capture input samples for waveform display
     if (numChannels >= 1 && numSamples > 0)
     {
@@ -108,26 +110,26 @@ void TubeLabProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     const int osNumSamples = (int) upsampledBlock.getNumSamples();
 
     // PROCESS AT OVERSAMPLED RATE
+    float noise;
+
     for (int ch = 0; ch < numChannels; ++ch)
     {
         auto* samples = upsampledBlock.getChannelPointer((size_t) ch);
 
         for (int i = 0; i < osNumSamples; ++i)
         {
-            // Input audio scaled by drive
-            double Vin = (double) samples[i] * (double) drive_G;
-
-            // Your nonlinear WDF triode
-            double Vout = circuit[ch]->processSample(Vin);
-
-            // Output gain
-            samples[i] = (float) (Vout * (double) gain_G);
+            auto x =samples[i];
+            noise = noiseLP.process(whiteNoise());
+            x += noise;
+            samples[i] = circuit[ch]->processSample(x);
         }
 
     }
 
     // DOWNSAMPLE BACK INTO ORIGINAL BUFFER
     oversampler->processSamplesDown(block);
+
+    buffer.applyGain(gain_G);
 
     // Capture output samples for waveform display
     if (numChannels >= 1 && numSamples > 0)
@@ -168,6 +170,8 @@ void TubeLabProcessor::updateOversampler()
         circuit[ch]->reset();
         circuit[ch]->prepare(oversampleRate);
     }
+
+    noiseLP.prepare(oversampleRate, noiseCutoff, noiseGain);
 }
 //==============================================================================
 void TubeLabProcessor::updatePreset()
@@ -282,3 +286,4 @@ juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
     return new TubeLabProcessor();
 }
+

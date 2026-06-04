@@ -12,13 +12,13 @@
 
 
 
-inline constexpr float  DRIVE_MIN = -20.0f;
-inline constexpr float  DRIVE_MAX = 40.0f;
+inline constexpr float  DRIVE_MIN = -60.0f;
+inline constexpr float  DRIVE_MAX = 60.0f;
 inline constexpr float  DRIVE_DEFAULT = 0.0f;
 inline constexpr float  DRIVE_STEP = 0.1f;
 
 inline constexpr float  GAIN_MIN = -60.0f;
-inline constexpr float  GAIN_MAX = 0.0f;
+inline constexpr float  GAIN_MAX = 60.0f;
 inline constexpr float  GAIN_DEFAULT = 0.0f;
 inline constexpr float  GAIN_STEP = 0.1f;
 

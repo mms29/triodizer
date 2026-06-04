@@ -170,7 +170,8 @@ public:
             case (int)Control::Bass: 
             {
                 float controlVal = getParam((int)Param::RBass);
-                auto ratio = std::pow((100.0f-value)/100.0f, 3.0f); // audio taper
+                // auto ratio = std::pow((100.0f-value)/100.0f, 3.0f); // audio taper
+                auto ratio = (100.0f-value)/100.0f;
                 w_bts.setR2(controlVal*(1.0f - ratio));
                 break;
             }
@@ -178,7 +179,8 @@ public:
             {
 
                 float controlVal = getParam((int)Param::RTreble);
-                auto ratio = std::pow((100.0f-value)/100.0f, 3.0f); // audio taper
+                // auto ratio = std::pow((100.0f-value)/100.0f, 3.0f); // audio taper
+                auto ratio = (100.0f-value)/100.0f;
                 w_bts.setR1_plus( controlVal*ratio);
                 w_bts.setR1_minus( controlVal*(1.0f - ratio));
                 break;
