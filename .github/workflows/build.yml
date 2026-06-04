@@ -53,12 +53,8 @@ jobs:
         run: choco install cmake ninja ccache -y
   
       - name: Configure CMake
-        run: |
-          cmake -S . -B build -G Ninja ^
-            -DCMAKE_BUILD_TYPE=Release ^
-            -DCMAKE_C_COMPILER_LAUNCHER=ccache ^
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-  
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+        
       - name: Build
         run: cmake --build build -- -j
   
