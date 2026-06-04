@@ -41,28 +41,43 @@ jobs:
             build/**/*.vst3
             build/**/*.component
             build/**/*.app
-  
+
   windows-build:
     name: Windows Build (VST3 / Standalone)
     runs-on: windows-latest
-  
+
     steps:
-      - uses: actions/checkout@v4
-  
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+
       - name: Install dependencies
-        run: choco install cmake ninja ccache -y
-  
+        run: |
+          choco install cmake ninja sccache -y
+
       - name: Configure CMake
-        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-        
-      - name: Build
-        run: cmake --build build -- -j
-  
-      - name: Upload artifacts
+        run: |
+          cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
+
+      - name: Build plugin
+        run: |
+          cmake --build build --config Release
+
+      - name: Locate built plugins
+        run: |
+          echo "Searching for built plugin artifacts..."
+          Get-ChildItem -Path build -Recurse -Include "*.vst3","*.exe" -ErrorAction SilentlyContinue
+
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: TubeLab-Windows-build
-          path: build/**/*.exe
+          path: |
+            build/**/*.vst3
+            build/**/*.exe
+
   release:
     name: Create GitHub Release
     if: startsWith(github.ref, 'refs/tags/')
