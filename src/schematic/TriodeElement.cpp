@@ -5,15 +5,50 @@ void TriodeElement::draw (juce::Graphics& g) const
     const auto& p0 = terminals[0];
     const auto& p1 = terminals[1];
     const auto& p2 = terminals[2];
+    float tubeScaling = 0.8;
+    const juce::Point<float> center = (p2-p1)*0.5f + p1;
 
+
+    // if (getNumMonitors()>0){
+
+
+    //     float current = getMonitorValue(0);
+    //     float intensity = juce::jlimit (0.0f, 1.0f, current*0.5e3f);
+    //     juce::ColourGradient gradient (
+    //         juce::Colours::white.withBrightness(intensity),
+    //         center.x, center.y,
+    //         juce::Colours::black,
+    //         center.x - TUBE_WIDTH * 0.5f * tubeScaling*1.5 ,center.y - TUBE_WIDTH * 0.5f * tubeScaling*1.5,
+    //         true
+    //     );
+    //     gradient.addColour (0.2*intensity, juce::Colours::yellow.withBrightness(intensity));
+    //     gradient.addColour (0.4*intensity, juce::Colour (255, 140, 0).withBrightness(intensity)); // orange
+    //     gradient.addColour (0.6*intensity, juce::Colours::red.withBrightness(intensity));
+    //     gradient.addColour (0.8*intensity, juce::Colours::darkred.withBrightness(intensity));
+    //     gradient.addColour (1.0*intensity, juce::Colours::black);
+
+    //     // g.setOpacity (current*0.5e3f);
+    //     g.setGradientFill (gradient);
+    //     g.fillEllipse (
+    //         center.x - TUBE_WIDTH*2 * 0.5f * tubeScaling,
+    //         center.y - TUBE_HEIGHT*2 * 0.5f * tubeScaling,
+    //         TUBE_WIDTH * tubeScaling*2,
+    //         TUBE_HEIGHT * tubeScaling*2
+    //     );    
+    // }
+
+
+    // colors
     float thickness = isHighlighted() ? STROKE_HIGHLIGHT : STROKE_NORMAL;
     g.setColour (isHighlighted() ? SCHEMATIC_HIGHLIGHT : SCHEMATIC_NORMAL);
 
-    const juce::Point<float> center = (p2-p1)*0.5f + p1;
-
-    float tubeScaling = 0.8;
-    g.drawEllipse((center.x - TUBE_WIDTH*0.5f*tubeScaling), (center.y - TUBE_HEIGHT*0.5f*tubeScaling), TUBE_WIDTH*tubeScaling, TUBE_HEIGHT*tubeScaling, thickness);
-
+    g.drawEllipse (
+            center.x - TUBE_WIDTH * 0.5f * tubeScaling,
+            center.y - TUBE_HEIGHT * 0.5f * tubeScaling,
+            TUBE_WIDTH * tubeScaling,
+            TUBE_HEIGHT * tubeScaling, thickness
+        );    
+    //PLATE
     float tubePlatesHeight =  TUBE_HEIGHT/2.8f;
     juce::Path plate;
     plate.startNewSubPath (p1);

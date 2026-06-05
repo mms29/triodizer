@@ -52,4 +52,18 @@ public:
 private:
     //==========================================================================
     juce::Array<juce::String> triodeValues; 
+
+    juce::Colour warmColour (float t) const
+    {
+        t = juce::jlimit (0.0f, 1.0f, t);
+
+        juce::ColourGradient g;
+        g.addColour (0.00, juce::Colours::white);
+        g.addColour (0.25, juce::Colour (255, 255, 180)); // pale yellow
+        g.addColour (0.50, juce::Colours::yellow);
+        g.addColour (0.75, juce::Colour (255, 165, 0));   // orange
+        g.addColour (1.00, juce::Colours::red);
+
+        return g.getColourAtPosition (t);
+    };
 };

@@ -53,33 +53,33 @@ public:
          
     }
 
-    void setR1_plus(float v)  { R1_plus = v; w_R1_plus.setResistanceValue(v); }
-    void setR1_minus(float v) { R1_minus = v; w_R1_minus.setResistanceValue(v); }
-    void setR2(float v)       { R2 = v; w_R2.setResistanceValue(v); }
-    void setR3_plus(float v)  { R3_plus = v; w_R3_plus.setResistanceValue(v); }
-    void setR3_minus(float v) { R3_minus = v; w_R3_minus.setResistanceValue(v); }
-    void setC1(float v)       { C1 = v; w_C1.setCapacitanceValue(v); }
-    void setC2(float v)       { C2 = v; w_C2.setCapacitanceValue(v); }
-    void setC3(float v)       { C3 = v; w_C3.setCapacitanceValue(v); }
-    void setR4(float v)       { R4 = v; w_R4.setResistanceValue(v); }
-    void setBass(float v)       { 
+    void setR1_plus(T v)  { R1_plus = v; w_R1_plus.setResistanceValue(v); }
+    void setR1_minus(T v) { R1_minus = v; w_R1_minus.setResistanceValue(v); }
+    void setR2(T v)       { R2 = v; w_R2.setResistanceValue(v); }
+    void setR3_plus(T v)  { R3_plus = v; w_R3_plus.setResistanceValue(v); }
+    void setR3_minus(T v) { R3_minus = v; w_R3_minus.setResistanceValue(v); }
+    void setC1(T v)       { C1 = v; w_C1.setCapacitanceValue(v); }
+    void setC2(T v)       { C2 = v; w_C2.setCapacitanceValue(v); }
+    void setC3(T v)       { C3 = v; w_C3.setCapacitanceValue(v); }
+    void setR4(T v)       { R4 = v; w_R4.setResistanceValue(v); }
+    void setBass(T v)       { 
         P2 = v;
         setR2(v*0.5f);    
     }
-    void setTreble(float v)       { 
+    void setTreble(T v)       { 
         P1 = v;
         setR1_plus(v*0.5f);    
         setR1_minus(v*0.5f);    
     }
-    void setMid(float v)       { 
+    void setMid(T v)       { 
         P3 = v;
         setR3_plus(v*0.5f);    
         setR3_minus(v*0.5f);    
     }
 
-    float getP1(){return P1;}
-    float getP2(){return P2;}
-    float getP3(){return P3;}
+    T getP1(){return P1;}
+    T getP2(){return P2;}
+    T getP3(){return P3;}
     WDFMembers<T> wdf;
 
 private:
