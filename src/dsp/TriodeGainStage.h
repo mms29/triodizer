@@ -12,10 +12,10 @@
 
 using namespace chowdsp::wdft;
 
-class TriodeGainStage: public Circuit
+class TriodeGainStage: public Circuit<float>
 {
     public:
-        TriodeGainStage(): Circuit()
+        TriodeGainStage(): Circuit<float>()
         {
             params.resize((int)Param::Count, 0.0f);
             controls.resize((int)Control::Count, 0.0f);
@@ -25,13 +25,13 @@ class TriodeGainStage: public Circuit
         enum class Param : int {Triode, Volume, Ri ,Rg,Ci,Rk,Ck,E,Rp,Co,Cp, Ro1, Ro2, Count };
         enum class Control : int {Volume, Count };
 
-        void prepare (double sampleRate) override
+        void prepare (float sampleRate) override
         {
-            w_Vi.prepare ((float) sampleRate);
-            w_Ck.prepare ((float) sampleRate);
-            w_Co.prepare ((float) sampleRate);
+            w_Vi.prepare (sampleRate);
+            w_Ck.prepare (sampleRate);
+            w_Co.prepare (sampleRate);
             // w_Cp.prepare ((float) sampleRate);
-            w_Triode.prepare ((float) sampleRate);
+            w_Triode.prepare (sampleRate);
             // w_BTS.prepare((float) sampleRate);
 
             float duration = 0.1f;

@@ -1,17 +1,5 @@
-/*
- * TriodeQuadricWDF.h
- *
- * Implements the Quadric Surface Model of a triode (see triode_stage_quadric.m).
- * This version replaces the iterative Cardarilli solution with a closed‑form
- * computation, eliminating the inner Newton‑Raphson loops and thus reducing
- * per‑sample CPU cost.
- *
- * The class mirrors the interface of TriodeWDF so it can be swapped in the
- * existing circuit classes without further changes.
- */
 
-#ifndef TRIODEQUADRICWDF_H_INCLUDED
-#define TRIODEQUADRICWDF_H_INCLUDED
+#pragma once
 
 #include <chowdsp_wdf/chowdsp_wdf.h>
 #include <cmath>
@@ -23,7 +11,7 @@ using namespace chowdsp::wdft;
  * Quadric surface model implementation.
  *
  * Template parameters:
- *   T            – sample type (float or double)
+ *   T            – sample type 
  *   PortGType    – type of the grid port (must provide reflected() / incident())
  *   PortKType    – cathode port
  *   PortPType    – plate port
@@ -38,46 +26,50 @@ public:
           kp (kp_init), kp2 (kp2_init), kpg (kpg_init),
           Rp(Rp_init), Rk(Rk_init), E(E_init)
     {
-        // Connect ports to the WDF tree
         port_g.connectToParent (this);
         port_k.connectToParent (this);
         port_p.connectToParent (this);
-        // Compute static operating point (Vk0, Vp0) – same as MATLAB script
         initialiseOperatingPoint();
     }
 
-    // No‑op – the model does not need to compute impedance.
-    inline void calcImpedance() override {}
-
-    /** Process one sample. Must be called after the incident waves have been
-     *  pulled from the ports (as done in the original TriodeWDF).
-     */
-    void compute() noexcept
-    {
-        // 1. Pull incident waves from the three ports
-        ag = port_g.reflected();
-        ak = port_k.reflected();
-        ap = port_p.reflected();
+    inline void calcImpedance() override {
         R0g = port_g.wdf.R;
         R0k = port_k.wdf.R;
         R0p = port_p.wdf.R;
 
-        // 2. Closed‑form triode solution
-        // The helper returns bg, bk, bp (grid, cathode, plate incident waves)
+        bk_bp = R0k / R0p;
+        k_eta = one / (bk_bp * (half * kpg + kp2) + kp2);
+        k_delta = kp2 * k_eta * k_eta / (R0p + R0p);
+#ifdef XSIMD_HPP
+        k_bp_s = k_eta * xsimd::sqrt ((kp2 + kp2) / R0p);
+#else
+        k_bp_s = k_eta * std::sqrt ((kp2 + kp2) / R0p);
+#endif
+        const T bp_k = one / (R0p + R0k);
+        bp_ap_0 = bp_k * (R0k - R0p);
+        bp_ak_0 = bp_k * (R0p + R0p);
+
+
+    }
+
+    void compute() noexcept
+    {
+        // Pull incident waves from the three ports
+        ag = port_g.reflected();
+        ak = port_k.reflected();
+        ap = port_p.reflected();
+
+        // std::cout <<"R0g="<<R0g<<"; R0k="<<R0p<<"; R0p="<<R0g<< std::endl;
+
+        // Closed‑form triode solution
         triodeClosedForm();
 
-        // 3. Update incident waves back to the ports
+        // Update incident waves back to the ports
         port_g.incident (bg);
         port_k.incident (bk);
         port_p.incident (bp);
     }
 
-    /** Set the quadratic model parameters.
-     *  The values are taken from the MATLAB implementation:
-     *   kp  – constant term of the triode characteristic
-     *   kp2 – linear term coefficient
-     *   kpg – grid‑voltage coefficient
-     */
     void setTubeLabParameters (T kp_val, T kp2_val, T kpg_val, T Rp_val, T Rk_val, T E_val) noexcept
     {
         kp  = kp_val;
@@ -89,7 +81,7 @@ public:
         initialiseOperatingPoint();
     }
 
-    // Accessors for monitoring (same as in the original class)
+    // Accessors for monitoring 
     T getVg() const { return Vg; }
     T getVk() const { return Vk; }
     T getVp() const { return Vp; }
@@ -100,25 +92,11 @@ public:
 private:
 
     // ---------------------------------------------------------------------
-    // 1)  Closed‑form triode computation (port‑wave formulation)
+    // Closed‑form triode computation 
     // ---------------------------------------------------------------------
     void triodeClosedForm () noexcept
     {
-        // The MATLAB `triode` function returns bg (grid wave = ag), bk, bp.
-        // bg is simply ag, so we only need to compute bk and bp.
-        // All calculations follow the MATLAB code verbatim, using T as the
-        // scalar type.
-
-        // Pre‑compute a few constants that depend only on the port resistances
-        const T bk_bp = R0k / R0p;
-        const T k_eta = static_cast<T>(1) / (bk_bp * (static_cast<T>(0.5) * kpg + kp2) + kp2);
-        const T k_delta = kp2 * k_eta * k_eta / (R0p + R0p);
-        const T k_bp_s = k_eta * std::sqrt ((kp2 + kp2) / R0p);
-        const T bp_k = static_cast<T>(1) / (R0p + R0k);
-        const T bp_ap_0 = bp_k * (R0k - R0p);
-        const T bp_ak_0 = bp_k * (R0p + R0p);
-
-        const T v1 = static_cast<T>(0.5) * ap;
+        const T v1 = half * ap;
         const T v2 = ak + v1 * bk_bp;
         const T alpha = kpg * (ag - v2) + kp;
         const T beta  = kp2 * (v1 - v2);
@@ -127,14 +105,57 @@ private:
         const T delta = ap + v3;
 
         T bp_local, bk_local, Vpk_local;
-        if (delta >= static_cast<T>(0))
+
+#ifdef XSIMD_HPP
+        // Compute the "delta >= 0" path
+        const auto deltaMask = delta >= zero;
+
+        const T safeDelta = xsimd::max(delta, zero);
+
+        const T bp_delta = k_bp_s * xsimd::sqrt(safeDelta) - v3 - k_delta;
+        const T d_delta = bk_bp * (ap - bp_delta);
+        const T bk_delta = ak + d_delta;
+        const T Vpk2 = ap + bp_delta - ak - bk_delta;
+
+        const auto cutoffMask =(kpg * (ag - ak - half * d_delta) + kp2 * Vpk2 + kp) < zero;
+
+        const T bp_cutoff = ap;
+        const T bk_cutoff = ak;
+        const T Vpk_cutoff = ap - ak;
+
+        // Result if cutoff condition is false
+        const T bp_active = bp_delta;
+        const T bk_active = bk_delta;
+        const T Vpk_active = half * Vpk2;
+
+        // Select cutoff/non-cutoff within delta>=0 path
+        const T bp_pos = xsimd::select(cutoffMask, bp_cutoff, bp_active);
+        const T bk_pos = xsimd::select(cutoffMask, bk_cutoff, bk_active);
+        const T Vpk_pos = xsimd::select(cutoffMask, Vpk_cutoff, Vpk_active);
+
+        // Result for delta<0 path
+        const T bp_neg = ap;
+        const T bk_neg = ak;
+        const T Vpk_neg = ap - ak;
+
+        // Select delta>=0 vs delta<0
+        bp_local  = xsimd::select(deltaMask, bp_pos, bp_neg);
+        bk_local  = xsimd::select(deltaMask, bk_pos, bk_neg);
+        Vpk_local = xsimd::select(deltaMask, Vpk_pos, Vpk_neg);
+
+        // Final reverse-conduction correction
+        const auto reverseMask = Vpk_local < zero;
+
+        bp_local = xsimd::select(reverseMask, bp_ap_0 * ap + bp_ak_0 * ak, bp_local);
+#else
+        if (delta >= zero)
         {
             bp_local = k_bp_s * std::sqrt (delta) - v3 - k_delta;
             const T d = bk_bp * (ap - bp_local);
             bk_local = ak + d;
             const T Vpk2 = ap + bp_local - ak - bk_local;
 
-            if (kpg * (ag - ak - static_cast<T>(0.5) * d) + kp2 * Vpk2 + kp < static_cast<T>(0))
+            if (kpg * (ag - ak - half * d) + kp2 * Vpk2 + kp < zero)
             {
                 bp_local = ap;
                 bk_local = ak;
@@ -142,7 +163,7 @@ private:
             }
             else
             {
-                Vpk_local = static_cast<T>(0.5) * Vpk2;
+                Vpk_local = half * Vpk2;
             }
         }
         else
@@ -152,40 +173,41 @@ private:
             Vpk_local = ap - ak;
         }
 
-        if (Vpk_local < static_cast<T>(0))
+        if (Vpk_local < zero)
         {
             bp_local = bp_ap_0 * ap + bp_ak_0 * ak;
         }
-
-        // Incident waves for the ports (grid wave is unchanged)
+#endif
+        // Incident waves for the ports 
         bg = ag;          // grid wave passes through unchanged
         bk = bk_local;
         bp = bp_local;
 
-        // Update internal node voltages for monitoring – same definitions as
-        // the original Cardarilli version.
         Vg = ag; // grid voltage is reflected wave on grid port
         Vk = ak; // cathode voltage is reflected wave on cathode port
         Vp = ap; // plate voltage is reflected wave on plate port
     }
 
     // ---------------------------------------------------------------------
-    // 2)  Initial operating point – computes Vk0 and Vp0 from the quadric
-    //     formulas (see triode_stage_quadric.m). This is called from the
-    //     constructor and whenever the model parameters are changed.
+    // Initial operating point 
     // ---------------------------------------------------------------------
     void initialiseOperatingPoint () noexcept
     {
         T k1 = kpg/(2*kp2) + Rp/Rk + 1;
         T k2 = k1 * (kp/kp2 + 2*E) * kp2;
         T k3 = Rk * k2 + 1;
+#ifdef XSIMD_HPP
+        T k1sign = xsimd::sign(k1);
+        T Vk0 =(k3 - k1sign * xsimd::sqrt(T(2.0f) * k3 - T(1.0f)))/ (T(2.0f) * Rk * k1 * k1 * kp2);
+#else
         T k1sign = (k1 > 0.0f) ? 1.0f : (k1 < 0.0f ? -1.0f : 0.0f);
         T Vk0 = (k3 - k1sign * std::sqrt(2*k3 - 1)) / (2 * Rk * k1 * k1 * kp2);
+#endif
         T Vp0 = E - Rp/Rk * Vk0;
 
         Vk = Vk0;
         Vp = Vp0;
-        Vg = static_cast<T>(0);
+        Vg = zero;
     }
 
     // ---------------------------------------------------------------------
@@ -199,6 +221,19 @@ private:
     T kp;   // constant term
     T kp2;  // linear term
     T kpg;  // grid‑voltage coefficient
+
+    //helpful
+    const T zero = static_cast<T>(0.0f);
+    const T half = static_cast<T>(0.5f);
+    const T one = static_cast<T>(1.0f);
+
+    T bk_bp;
+    T k_eta;
+    T k_delta;
+    T k_bp_s;
+    T bp_ap_0;
+    T bp_ak_0;
+
 
     // Circuit comps for operating point
     T Rp; 
@@ -217,8 +252,4 @@ private:
     // Node voltages for monitoring
     T Vg{}, Vk{}, Vp{};
 
-    // No iterative counters needed for the quadric model
-    static constexpr T eps = static_cast<T>(1e-9);
 };
-
-#endif // TRIODEQUADRICWDF_H_INCLUDED

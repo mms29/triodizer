@@ -19,8 +19,14 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
     GIT_TAG 8.0.13   
 )
-
 FetchContent_MakeAvailable(juce)
+
+FetchContent_Declare(
+    xsimd
+    GIT_REPOSITORY https://github.com/xtensor-stack/xsimd.git
+    GIT_TAG 14.2.0 
+)
+FetchContent_MakeAvailable(xsimd)
 
 FetchContent_Declare(
     chowdsp_wdf
@@ -63,17 +69,17 @@ target_link_libraries(TubeLabPlugin PRIVATE
     juce::juce_audio_utils
     juce::juce_dsp
     juce::juce_gui_basics
+    xsimd
 )
 
-# chowdsp_wdf include path (header-only library)
-# target_include_directories(TriodePlugin PRIVATE
-#     ${CMAKE_SOURCE_DIR}/chowdsp_wdf/include
-#     src
-#     )
 target_include_directories(TubeLabPlugin PRIVATE
-    ${chowdsp_wdf_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/chowdsp_wdf/include
     src
-)
+    )
+# target_include_directories(TubeLabPlugin PRIVATE
+#     ${chowdsp_wdf_SOURCE_DIR}/include
+#     src
+# )
 # C++ standard
 target_compile_features(TubeLabPlugin PRIVATE cxx_std_17)
 

@@ -14,10 +14,10 @@ public:
             calcImpedance();
     };
 
-    inline void prepare (double sampleRate){
-        w_C1.prepare((T) sampleRate);
-        w_C2.prepare((T) sampleRate);
-        w_C3.prepare((T) sampleRate);
+    inline void prepare (T sampleRate){
+        w_C1.prepare( sampleRate);
+        w_C2.prepare( sampleRate);
+        w_C3.prepare( sampleRate);
         calcImpedance();
     }
     void reset(){
@@ -45,53 +45,53 @@ public:
 
     inline T getVoltage() noexcept
     {
-        return voltage<float> (w_R1_minus) + voltage<float> (w_R2) + voltage<float> (w_R3_plus)  + voltage<float> (w_R3_minus); 
+        return voltage<T> (w_R1_minus) + voltage<T> (w_R2) + voltage<T> (w_R3_plus)  + voltage<T> (w_R3_minus); 
     }
 
-    void setR1_plus(float v)  { R1_plus = v; w_R1_plus.setResistanceValue(v); }
-    void setR1_minus(float v) { R1_minus = v; w_R1_minus.setResistanceValue(v); }
-    void setR2(float v)       { R2 = v; w_R2.setResistanceValue(v); }
-    void setR3_plus(float v)  { R3_plus = v; w_R3_plus.setResistanceValue(v); }
-    void setR3_minus(float v) { R3_minus = v; w_R3_minus.setResistanceValue(v); }
-    void setC1(float v)       { C1 = v; w_C1.setCapacitanceValue(v); }
-    void setC2(float v)       { C2 = v; w_C2.setCapacitanceValue(v); }
-    void setC3(float v)       { C3 = v; w_C3.setCapacitanceValue(v); }
-    void setR4(float v)       { R4 = v; w_R4.setResistanceValue(v); }
-    void setBass(float v)       { 
+    void setR1_plus(T v)  { R1_plus = v; w_R1_plus.setResistanceValue(v); }
+    void setR1_minus(T v) { R1_minus = v; w_R1_minus.setResistanceValue(v); }
+    void setR2(T v)       { R2 = v; w_R2.setResistanceValue(v); }
+    void setR3_plus(T v)  { R3_plus = v; w_R3_plus.setResistanceValue(v); }
+    void setR3_minus(T v) { R3_minus = v; w_R3_minus.setResistanceValue(v); }
+    void setC1(T v)       { C1 = v; w_C1.setCapacitanceValue(v); }
+    void setC2(T v)       { C2 = v; w_C2.setCapacitanceValue(v); }
+    void setC3(T v)       { C3 = v; w_C3.setCapacitanceValue(v); }
+    void setR4(T v)       { R4 = v; w_R4.setResistanceValue(v); }
+    void setBass(T v)       { 
         P2 = v;
-        setR2(v*0.5f);    
+        setR2(v*T(0.5f));    
     }
-    void setTreble(float v)       { 
+    void setTreble(T v)       { 
         P1 = v;
-        setR1_plus(v*0.5f);    
-        setR1_minus(v*0.5f);    
+        setR1_plus(v*T(0.5f));    
+        setR1_minus(v*T(0.5f));    
     }
-    void setMid(float v)       { 
+    void setMid(T v)       { 
         P3 = v;
-        setR3_plus(v*0.5f);    
-        setR3_minus(v*0.5f);    
+        setR3_plus(v*T(0.5f));    
+        setR3_minus(v*T(0.5f));    
     }
 
-    float getP1(){return P1;}
-    float getP2(){return P2;}
-    float getP3(){return P3;}
+    T getP1(){return P1;}
+    T getP2(){return P2;}
+    T getP3(){return P3;}
     WDFMembers<T> wdf;
 
 private:
-    T C1 = 0.25e-9;
-    T R4 = 56.0e3;
-    T C2 = 20.0e-9;
-    T C3 = 20.0e-9;
+    T C1 = T(0.25e-9);
+    T R4 = T(56.0e3 );
+    T C2 = T(20.0e-9);
+    T C3 = T(20.0e-9);
 
-    T P1 = 250e3f;
-    T P2 = 250e3f;
-    T P3 = 10e3f;
+    T P1 = T(250e3f);
+    T P2 = T(250e3f);
+    T P3 = T(10e3f);
 
-    T R1_plus = P1/2.0f;
-    T R1_minus = P1/2.0f;
-    T R2 = P2/2.0f;
-    T R3_plus = P3/2.0f;
-    T R3_minus = P3/2.0f;
+    T R1_plus = P1/T(2.0f);
+    T R1_minus = P1/T(2.0f);
+    T R2 = P2/T(2.0f);
+    T R3_plus = P3/T(2.0f);
+    T R3_minus = P3/T(2.0f);
 
     // Port B
     CapacitorT<T> w_C1 {C1};
@@ -148,122 +148,11 @@ private:
 };
 
 
-class BassmanToneStackCircuit : public Circuit
-{
-public:
-    BassmanToneStackCircuit(): Circuit()
-    {
-        params.resize((int)Param::Count, 0.0f);
-        controls.resize((int)Control::Count, 0.0f);
-        monitors.resize((int)Monitoring::Count, 0.0f);
-
-        setDefaultParam();
-        setDefaultControl();
-    };
-
-    enum class Monitoring : int {  Count };
-    enum class Param : int {RBass, RMid, RTreble, C1, C2, C3, R4,Count };
-    enum class Control : int {Bass, Mid, Treble, Count };
-
-    void setDefaultParam () 
-    {
-        setParam((int)Param::C1, 0.25e-9);      
-        setParam((int)Param::C2, 22.0e-9);      
-        setParam((int)Param::C3, 22.0e-9);      
-        setParam((int)Param::R4, 56.0e3);      
-        setParam((int)Param::RBass, 250e3f);    
-        setParam((int)Param::RMid, 10e3f);     
-        setParam((int)Param::RTreble, 250e3f); 
-    }
-    void setDefaultControl () 
-    { 
-        setControl((int)Control::Bass, 50.0f);    
-        setControl((int)Control::Mid, 50.0f);     
-        setControl((int)Control::Treble, 50.0f); 
-    }
-    // Runtime setters — updates the WDF node and re-propagates impedance
-
-    void setParam (const int index, float value) override
-    {
-        params.at(index) = value;
-
-        switch (index)
-        {
-            case (int)Param::C1:       w_bts.setC1(value); break;
-            case (int)Param::C2:       w_bts.setC2(value); break;
-            case (int)Param::C3:       w_bts.setC3(value); break;
-            case (int)Param::R4:       w_bts.setR4(value); break;
-            case (int)Param::RBass:     w_bts.setBass(value); break;
-            case (int)Param::RMid:      w_bts.setMid(value); break;
-            case (int)Param::RTreble:  w_bts.setTreble(value); break;
-
-            case (int)Param::Count:
-            default:
-                jassertfalse;
-                break;
-        }
-    }
-    void setControl (const int index, float value) override
-    {
-        controls.at(index) = value;
-        float controlVal = getParam(index);
-
-        switch (index)
-        {
-            case (int)Control::Bass: 
-            {
-                auto ratio = (100.0f-value)/100.0f; 
-                w_bts.setR2(controlVal*(1.0f - ratio));
-                break;
-            }
-            case (int)Control::Treble: 
-            {
-                auto ratio = (100.0f-value)/100.0f; 
-                w_bts.setR1_plus( controlVal*ratio);
-                w_bts.setR1_minus( controlVal*(1.0f - ratio));
-                break;
-            }
-            case (int)Control::Mid: 
-            {
-                auto ratio = (100.0f-value)/100.0f; 
-                w_bts.setR3_plus( controlVal*ratio);
-                w_bts.setR3_minus( controlVal*(1.0f - ratio));
-                break;
-            }
-            default: jassertfalse; break;
-        }
-    }
-
-    void prepare(double sr) override {
-        w_bts.prepare(sr);
-    }
-    void reset() override {
-        w_bts.reset();
-    }
-
-    float processSample(float x) override {
-        w_vin.setVoltage (x);
-        w_vin.incident(w_bts.reflected());
-        w_bts.incident(w_vin.reflected());
-
-        return w_bts.getVoltage();
-
-    }
-    void updateMonitors() override {}
-    
-private: 
-    BassmanToneStack<float> w_bts {};
-    IdealVoltageSourceT<float, decltype(w_bts)> w_vin {w_bts};
-};
-
-
-
-
 template <typename T>
-class BassmanToneStackCircuitT : public Circuit
+class BassmanToneStackCircuitT : public Circuit<T>
 {
 public:
-    BassmanToneStackCircuitT(): Circuit()
+    BassmanToneStackCircuitT(): Circuit<T>()
     {
         params.resize((int)Param::Count, 0.0f);
         controls.resize((int)Control::Count, 0.0f);
@@ -271,6 +160,10 @@ public:
         setDefaultParam();
         setDefaultControl();
     };
+    using Circuit<T>::params;
+    using Circuit<T>::controls;
+    using Circuit<T>::monitors;
+    using Circuit<T>::getParam;
 
     enum class Monitoring : int {  Count };
     enum class Param : int {RBass, RMid, RTreble, C1, C2, C3, R4,Count };
@@ -278,19 +171,19 @@ public:
 
     void setDefaultParam () 
     {
-        setParam((int)Param::C1, 0.25e-9);      
-        setParam((int)Param::C2, 22.0e-9);      
-        setParam((int)Param::C3, 22.0e-9);      
-        setParam((int)Param::R4, 56.0e3);      
-        setParam((int)Param::RBass, 250e3f);    
-        setParam((int)Param::RMid, 10e3f);     
-        setParam((int)Param::RTreble, 250e3f); 
+        setParam((int)Param::C1, T(0.25e-9));      
+        setParam((int)Param::C2, T(22.0e-9));      
+        setParam((int)Param::C3, T(22.0e-9));      
+        setParam((int)Param::R4, T(56.0e3));      
+        setParam((int)Param::RBass, T(250e3f));    
+        setParam((int)Param::RMid, T(10e3f));     
+        setParam((int)Param::RTreble, T(250e3f)); 
     }
     void setDefaultControl () 
     { 
-        setControl((int)Control::Bass, 50.0f);    
-        setControl((int)Control::Mid, 50.0f);     
-        setControl((int)Control::Treble, 50.0f); 
+        setControl((int)Control::Bass, T(50.0f));    
+        setControl((int)Control::Mid, T(50.0f));     
+        setControl((int)Control::Treble, T(50.0f)); 
     }
     // Runtime setters — updates the WDF node and re-propagates impedance
 
@@ -317,35 +210,35 @@ public:
     void setControl (const int index, T value) override
     {
         controls.at(index) = value;
-        T controlVal = getParam(index);
+        auto ratio = value/T(100.0f);
 
         switch (index)
         {
             case (int)Control::Bass: 
             {
-                auto ratio = (100.0f-value)/100.0f; 
-                w_bts.setR2(controlVal*(1.0f - ratio));
+                T controlVal = getParam((int)Param::RBass);
+                w_bts.setR2(controlVal*(ratio));
                 break;
             }
             case (int)Control::Treble: 
             {
-                auto ratio = (100.0f-value)/100.0f; 
-                w_bts.setR1_plus( controlVal*ratio);
-                w_bts.setR1_minus( controlVal*(1.0f - ratio));
+                T controlVal = getParam((int)Param::RTreble);
+                w_bts.setR1_plus( controlVal*(T(1.0f) - ratio));
+                w_bts.setR1_minus( controlVal*ratio);
                 break;
             }
             case (int)Control::Mid: 
-            {
-                auto ratio = (100.0f-value)/100.0f; 
-                w_bts.setR3_plus( controlVal*ratio);
-                w_bts.setR3_minus( controlVal*(1.0f - ratio));
+            {        
+                T controlVal = getParam((int)Param::RMid);
+                w_bts.setR3_plus( controlVal*(T(1.0f) - ratio));
+                w_bts.setR3_minus( controlVal*ratio);
                 break;
             }
             default: jassertfalse; break;
         }
     }
 
-    void prepare(double sr) override {
+    void prepare(T sr) override {
         w_bts.prepare(sr);
     }
     void reset() override {

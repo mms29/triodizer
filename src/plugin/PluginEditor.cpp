@@ -7,12 +7,12 @@ TubeLabEditor::TubeLabEditor(TubeLabProcessor& p)
     schematicTimer([this] { circuitTimerCallback(); }, 5),
     waveformDisplay(p)
 {
-
     audioProcessor.addChangeListener(this);
 
     // =====================================================
     // SCHEMATIC PANEL
     // =====================================================
+
     schematic = std::make_unique<SchematicPanel>(this);
     updateSchematic();
     addAndMakeVisible (*schematic);
@@ -23,7 +23,7 @@ TubeLabEditor::TubeLabEditor(TubeLabProcessor& p)
     waveformDisplay.setBackgroundColour (juce::Colours::black);
     waveformDisplay.setWaveformColour (juce::Colours::cyan);
     addAndMakeVisible (waveformDisplay);
-    
+
     // =====================================================
     // DRIVE
     // =====================================================
@@ -84,7 +84,6 @@ TubeLabEditor::TubeLabEditor(TubeLabProcessor& p)
     // =====================================================
     setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
     schematic->resetView();
-
 }
 
 TubeLabEditor::~TubeLabEditor()
@@ -100,6 +99,7 @@ void TubeLabEditor::changeListenerCallback(
 
 void TubeLabEditor::updateSchematic(){
     schematic->clear();
+
     switch (audioProcessor.getCurrentPreset())
     {
     case PRESET_COMMONCATHODE:

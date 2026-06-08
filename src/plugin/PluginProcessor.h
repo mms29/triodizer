@@ -3,6 +3,8 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_dsp/juce_dsp.h>
 
+#include <xsimd/xsimd.hpp>
+#include <chowdsp_wdf/chowdsp_wdf.h>
 #include "dsp/Circuit.h"
 #include "dsp/BassmanPreamp.h"
 #include "dsp/FullBassmanPreamp.h"
@@ -67,77 +69,69 @@ public:
     TubeLabProcessor();
     ~TubeLabProcessor() override;
 
-    const juce::String getName() const override { return "Triode"; }
+    const juce::String getName() const override { return "TubeLab"; }
 
+    // Overrides
     bool acceptsMidi() const override { return false; }
     bool producesMidi() const override { return false; }
     bool isMidiEffect() const override { return false; }
     double getTailLengthSeconds() const override { return 0.0; }
-
     void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
-    void updateOversampler();
-
-    //PRESET
-    void updatePreset();
-    int getCurrentPreset() const {return currentPreset;}
-
     int getNumPrograms() override;
     int getCurrentProgram() override;
     void setCurrentProgram(int index) override;
     const juce::String getProgramName(int index) override;
     void changeProgramName(int index, const juce::String& newName) override;
-
-    void getStateInformation(juce::MemoryBlock& destData) override;
-    void setStateInformation(const void* data, int sizeInBytes) override;
-
-    bool hasEditor() const override { return true; }
-    juce::AudioProcessorEditor* createEditor() override;
-    bool supportsDoublePrecisionProcessing() const override { return false; }
-
     bool isBusesLayoutSupported(const BusesLayout& layouts) const override;
     void prepareToPlay(double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
 
+    // Preset
+    void updatePreset();
+    int getCurrentPreset() const {return currentPreset;}
 
-    inline float getCircuitMonitoring  (const int index, const int ch = 0) const  { 
-        return circuit[ch]->getMonitoring(index);   
-    }
-    inline float getCircuitParam  (const int index, const int ch = 0) const  { 
-        return circuit[ch]->getParam(index);   
-    }
-    inline float getCircuitControl  (const int index, const int ch = 0) const  { 
-        return circuit[ch]->getControl(index);   
-    }
-    inline void setCircuitParam(const int index, float value){
-        for (int ch = 0; ch < 2; ++ch) {
-            circuit[ch]->setParam(index, value);
-        }
-    }
-    inline void setCircuitControl(const int index, float value){
-        for (int ch = 0; ch < 2; ++ch) {
-            circuit[ch]->setControl(index, value);
+    // Oversampler
+    void updateOversampler();
+    void buildOversampler();
 
-        }
-    }
+    // State information
+    void getStateInformation(juce::MemoryBlock& destData) override;
+    void setStateInformation(const void* data, int sizeInBytes) override;
+    void loadCircuitState (const juce::ValueTree& t);
+    juce::ValueTree saveCircuitState() const;
 
+    // Editor
+    bool hasEditor() const override { return true; }
+    juce::AudioProcessorEditor* createEditor() override;
+    bool supportsDoublePrecisionProcessing() const override { return false; }
+
+    // Circuit
+    void prepareCircuit(double sr);
+    void resetCircuit();
+    void buildCircuit();
+    bool circuitReady() const;
+    float getCircuitMonitoring  (const int index, const int ch = 0) const;
+    float getCircuitParam  (const int index, const int ch = 0) const;
+    float getCircuitControl  (const int index, const int ch = 0) const;
+    void setCircuitParam(const int index, float value);
+    void setCircuitControl(const int index, float value);
+
+    // Wave display
+    const WaveformBuffer& getWaveformInputBuffer() const noexcept {return waveformInputBuffer;}
+    const WaveformBuffer& getWaveformOutputBuffer() const noexcept {return waveformOutputBuffer;}
+
+    //noise
+    inline float whiteNoise() {return rng.nextFloat() * 2.0f - 1.0f;}
+
+    // parameters
     juce::AudioProcessorValueTreeState parameters;
 
-    const WaveformBuffer& getWaveformInputBuffer() const noexcept
-    {
-        return waveformInputBuffer;
-    }
-    const WaveformBuffer& getWaveformOutputBuffer() const noexcept
-    {
-        return waveformOutputBuffer;
-    }
-
-    inline float whiteNoise()
-    {
-        return rng.nextFloat() * 2.0f - 1.0f;
-    }
-
 private:
-    std::unique_ptr<Circuit> circuit[2];  // one per channel
+    #ifdef XSIMD_HPP
+    std::unique_ptr<Circuit<xsimd::batch<float>>> circuit;  // one circuit with SIMD channels
+    #else
+    std::unique_ptr<Circuit<float>> circuit[2];  // one per channel
+    #endif
     double sampleRate = 48000.0;
     double oversampleRate = 48000.0;
     int blockSize = 512;

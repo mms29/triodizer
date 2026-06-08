@@ -2,73 +2,44 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
+template <typename T>
 class Circuit
 {
 public:
     virtual ~Circuit() = default;
 
-    virtual void prepare(double sampleRate) = 0;
+    virtual void prepare(T sampleRate) = 0;
     virtual void reset() = 0;
-    virtual float processSample(float x) = 0;
+    virtual T processSample(T x) = 0;
 
-    virtual void setParam(const int index , float value) = 0;
-    virtual void setControl(const int index , float value) = 0;
+    virtual void setParam(const int index , T value) = 0;
+    virtual void setControl(const int index , T value) = 0;
     virtual void updateMonitors() = 0;
 
-    float getControl(const int index) const {return controls.at(index);}
-    float getParam(const int index) const {return params.at(index);}
-    float getMonitoring(const int index ) {return monitors.at(index);};
+    T getControl(const int index) const {return controls.at(index);}
+    T getParam(const int index) const {return params.at(index);}
+    T getMonitoring(const int index ) {return monitors.at(index);};
 
     int getNumParam() const { return (int) params.size();}
     int getNumControl() const { return (int) controls.size();}
     int getNumMonitor() const { return (int) monitors.size();}
 
-    juce::ValueTree saveState() const
-    {
-        juce::ValueTree t ("Circuit");
-
-        for (int i = 0; i < getNumParam(); ++i){
-            t.setProperty ("P" + juce::String(i), getParam(i), nullptr);
-        }
-
-        for (int i = 0; i < getNumControl(); ++i){
-            t.setProperty ("C" + juce::String(i), getControl(i), nullptr);
-        }
-
-        return t;
-    }
-
-    void loadState (const juce::ValueTree& t)
-    {
-
-        for (int i = 0; i < getNumParam(); ++i)
-        {
-            auto name = "P" + juce::String(i);
-            if (t.hasProperty(name)) setParam(i, (float)t[name]);
-        }
-        for (int i = 0; i < getNumControl(); ++i)
-        {
-            auto name = "C" + juce::String(i);
-            if (t.hasProperty(name)) setControl(i, (float)t[name]);
-        }
-    }
-
-
 protected :
-    std::vector<float> params;
-    std::vector<float> controls;
-    std::vector<float> monitors;
+    std::vector<T> params;
+    std::vector<T> controls;
+    std::vector<T> monitors;
 };
 
-class DefaultCircuit : public Circuit
+template <typename T>
+class DefaultCircuit : public Circuit<T>
 {
 public:
-    void prepare(double) override {}
+    void prepare(T) override {}
     void reset() override {}
 
-    float processSample(float x) override {return x;}
+    T processSample(T x) override {return x;}
 
-    void setParam(int, float) override {}
-    void setControl(int, float) override {}
+    void setParam(int, T) override {}
+    void setControl(int, T) override {}
     void updateMonitors() override {}
 };

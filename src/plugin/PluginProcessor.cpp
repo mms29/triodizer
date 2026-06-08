@@ -48,9 +48,11 @@ TubeLabProcessor::TubeLabProcessor()
                     0)
             })
 {
-    for (int ch = 0; ch < 2; ++ch)
-        circuit[ch] = std::make_unique<DefaultCircuit>();    
-    updatePreset();
+    oversamplingStages = (int) parameters.getRawParameterValue("oversample")->load();
+    currentPreset = (int) parameters.getRawParameterValue("preset")->load() +1;
+    buildCircuit();
+    sendChangeMessage();
+
 }
 
 TubeLabProcessor::~TubeLabProcessor() = default;
@@ -60,13 +62,18 @@ void TubeLabProcessor::prepareToPlay(double sr, int samplesPerBlock)
 {
     sampleRate = sr;
     blockSize = samplesPerBlock;
-    updateOversampler();
+
+    buildOversampler();
+
+    noiseLP.prepare(oversampleRate, noiseCutoff, noiseGain);
+
+    prepareCircuit(oversampleRate);
+
 }
 
 void TubeLabProcessor::releaseResources()
 {
-    for (int ch = 0; ch < 2; ++ch)
-        circuit[ch]->reset();
+    resetCircuit();
 }
 
 void TubeLabProcessor::processBlock(juce::AudioBuffer<float>& buffer,
@@ -100,7 +107,6 @@ void TubeLabProcessor::processBlock(juce::AudioBuffer<float>& buffer,
             waveformInputBuffer.push(channelData[i]);
         }
     }
-
     // Convert AudioBuffer -> AudioBlock
     juce::dsp::AudioBlock<float> block(buffer);
 
@@ -112,6 +118,24 @@ void TubeLabProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     // PROCESS AT OVERSAMPLED RATE
     float noise;
 
+#ifdef XSIMD_HPP
+    auto* left  = upsampledBlock.getChannelPointer(0);
+    auto* right = upsampledBlock.getChannelPointer(1);
+
+    for (int i = 0; i < osNumSamples; ++i)
+    {
+        float noiseL = noiseLP.process(whiteNoise());
+        float noiseR = noiseLP.process(whiteNoise());
+
+        xsimd::batch<float> x { left[i] + noiseL,
+                                right[i] + noiseR, 0.0F, 0.0F };
+
+        auto y = circuit->processSample(x);
+
+        left[i]  = y.get(0);
+        right[i] = y.get(1);
+    }
+#else  
     for (int ch = 0; ch < numChannels; ++ch)
     {
         auto* samples = upsampledBlock.getChannelPointer((size_t) ch);
@@ -121,10 +145,13 @@ void TubeLabProcessor::processBlock(juce::AudioBuffer<float>& buffer,
             auto x =samples[i];
             noise = noiseLP.process(whiteNoise());
             x += noise;
+              
             samples[i] = circuit[ch]->processSample(x);
+
         }
 
     }
+#endif    
 
     // DOWNSAMPLE BACK INTO ORIGINAL BUFFER
     oversampler->processSamplesDown(block);
@@ -144,6 +171,7 @@ void TubeLabProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
 
 //==============================================================================
+
 void TubeLabProcessor::updateOversampler()
 {
     int stages = (int) parameters.getRawParameterValue("oversample")->load();
@@ -154,38 +182,88 @@ void TubeLabProcessor::updateOversampler()
 
     oversamplingStages = stages;
 
-    oversampleRate = sampleRate* (1 << oversamplingStages);
-
-    oversampler = std::make_unique<juce::dsp::Oversampling<float>>(
-        getTotalNumInputChannels(),
-        stages, // 0=1x,1=2x,2=4x,3=8x
-        juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR);
-
-    oversampler->initProcessing((size_t) blockSize);
-
-    oversampler->reset();
-
-
-    for (int ch = 0; ch < 2; ++ch){
-        circuit[ch]->reset();
-        circuit[ch]->prepare(oversampleRate);
-    }
-
+    buildOversampler();
+    resetCircuit();
+    prepareCircuit(oversampleRate);
     noiseLP.prepare(oversampleRate, noiseCutoff, noiseGain);
 }
-//==============================================================================
 void TubeLabProcessor::updatePreset()
 {
     int presetChoice = (int) parameters.getRawParameterValue("preset")->load() +1;
-
     // Avoid rebuilding every block
     if (currentPreset == presetChoice)
-        return;
+        if (circuitReady())
+            return;
 
     currentPreset = presetChoice; 
+    buildCircuit();
+    sendChangeMessage();
+    prepareCircuit(oversampleRate);
+}
 
+//==============================================================================
+void TubeLabProcessor::buildOversampler(){
+    oversampleRate = sampleRate* (1 << oversamplingStages);
+    oversampler = std::make_unique<juce::dsp::Oversampling<float>>(
+        getTotalNumInputChannels(),
+        oversamplingStages, // 0=1x,1=2x,2=4x,3=8x
+        juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR);
+    oversampler->initProcessing((size_t) blockSize);
+    oversampler->reset();
+}
+//==============================================================================
+void TubeLabProcessor::prepareCircuit(double sr){
+#ifdef XSIMD_HPP
+    circuit->prepare(xsimd::broadcast(float(sr)));
+#else
+    for (int ch = 0; ch < 2; ++ch)
+        circuit[ch]->prepare(sr);
+#endif
+}
+void TubeLabProcessor::resetCircuit(){
+#ifdef XSIMD_HPP
+    circuit->reset();
+#else
+    for (int ch = 0; ch < 2; ++ch)
+        circuit[ch]->reset();
+#endif
+
+}
+
+void TubeLabProcessor::buildCircuit(){
+#ifdef XSIMD_HPP
+    using batch = xsimd::batch<float>;
+    switch(getCurrentPreset()){
+        case PRESET_BASSMAN_TS: 
+        {
+            circuit = std::make_unique<BassmanToneStackCircuitT<batch>>();
+            break;
+        }
+        case PRESET_BASSMAN_PREAMP_SMALL: 
+        {
+            circuit = std::make_unique<BassmanPreampCircuitT<batch>>();
+            break;
+        }
+        case PRESET_BASSMAN_PREAMP: 
+        {
+            circuit = std::make_unique<FullBassmanPreampCircuitT<batch>>();
+            break;
+        }
+        case PRESET_DUAL_RECTIFIER_PREAMP: 
+        {
+            circuit = std::make_unique<DefaultCircuit<batch>>();
+            break;
+        }
+        default: 
+        {
+            circuit = std::make_unique<DefaultCircuit<batch>>();
+            break;
+        }
+    }
+
+#else
     for (int ch = 0; ch < 2; ++ch){
-        switch(presetChoice){
+        switch(getCurrentPreset()){
             case PRESET_COMMONCATHODE: 
             {
                 circuit[ch] = std::make_unique<TriodeGainStage>();
@@ -198,7 +276,7 @@ void TubeLabProcessor::updatePreset()
             }
             case PRESET_BASSMAN_PREAMP_SMALL: 
             {
-                circuit[ch] = std::make_unique<BassmanPreampCircuit>();
+                circuit[ch] = std::make_unique<BassmanPreampCircuitT<float>>();
                 break;
             }
             case PRESET_BASSMAN_PREAMP: 
@@ -213,15 +291,12 @@ void TubeLabProcessor::updatePreset()
             }
             default: 
             {
-                circuit[ch] = std::make_unique<DefaultCircuit>();
+                circuit[ch] = std::make_unique<DefaultCircuit<float>>();
                 break;
             }
         }
-        circuit[ch]->prepare(oversampleRate);
     }
-    sendChangeMessage();
-
-
+#endif
 }
 //==============================================================================
 juce::AudioProcessorEditor* TubeLabProcessor::createEditor()
@@ -241,7 +316,7 @@ void TubeLabProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
     juce::ValueTree root("PluginState");
     root.addChild(parameters.copyState(), -1, nullptr);
-    root.addChild(circuit[0]->saveState(), -1, nullptr);
+    root.addChild(saveCircuitState(), -1, nullptr);
 
     std::unique_ptr<juce::XmlElement> xml (root.createXml());
     copyXmlToBinary (*xml, destData);
@@ -266,8 +341,7 @@ void TubeLabProcessor::setStateInformation(const void* data, int sizeInBytes)
 
     updatePreset();
 
-    for (int ch = 0; ch < 2; ++ch)
-        circuit[ch]->loadState(circuitState);
+    loadCircuitState(circuitState);
 
 }
 
@@ -287,3 +361,109 @@ juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
     return new TubeLabProcessor();
 }
 
+
+
+float TubeLabProcessor::getCircuitMonitoring  (const int index, const int ch) const  { 
+    #ifdef XSIMD_HPP
+        return circuit->getMonitoring(index).get(ch);
+    #else
+        return circuit[ch]->getMonitoring(index);
+    #endif
+}
+float TubeLabProcessor::getCircuitParam  (const int index, const int ch) const  { 
+    #ifdef XSIMD_HPP
+        return circuit->getParam(index).get(ch);
+    #else
+        return circuit[ch]->getParam(index);   
+    #endif
+}
+float TubeLabProcessor::getCircuitControl  (const int index, const int ch) const  { 
+    #ifdef XSIMD_HPP
+        return circuit->getControl(index).get(ch);
+    #else
+        return circuit[ch]->getControl(index);   
+    #endif
+}
+void TubeLabProcessor::setCircuitParam(const int index, float value){
+    #ifdef XSIMD_HPP
+        return circuit->setParam(index, xsimd::broadcast<float>(value));
+    #else
+    for (int ch = 0; ch < 2; ++ch) 
+        circuit[ch]->setParam(index, value);
+    #endif
+}
+void TubeLabProcessor::setCircuitControl(const int index, float value){
+    #ifdef XSIMD_HPP
+        return circuit->setControl(index, xsimd::broadcast<float>(value));
+    #else
+    for (int ch = 0; ch < 2; ++ch)
+        circuit[ch]->setControl(index, value);
+    #endif
+}
+
+
+void TubeLabProcessor::loadCircuitState (const juce::ValueTree& t)
+{
+    #ifdef XSIMD_HPP
+    for (int i = 0; i < circuit->getNumParam(); ++i)
+    {
+        auto name = "P" + juce::String(i);
+        if (t.hasProperty(name)) circuit->setParam(i, xsimd::broadcast<float>(t[name]));
+    }
+    for (int i = 0; i < circuit->getNumControl(); ++i)
+    {
+        auto name = "C" + juce::String(i);
+        if (t.hasProperty(name)) circuit->setControl(i, xsimd::broadcast<float>(t[name]));
+    }
+    #else
+
+    for (int ch = 0; ch < 2; ++ch) {
+        for (int i = 0; i < circuit[ch]->getNumParam(); ++i)
+        {
+            auto name = "P" + juce::String(i);
+            if (t.hasProperty(name)) circuit[ch]->setParam(i, t[name]);
+        }
+        for (int i = 0; i < circuit[ch]->getNumControl(); ++i)
+        {
+            auto name = "C" + juce::String(i);
+            if (t.hasProperty(name)) circuit[ch]->setControl(i, t[name]);
+        }
+    }
+    #endif
+
+}
+juce::ValueTree TubeLabProcessor::saveCircuitState() const
+{
+    juce::ValueTree t ("Circuit");
+
+    #ifdef XSIMD_HPP
+    for (int i = 0; i < circuit->getNumParam(); ++i){
+        t.setProperty ("P" + juce::String(i), circuit->getParam(i).get(0), nullptr);
+    }
+
+    for (int i = 0; i < circuit->getNumControl(); ++i){
+        t.setProperty ("C" + juce::String(i), circuit->getControl(i).get(0), nullptr);
+    }
+    #else
+    for (int ch = 0; ch < 2; ++ch) {
+        for (int i = 0; i < circuit[ch]->getNumParam(); ++i){
+            t.setProperty ("P" + juce::String(i), circuit[ch]->getParam(i), nullptr);
+        }
+
+        for (int i = 0; i < circuit[ch]->getNumControl(); ++i){
+            t.setProperty ("C" + juce::String(i), circuit[ch]->getControl(i), nullptr);
+        }
+    }
+    #endif
+
+    return t;
+}
+
+
+bool TubeLabProcessor::circuitReady() const{
+    #ifdef XSIMD_HPP
+    return circuit != nullptr;
+    #else
+    return circuit[0] && circuit[1];
+    #endif
+}

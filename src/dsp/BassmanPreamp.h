@@ -10,10 +10,11 @@
 
 using namespace chowdsp::wdft;
 
-class BassmanPreampCircuit : public Circuit
+template <typename T>
+class BassmanPreampCircuitT : public Circuit<T>
 {
 public:
-    BassmanPreampCircuit(): Circuit()
+    BassmanPreampCircuitT(): Circuit<T>()
     {
         params.resize((int)Param::Count, 0.0f);
         controls.resize((int)Control::Count, 0.0f);
@@ -22,10 +23,14 @@ public:
         setDefaultParam();
         setDefaultControl();
     };
+    using Circuit<T>::params;
+    using Circuit<T>::controls;
+    using Circuit<T>::monitors;
+    using Circuit<T>::getParam;
 
     enum class Monitoring : int 
     {
-        Vk, Vp, 
+        Vk, Vp, Ip,
         Count 
     };
     enum class Param : int 
@@ -40,25 +45,24 @@ public:
     };
     void setDefaultParam () 
     {
-        setParam((int)Param::Ri, 1.0e6f);
-        setParam((int)Param::Rg, 20.0e3f);
-        setParam((int)Param::Ci, 100e-9f);
-        setParam((int)Param::Rk, 1.0e3f);
-        setParam((int)Param::Ck, 10e-6f);
-        setParam((int)Param::E, 250.0f);
-        setParam((int)Param::Rp, 100.0e3f);
-        
-        setParam((int)Param::C1, 0.25e-9);      
-        setParam((int)Param::C2, 22.0e-9);      
-        setParam((int)Param::C3, 22.0e-9);      
-        setParam((int)Param::R4, 56.0e3);      
-        setParam((int)Param::RBass, 250e3f);    
-        setParam((int)Param::RMid, 10e3f);     
-        setParam((int)Param::RTreble, 250e3f); 
+        setParam((int)Param::Ri, T(1.0e6f  ));
+        setParam((int)Param::Rg, T(20.0e3f ));
+        setParam((int)Param::Ci, T(100e-9f ));
+        setParam((int)Param::Rk, T(1.0e3f  ));
+        setParam((int)Param::Ck, T(10e-6f  ));
+        setParam((int)Param::E,  T(250.0f  ));
+        setParam((int)Param::Rp, T(100.0e3f));
+        setParam((int)Param::C1, T(0.25e-9 ));      
+        setParam((int)Param::C2, T(22.0e-9 ));      
+        setParam((int)Param::C3, T(22.0e-9 ));      
+        setParam((int)Param::R4, T(56.0e3  ));      
+        setParam((int)Param::RBass,   T(250e3f));    
+        setParam((int)Param::RMid,    T(10e3f ));     
+        setParam((int)Param::RTreble, T(250e3f)); 
 
 
         w_Triode.setTubeLabParameters(
-            1.014e-5f, 5.498e-8f, 1.076e-5f,
+            T(1.014e-5f), T(5.498e-8f), T(1.076e-5f),
             getParam((int)Param::Rp),
             getParam((int)Param::Rk),
             getParam((int)Param::E)
@@ -66,11 +70,11 @@ public:
     }
     void setDefaultControl () 
     { 
-        setControl((int)Control::Bass, 50.0f);    
-        setControl((int)Control::Mid, 50.0f);     
-        setControl((int)Control::Treble, 50.0f); 
+        setControl((int)Control::Bass, T(50.0f));    
+        setControl((int)Control::Mid, T(50.0f));     
+        setControl((int)Control::Treble, T(50.0f)); 
     }
-    void setParam (const int index, float value) override
+    void setParam (const int index, T value) override
     {
         params.at(index) = value;
         
@@ -100,47 +104,45 @@ public:
                 break;
         }
     }
-    void setControl (const int index, float value) override
+    void setControl (const int index, T value) override
     {
         controls.at(index) = value;
+        T controlVal = getParam(index);
+        auto ratio = value/T(100.0f);
 
-        float controlVal = getParam(index);
         switch (index)
         {
             case (int)Control::Bass: 
             {
-                auto ratio = std::pow((100.0f-value)/100.0f, 3.0f); // audio taper
-                w_bts.setR2(controlVal*(1.0f - ratio));
+                w_bts.setR2(controlVal*(ratio));
                 break;
             }
             case (int)Control::Treble: 
             {
-                auto ratio = std::pow((100.0f-value)/100.0f, 3.0f); // audio taper
-                w_bts.setR1_plus( controlVal*ratio);
-                w_bts.setR1_minus( controlVal*(1.0f - ratio));
+                w_bts.setR1_plus( controlVal*(T(1.0f) - ratio));
+                w_bts.setR1_minus( controlVal*ratio);
                 break;
             }
             case (int)Control::Mid: 
             {
-                auto ratio = (100.0f-value)/100.0f; 
-                w_bts.setR3_plus( controlVal*ratio);
-                w_bts.setR3_minus( controlVal*(1.0f - ratio));
+                w_bts.setR3_plus( controlVal*(T(1.0f) - ratio));
+                w_bts.setR3_minus( controlVal*ratio);
                 break;
             }
             default: jassertfalse; break;
         }
     }
 
-    void prepare(double sr) override {
-        w_Vi.prepare ((float) sr);
-        w_Ck.prepare ((float) sr);
-        w_bts.prepare((float) sr);
+    void prepare(T sr) override {
+        w_Vi.prepare (sr);
+        w_Ck.prepare (sr);
+        w_bts.prepare(sr);
 
-        float duration = 0.1f;
-        for (int i = 0; i < (int) sr *duration; ++i)
-        {
-            auto y = processSample(0.0f);
-        }
+        // float duration = 0.1f;
+        // for (int i = 0; i < (int) sr *duration; ++i)
+        // {
+        //     auto y = processSample(zero);
+        // }
     }
     void reset() override {
         w_bts.reset();
@@ -148,51 +150,55 @@ public:
         w_Ck.reset();
     }
 
-    float processSample(float x) override { 
+    T processSample(T x) override { 
         w_Vi.setVoltage (x);
         w_E_Rp.setVoltage(getParam((int)Param::E));
         w_Triode.compute();
+        updateMonitors();
         return w_bts.getVoltage();
     }
     void updateMonitors() override{
 
         monitors.at((int) Monitoring::Vk)= getCathodeVoltage(); 
         monitors.at((int) Monitoring::Vp)= getPlateVoltage(); 
+        monitors.at((int) Monitoring::Ip)= getPlateCurrent(); 
     }
 
     // Accessor methods for monitoring internal WDF variables
-    float getCathodeVoltage() const { return voltage<float> (w_Rk); }
-    float getPlateVoltage() const { return voltage<float> (w_E_Rp); }
-    float getGridVoltage() const { return voltage<float> (w_Ri); }
-    float getPlateCurrent() const { return (getParam((int)Param::E)-getPlateVoltage())/getParam((int)Param::Rp) ; }
+    T getCathodeVoltage() const { return voltage<T> (w_Rk); }
+    T getPlateVoltage() const { return voltage<T> (w_E_Rp); }
+    T getGridVoltage() const { return voltage<T> (w_Ri); }
+    T getPlateCurrent() const { return (getParam((int)Param::E)-getPlateVoltage())/getParam((int)Param::Rp) ; }
     
 private: 
+    const T zero = static_cast<T>(0.0f);
+    const T one = static_cast<T>(1.0f);
 
     // Cathode Circuit (connect triode to PJk)
-    ResistorT<float> w_Rk { 0.0f };
-    CapacitorT<float> w_Ck { 0.0f };
-    WDFParallelT<float, decltype (w_Rk), decltype (w_Ck)> w_PJk { w_Rk, w_Ck };
+    ResistorT<T> w_Rk { zero };
+    CapacitorT<T> w_Ck { zero };
+    WDFParallelT<T, decltype (w_Rk), decltype (w_Ck)> w_PJk { w_Rk, w_Ck };
 
     // Plate Circuit (connect triode to PJp)
-    BassmanToneStack<float> w_bts {};
-    ResistiveVoltageSourceT<float> w_E_Rp { 0.0f };
-    PolarityInverterT<float, decltype (w_bts)> w_PIp { w_bts };
-    WDFParallelT<float, decltype (w_E_Rp), decltype (w_PIp)> w_PJp { w_E_Rp, w_PIp};
+    BassmanToneStack<T> w_bts {};
+    ResistiveVoltageSourceT<T> w_E_Rp { zero };
+    // PolarityInverterT<T, decltype (w_bts)> w_PIp { w_bts };
+    WDFParallelT<T, decltype (w_E_Rp), decltype (w_bts)> w_PJp { w_E_Rp, w_bts};
 
     // Grid Circuit (connect triode to PIg)
-    ResistorT<float> w_Rg { 0.0f };
-    ResistorT<float> w_Ri { 0.0f };
-    CapacitiveVoltageSourceT<float> w_Vi { 0.0f };
-    PolarityInverterT<float, decltype (w_Vi)> w_PIi { w_Vi };
-    WDFParallelT<float, decltype (w_Ri), decltype (w_PIi)> w_PJi { w_Ri, w_PIi };
-    WDFSeriesT<float, decltype (w_Rg), decltype (w_PJi)> w_SJg { w_Rg, w_PJi };
-    PolarityInverterT<float, decltype (w_SJg)> w_PIg { w_SJg };
+    ResistorT<T> w_Rg { zero };
+    ResistorT<T> w_Ri { zero };
+    CapacitiveVoltageSourceT<T> w_Vi { zero };
+    PolarityInverterT<T, decltype (w_Vi)> w_PIi { w_Vi };
+    WDFParallelT<T, decltype (w_Ri), decltype (w_PIi)> w_PJi { w_Ri, w_PIi };
+    WDFSeriesT<T, decltype (w_Rg), decltype (w_PJi)> w_SJg { w_Rg, w_PJi };
+    PolarityInverterT<T, decltype (w_SJg)> w_PIg { w_SJg };
 
     // Triode WDF
-    // TriodeWDF<float, decltype(w_PIg), decltype(w_PJk), decltype(w_PJp)> w_Triode{
+    // TriodeWDF<T, decltype(w_PIg), decltype(w_PJk), decltype(w_PJp)> w_Triode{
     //         w_PIg, w_PJk, w_PJp, 0.0f, 0.0f
     // };
-    TriodeQuadricWDF<float, decltype(w_PIg), decltype(w_PJk), decltype(w_PJp)> w_Triode{
-            w_PIg, w_PJk, w_PJp, 0.0f,0.0f,0.0f,0.0f,0.0f,0.0f
+    TriodeQuadricWDF<T, decltype(w_PIg), decltype(w_PJk), decltype(w_PJp)> w_Triode{
+            w_PIg, w_PJk, w_PJp, zero,zero,zero,zero,zero,zero
     };
 };

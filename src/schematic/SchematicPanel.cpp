@@ -441,19 +441,19 @@ void SchematicBuilder::buildBassmanToneStack(SchematicPanel& schematic)
         "R4",
         toneStackPosition + Terminal {0.0f, d} ,
         toneStackPosition,
-        (int) BassmanToneStackCircuit::Param::R4
+        (int) BassmanToneStackCircuitT<float>::Param::R4
     ));
     schematic.addElement (std::make_unique<CapacitorElement> (
         "C1",
         toneStackPosition,
         toneStackPosition+Terminal {d, 0.0f} ,
-        (int) BassmanToneStackCircuit::Param::C1
+        (int) BassmanToneStackCircuitT<float>::Param::C1
     ));
     schematic.addElement (std::make_unique<CapacitorElement> (
         "C2",
         toneStackPosition + Terminal {0.0f, d},
         toneStackPosition + Terminal {d, d} ,
-        (int) BassmanToneStackCircuit::Param::C2
+        (int) BassmanToneStackCircuitT<float>::Param::C2
     ));
 
     schematic.addElement (std::make_unique<PotElement> (
@@ -461,8 +461,8 @@ void SchematicBuilder::buildBassmanToneStack(SchematicPanel& schematic)
         schematic.getElement("C2")->getTerminals()[1],
         schematic.getElement("C2")->getTerminals()[1] + Terminal {0.0f, d},
         schematic.getElement("C2")->getTerminals()[1] + Terminal {0.5f*d, 0.5f*d},
-        (int) BassmanToneStackCircuit::Control::Bass,
-        (int) BassmanToneStackCircuit::Param::RBass
+        (int) BassmanToneStackCircuitT<float>::Control::Bass,
+        (int) BassmanToneStackCircuitT<float>::Param::RBass
     ));
 
     schematic.addElement (std::make_unique<PotElement> (
@@ -470,22 +470,22 @@ void SchematicBuilder::buildBassmanToneStack(SchematicPanel& schematic)
         schematic.getElement("C1")->getTerminals()[1],
         schematic.getElement("C2")->getTerminals()[1],
         schematic.getElement("C1")->getTerminals()[1] + Terminal {0.25f*d, .5f*d} ,
-        (int) BassmanToneStackCircuit::Control::Treble,
-        (int) BassmanToneStackCircuit::Param::RTreble
+        (int) BassmanToneStackCircuitT<float>::Control::Treble,
+        (int) BassmanToneStackCircuitT<float>::Param::RTreble
     ));
     schematic.addElement (std::make_unique<PotElement> (
         "Mid",     
         schematic.getElement("Bass")->getTerminals()[1]  + Terminal {0.0f, d},
         schematic.getElement("Bass")->getTerminals()[1],
         schematic.getElement("Bass")->getTerminals()[1]  + Terminal {-d*0.25f, .5f*d},
-        (int) BassmanToneStackCircuit::Control::Mid,
-        (int) BassmanToneStackCircuit::Param::RMid
+        (int) BassmanToneStackCircuitT<float>::Control::Mid,
+        (int) BassmanToneStackCircuitT<float>::Param::RMid
     ));
     schematic.addElement (std::make_unique<CapacitorElement> (
         "C3",
         schematic.getElement("Mid")->getTerminals()[2]  + Terminal {-d*0.5f, 0.0f},
         schematic.getElement("Mid")->getTerminals()[2]  ,
-        (int) BassmanToneStackCircuit::Param::C3
+        (int) BassmanToneStackCircuitT<float>::Param::C3
     ));
     // Grounds
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Mid")->getTerminals()[0]) );
@@ -663,16 +663,17 @@ void SchematicBuilder::buildBassmanToneStack(SchematicPanel& schematic)
 // ===================================================================================================================
 void SchematicBuilder::buildBassmanPreampSmall(SchematicPanel& schematic)
 {
-    using Param         =  BassmanPreampCircuit::Param;
-    using Control       =  BassmanPreampCircuit::Control;
-    using Monitoring    =  BassmanPreampCircuit::Monitoring;
+    using Param         =  BassmanPreampCircuitT<float>::Param;
+    using Control       =  BassmanPreampCircuitT<float>::Control;
+    using Monitoring    =  BassmanPreampCircuitT<float>::Monitoring;
 
     //TRIODE
     schematic.addElement (std::make_unique<TriodeElement> (
         "Triode", 
         Terminal {450, 350},
         (int) Param::Triode,
-        0, std::vector<ValueChoice>{{ 0.0f, "12AX7" },{ 0.0f, "12AT7" } }
+        0, std::vector<ValueChoice>{{ 0.0f, "12AX7" },{ 0.0f, "12AT7" } },
+        (int) Monitoring::Ip
     ));
     auto triodeTerms = schematic.getElement("Triode")->getTerminals();
 
