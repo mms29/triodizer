@@ -30,8 +30,8 @@ FetchContent_MakeAvailable(xsimd)
 
 FetchContent_Declare(
     chowdsp_wdf
-    GIT_REPOSITORY https://github.com/Chowdhury-DSP/chowdsp_wdf.git
-    GIT_TAG main 
+    GIT_REPOSITORY     https://github.com/mms29/chowdsp_wdf.git #  https://github.com/Chowdhury-DSP/chowdsp_wdf.git
+    GIT_TAG patch-1 
 )
 
 FetchContent_MakeAvailable(chowdsp_wdf)
@@ -72,14 +72,14 @@ target_link_libraries(TubeLabPlugin PRIVATE
     xsimd
 )
 
-target_include_directories(TubeLabPlugin PRIVATE
-    ${CMAKE_SOURCE_DIR}/chowdsp_wdf/include
-    src
-    )
 # target_include_directories(TubeLabPlugin PRIVATE
-#     ${chowdsp_wdf_SOURCE_DIR}/include
+#     ${CMAKE_SOURCE_DIR}/chowdsp_wdf/include
 #     src
-# )
+#     )
+target_include_directories(TubeLabPlugin PRIVATE
+    ${chowdsp_wdf_SOURCE_DIR}/include
+    src
+)
 # C++ standard
 target_compile_features(TubeLabPlugin PRIVATE cxx_std_17)
 
