@@ -44,6 +44,7 @@ TubeLabProcessor::TubeLabProcessor()
                         "Fender Bassman Preamp Small",
                         "Fender Bassman Preamp",
                         "Mesa/Boogie Dual Rectifier",
+                        "LC Ladder",
                     },
                     0)
             })
@@ -287,6 +288,11 @@ void TubeLabProcessor::buildCircuit(){
             case PRESET_DUAL_RECTIFIER_PREAMP: 
             {
                 circuit[ch] = std::make_unique<DualRectifierPreampCircuit>();
+                break;
+            }
+            case PRESET_LCLADDER: 
+            {
+                circuit[ch] = std::make_unique<LCLadderCircuit>();
                 break;
             }
             default: 

@@ -18,7 +18,7 @@ public:
         w_C1.prepare( sampleRate);
         w_C2.prepare( sampleRate);
         w_C3.prepare( sampleRate);
-        calcImpedance();
+        propagateImpedanceChange();
     }
     void reset(){
         w_C1.reset();
@@ -48,29 +48,15 @@ public:
         return voltage<T> (w_R1_minus) + voltage<T> (w_R2) + voltage<T> (w_R3_plus)  + voltage<T> (w_R3_minus); 
     }
 
-    void setR1_plus(T v)  { R1_plus = v; w_R1_plus.setResistanceValue(v); }
-    void setR1_minus(T v) { R1_minus = v; w_R1_minus.setResistanceValue(v); }
-    void setR2(T v)       { R2 = v; w_R2.setResistanceValue(v); }
-    void setR3_plus(T v)  { R3_plus = v; w_R3_plus.setResistanceValue(v); }
-    void setR3_minus(T v) { R3_minus = v; w_R3_minus.setResistanceValue(v); }
-    void setC1(T v)       { C1 = v; w_C1.setCapacitanceValue(v); }
-    void setC2(T v)       { C2 = v; w_C2.setCapacitanceValue(v); }
-    void setC3(T v)       { C3 = v; w_C3.setCapacitanceValue(v); }
-    void setR4(T v)       { R4 = v; w_R4.setResistanceValue(v); }
-    void setBass(T v)       { 
-        P2 = v;
-        setR2(v*T(0.5f));    
-    }
-    void setTreble(T v)       { 
-        P1 = v;
-        setR1_plus(v*T(0.5f));    
-        setR1_minus(v*T(0.5f));    
-    }
-    void setMid(T v)       { 
-        P3 = v;
-        setR3_plus(v*T(0.5f));    
-        setR3_minus(v*T(0.5f));    
-    }
+    void setR1_plus(T v)  { R1_plus = v; w_R1_plus.setResistanceValue(v); propagateImpedanceChange(); }
+    void setR1_minus(T v) { R1_minus = v; w_R1_minus.setResistanceValue(v); propagateImpedanceChange(); }
+    void setR2(T v)       { R2 = v; w_R2.setResistanceValue(v); propagateImpedanceChange(); }
+    void setR3_plus(T v)  { R3_plus = v; w_R3_plus.setResistanceValue(v); propagateImpedanceChange(); }
+    void setR3_minus(T v) { R3_minus = v; w_R3_minus.setResistanceValue(v); propagateImpedanceChange(); }
+    void setC1(T v)       { C1 = v; w_C1.setCapacitanceValue(v); propagateImpedanceChange(); }
+    void setC2(T v)       { C2 = v; w_C2.setCapacitanceValue(v); propagateImpedanceChange(); }
+    void setC3(T v)       { C3 = v; w_C3.setCapacitanceValue(v); propagateImpedanceChange(); }
+    void setR4(T v)       { R4 = v; w_R4.setResistanceValue(v); propagateImpedanceChange(); }
 
     T getP1(){return P1;}
     T getP2(){return P2;}
@@ -197,9 +183,9 @@ public:
             case (int)Param::C2:       w_bts.setC2(value); break;
             case (int)Param::C3:       w_bts.setC3(value); break;
             case (int)Param::R4:       w_bts.setR4(value); break;
-            case (int)Param::RBass:     w_bts.setBass(value); break;
-            case (int)Param::RMid:      w_bts.setMid(value); break;
-            case (int)Param::RTreble:  w_bts.setTreble(value); break;
+            case (int)Param::RBass:     setControl((int)Control::Bass, T(50.0f)); break;
+            case (int)Param::RMid:     setControl((int)Control::Mid, T(50.0f)); break;
+            case (int)Param::RTreble:  setControl((int)Control::Treble, T(50.0f)); break;
 
             case (int)Param::Count:
             default:

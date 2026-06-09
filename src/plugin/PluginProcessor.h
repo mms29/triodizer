@@ -3,12 +3,13 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_dsp/juce_dsp.h>
 
-#include <xsimd/xsimd.hpp>
+// #include <xsimd/xsimd.hpp>
 #include <chowdsp_wdf/chowdsp_wdf.h>
 #include "dsp/Circuit.h"
 #include "dsp/BassmanPreamp.h"
 #include "dsp/FullBassmanPreamp.h"
 #include "dsp/DualRectifierPreamp.h"
+#include "dsp/LCLadder.h"
 
 
 const int PRESET_DEFAULT = 1;
@@ -17,6 +18,7 @@ const int PRESET_BASSMAN_TS = 3;
 const int PRESET_BASSMAN_PREAMP_SMALL = 4;
 const int PRESET_BASSMAN_PREAMP = 5;
 const int PRESET_DUAL_RECTIFIER_PREAMP = 6;
+const int PRESET_LCLADDER = 7;
 
 class OnePoleLPF
 {

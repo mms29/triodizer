@@ -94,9 +94,9 @@ public:
             case (int)Param::C2:       w_bts.setC2(value); break;
             case (int)Param::C3:       w_bts.setC3(value); break;
             case (int)Param::R4:       w_bts.setR4(value); break;
-            case (int)Param::RBass:     w_bts.setBass(value); break;
-            case (int)Param::RMid:      w_bts.setMid(value); break;
-            case (int)Param::RTreble:  w_bts.setTreble(value); break;
+            case (int)Param::RBass:     setControl((int)Control::Bass, T(50.0f)); break;
+            case (int)Param::RMid:      setControl((int)Control::Mid, T(50.0f)); break;
+            case (int)Param::RTreble:  setControl((int)Control::Treble, T(50.0f)); break;
 
             case (int)Param::Count:
             default:
