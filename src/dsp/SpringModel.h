@@ -41,7 +41,7 @@ public:
         buffer.resize(bufferSize);
         idx = 0;
         delay = 1000.0f;
-        gain = 0.96f;
+        gain = 0.969f;
     }
 
     void setDelay(float d) { delay = d; }
@@ -75,7 +75,7 @@ public:
 private:
     std::vector<float> buffer;
     int idx = 0;          // write index, read is idx - delay
-    int bufferSize = 48000;
+    int bufferSize = 384000;
     float delay = 1000.0f;
     float gain = 0.96f;
     double sampleRate = 44100.0;
