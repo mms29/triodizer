@@ -33,6 +33,10 @@ TubeLabProcessor::TubeLabProcessor()
                         "8x"
                     },
                     0),
+                std::make_unique<juce::AudioParameterBool>(
+                    "monoStereo",
+                    "Mono / Stereo",
+                    false),
                 std::make_unique<juce::AudioParameterChoice>(
                     "preset",
                     "Preset",
@@ -66,8 +70,6 @@ void TubeLabProcessor::prepareToPlay(double sr, int samplesPerBlock)
 
     buildOversampler();
 
-    noiseLP.prepare(oversampleRate, noiseCutoff, noiseGain);
-
     prepareCircuit(oversampleRate);
 
 }
@@ -91,6 +93,8 @@ void TubeLabProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     updatePreset();
 
     // Read parameters
+    bool monoMode = *parameters.getRawParameterValue("monoStereo") > 0.5f;
+
     float drive_dB = *parameters.getRawParameterValue("drive");
     float gain_dB = *parameters.getRawParameterValue("gain");
 
@@ -117,42 +121,35 @@ void TubeLabProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     const int osNumSamples = (int) upsampledBlock.getNumSamples();
 
     // PROCESS AT OVERSAMPLED RATE
-    float noise;
+    // float noise;
 
-#ifdef XSIMD_HPP
     auto* left  = upsampledBlock.getChannelPointer(0);
     auto* right = upsampledBlock.getChannelPointer(1);
 
+
     for (int i = 0; i < osNumSamples; ++i)
     {
-        float noiseL = noiseLP.process(whiteNoise());
-        float noiseR = noiseLP.process(whiteNoise());
 
-        xsimd::batch<float> x { left[i] + noiseL,
-                                right[i] + noiseR, 0.0F, 0.0F };
+#ifdef XSIMD_HPP
+        xsimd::batch<float> x { left[i] ,
+                                right[i] , 0.0F, 0.0F };
 
         auto y = circuit->processSample(x);
 
         left[i]  = y.get(0);
         right[i] = y.get(1);
-    }
 #else  
-    for (int ch = 0; ch < numChannels; ++ch)
-    {
-        auto* samples = upsampledBlock.getChannelPointer((size_t) ch);
-
-        for (int i = 0; i < osNumSamples; ++i)
-        {
-            auto x =samples[i];
-            noise = noiseLP.process(whiteNoise());
-            x += noise;
-              
-            samples[i] = circuit[ch]->processSample(x);
-
+        if(monoMode){
+            float x = 0.5f * (left[i] + right[i]);
+            float y = circuit[0]->processSample(x);
+            left[i]  = y;
+            right[i] = y;
+        }else{
+            left[i] = circuit[0]->processSample(left[i]);
+            right[i] = circuit[1]->processSample(right[i]);
         }
-
+#endif   
     }
-#endif    
 
     // DOWNSAMPLE BACK INTO ORIGINAL BUFFER
     oversampler->processSamplesDown(block);
@@ -186,7 +183,6 @@ void TubeLabProcessor::updateOversampler()
     buildOversampler();
     resetCircuit();
     prepareCircuit(oversampleRate);
-    noiseLP.prepare(oversampleRate, noiseCutoff, noiseGain);
 }
 void TubeLabProcessor::updatePreset()
 {

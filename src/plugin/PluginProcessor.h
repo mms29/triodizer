@@ -20,25 +20,6 @@ const int PRESET_BASSMAN_PREAMP = 5;
 const int PRESET_DUAL_RECTIFIER_PREAMP = 6;
 const int PRESET_LCLADDER = 7;
 
-class OnePoleLPF
-{
-public:
-    void prepare(float sampleRate, float cutoffHz, float noiseGain)
-    {
-        float x = std::exp(-2.0f * 3.14f * cutoffHz / sampleRate);
-        a = x;
-        b = 1.0f - x;
-        gain = std::sqrt(sampleRate / 44100.0f)*noiseGain;
-    }
-    float process(float in)
-    {
-        z = in * b + z * a;
-        return z*gain;
-    }
-private:
-    float a = 0.0f, b = 1.0f, z = 0.0f;
-    float gain;
-};
 class WaveformBuffer
 {
 public:
@@ -122,9 +103,6 @@ public:
     const WaveformBuffer& getWaveformInputBuffer() const noexcept {return waveformInputBuffer;}
     const WaveformBuffer& getWaveformOutputBuffer() const noexcept {return waveformOutputBuffer;}
 
-    //noise
-    inline float whiteNoise() {return rng.nextFloat() * 2.0f - 1.0f;}
-
     // parameters
     juce::AudioProcessorValueTreeState parameters;
 
@@ -149,12 +127,6 @@ private:
     // Preset
     int currentPreset = PRESET_DEFAULT;
 
-    //noise 
-    OnePoleLPF noiseLP;
-    juce::Random rng;
-    float noiseGain = 1e-5;
-    float noiseCutoff = 1000.0f;
-    
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TubeLabProcessor)
 
 };

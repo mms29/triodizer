@@ -90,11 +90,13 @@ private:
     std::unique_ptr<Knob> driveKnob;
     std::unique_ptr<Knob> gainKnob;
 
+    // Oversample
     juce::ComboBox oversampleSelector;
     juce::Label oversampleLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment>
         oversampleAttachment;
 
+    //Preset
     juce::ComboBox presetSelector;
     juce::Label presetLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment>
@@ -102,6 +104,10 @@ private:
 
     // Zoom controls
     juce::TextButton resetViewButton {"Reset View"};
+
+    // Mono stereo
+    juce::ToggleButton monoStereoButton;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> monoStereoAttachment;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TubeLabEditor)
 };

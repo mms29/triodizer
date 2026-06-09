@@ -22,12 +22,10 @@ template<typename T, typename Next>
 class LCStage : public BaseWDF
 {
 public:
-    LCStage(T l, T c, Next& next)
-        : Lval(perturb(l, 1.0f))
-        , Cval(perturb(c, 1.0f))
-        , w_C(Lval)
-        , w_L(Cval)
-        , w_R(1e-5)
+    LCStage(T l, T c, T r, T p,  Next& next)
+        : w_C(perturb(l, p))
+        , w_L(perturb(c, p))
+        , w_R(perturb(r, p))
         , w_PI(next)
         , w_P(w_C, w_PI)
         , w_S2(w_R, w_P)
@@ -84,22 +82,23 @@ private:
     WDFSeriesT<T, decltype(w_L), decltype(w_S2)> w_S;
 };
 
-template <typename T, typename Next>
+template <typename T>
 class LCLadder : public BaseWDF
 {
 public:
-    LCLadder(T l, T c, Next& next) :
+    LCLadder(T l, T c, T r, T p) :
         L(l), C(c), 
-        w_S10 (L, C, next),
-        w_S9 (L, C, w_S10),
-        w_S8 (L, C, w_S9),
-        w_S7 (L, C, w_S8),
-        w_S6 (L, C, w_S7),
-        w_S5 (L, C, w_S6),
-        w_S4 (L, C, w_S5),
-        w_S3 (L, C, w_S4),
-        w_S2 (L, C, w_S3),
-        w_S1 (L, C, w_S2)
+        w_Co (c),
+        w_S10 (l, c, r, p, w_Co),
+        w_S9 (l, c, r, p, w_S10),
+        w_S8 (l, c, r, p, w_S9),
+        w_S7 (l, c, r, p, w_S8),
+        w_S6 (l, c, r, p, w_S7),
+        w_S5 (l, c, r, p, w_S6),
+        w_S4 (l, c, r, p, w_S5),
+        w_S3 (l, c, r, p, w_S4),
+        w_S2 (l, c, r, p, w_S3),
+        w_S1 (l, c, r, p, w_S2)
     {
         calcImpedance();
     };
@@ -115,6 +114,7 @@ public:
         w_S8.prepare( sampleRate);
         w_S9.prepare( sampleRate);
         w_S10.prepare( sampleRate);
+        w_Co.prepare( sampleRate);
         propagateImpedanceChange();
     }
 
@@ -129,6 +129,7 @@ public:
         w_S8.reset();
         w_S9.reset();
         w_S10.reset();
+        w_Co.reset();
     }
 
     inline void calcImpedance() override
@@ -147,12 +148,16 @@ public:
         wdf.b = w_S1.reflected();
         return wdf.b;
     }
+    inline T getOutVoltage(){
+        return voltage<float> (w_Co);
+    }
 
     WDFMembers<T> wdf;
 
 private:
     T L, C;
-    LCStage<T, Next> w_S10;
+    CapacitorT<T> w_Co;
+    LCStage<T, decltype(w_Co)> w_S10;
     LCStage<T, decltype(w_S10)> w_S9;
     LCStage<T, decltype(w_S9)> w_S8;
     LCStage<T, decltype(w_S8)> w_S7;
@@ -203,22 +208,16 @@ public:
     void prepare(float sr) override {
         w_lcl1.prepare(sr);
         w_lcl2.prepare(sr);
-        w_lcl3.prepare(sr);
-        w_lcl4.prepare(sr);
-        w_Co.prepare(sr);
     }
     void reset() override {
         w_lcl1.reset();
         w_lcl2.reset();
-        w_lcl3.reset();
-        w_lcl4.reset();
-        w_Co.reset();
     }
 
     float processSample(float x) override {
         w_vin.setVoltage (x);
         w_vin.incident(w_SJ.reflected());
-        auto y = voltage<float> (w_Co);
+        auto y = w_lcl1.getOutVoltage() + w_lcl2.getOutVoltage();
         w_SJ.incident(w_vin.reflected());
 
         return y;
@@ -228,16 +227,13 @@ public:
     void updateMonitors() override{ }
     
 private: 
-    float L = 0.01f;
-    float C = 1e-6f;
-    CapacitorT<float> w_Co {C};
-    LCLadder<float, decltype(w_Co)> w_lcl4 {L, C, w_Co};
-    LCLadder<float, decltype(w_lcl4)> w_lcl3 {L, C, w_lcl4};
-    LCLadder<float, decltype(w_lcl3)> w_lcl2 {L, C, w_lcl3};
-    LCLadder<float, decltype(w_lcl2)> w_lcl1 {L, C, w_lcl2};
+    LCLadder<float> w_lcl1 {0.01f, 1e-6f, 1e-5, 0.1f};
+    LCLadder<float> w_lcl2 {0.05f, 1e-6f, 1e-5, 0.1f};
     ResistiveVoltageSourceT<float> w_vin ;
-    WDFSeriesT<float, decltype(w_vin), decltype(w_lcl1)> w_SJ {w_vin, w_lcl1};
+    WDFParallelT<float, decltype(w_lcl1), decltype(w_lcl2)> w_PJ {w_lcl1, w_lcl2};
+    WDFSeriesT<float, decltype(w_vin), decltype(w_PJ)> w_SJ {w_vin, w_PJ};
 };
+
 
 
 

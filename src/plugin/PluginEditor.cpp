@@ -62,6 +62,32 @@ TubeLabEditor::TubeLabEditor(TubeLabProcessor& p)
     oversampleAttachment = std::make_unique<
         juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
             audioProcessor.parameters, "oversample", oversampleSelector);
+
+    // =====================================================
+    // Mono stereo
+    // =====================================================
+    addAndMakeVisible(monoStereoButton);
+
+    monoStereoAttachment = std::make_unique<
+        juce::AudioProcessorValueTreeState::ButtonAttachment>(
+            audioProcessor.parameters,
+            "monoStereo",
+            monoStereoButton
+        );
+    monoStereoButton.setClickingTogglesState(true);
+    monoStereoButton.onStateChange = [this]()
+    {
+        if (monoStereoButton.getToggleState())
+            monoStereoButton.setButtonText("Mono");
+        else
+            monoStereoButton.setButtonText("Stereo");
+    };
+
+    // =====================================================
+    // Reset view
+    // =====================================================    
+    resetViewButton.onClick = [this] { schematic->resetView(); };
+    addAndMakeVisible(resetViewButton);
     // =====================================================
     // Preset
     // =====================================================
@@ -167,9 +193,9 @@ void TubeLabEditor::resized()
    presetSelector.setBounds(bottom.removeFromRight(100).reduced(0, 30));
 
     // Reset view button
-    resetViewButton.onClick = [this] { schematic->resetView(); };
-    addAndMakeVisible(resetViewButton);
     resetViewButton.setBounds(bottom.removeFromRight(80).reduced(0, 30));
+    //Mono stereo buton
+    monoStereoButton.setBounds(bottom.removeFromRight(80).reduced(0, 30));
 
     driveKnob->setBounds(bottom.removeFromLeft(120).reduced(0, 10));
     bottom.removeFromLeft(20);
