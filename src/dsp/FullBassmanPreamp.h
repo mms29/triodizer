@@ -72,7 +72,7 @@ public:
         setParam((int)Param::Rg3, 1.0e3f);
         setParam((int)Param::Rk3, 100.0e3f);
         setParam((int)Param::E3, 325.0f);
-        setParam((int)Param::Rp3, 1.0f);
+        setParam((int)Param::Rp3, 1.0e3f);
 
         setParam((int)Param::C1, 0.25e-9);      
         setParam((int)Param::C2, 22.0e-9);      
