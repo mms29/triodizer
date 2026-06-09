@@ -40,8 +40,8 @@ public:
         bufferSize = maxDelay;
         buffer.resize(bufferSize);
         idx = 0;
-        delay = 1000.0f;
-        gain = 0.969f;
+        delay = 10000.0f;
+        gain = 0.99f;
     }
 
     void setDelay(float d) { delay = d; }
