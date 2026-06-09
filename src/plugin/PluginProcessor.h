@@ -10,6 +10,7 @@
 #include "dsp/FullBassmanPreamp.h"
 #include "dsp/DualRectifierPreamp.h"
 #include "dsp/LCLadder.h"
+#include "dsp/SpringModel.h"
 
 
 const int PRESET_DEFAULT = 1;

@@ -288,7 +288,7 @@ void TubeLabProcessor::buildCircuit(){
             }
             case PRESET_LCLADDER: 
             {
-                circuit[ch] = std::make_unique<LCLadderCircuit>();
+                circuit[ch] = std::make_unique<SpringTank>();
                 break;
             }
             default: 
