@@ -1653,7 +1653,7 @@ void SchematicBuilder::buildTwinReverb(SchematicPanel& schematic)
     // V2
     schematic.addElement (std::make_unique<TriodeElement> (
         "V2", 
-        schematic.getElement("Volume")->getTerminals()[2]+ rightL + topS,
+        schematic.getElement("Volume")->getTerminals()[2]+ rightL,
         (int) Param::V2,
         0, triodeChoices,
         (int) Monitoring::Ik2
@@ -1688,31 +1688,43 @@ void SchematicBuilder::buildTwinReverb(SchematicPanel& schematic)
         V2pos[1] + rightXL,
         (int) Param::Cp2
     ));
-    schematic.addElement (std::make_unique<ResistorElement> (
-        "Ra2",
-        schematic.getElement("Cp2")->getTerminals()[1],
-        schematic.getElement("Cp2")->getTerminals()[1] + bottomXL,
-        (int) Param::Ra2
-    ));
 
     // V3
     schematic.addElement (std::make_unique<TriodeElement> (
         "V3", 
-        schematic.getElement("Ra2")->getTerminals()[1]+ rightL,
+        schematic.getElement("Cp2")->getTerminals()[1]+ rightXL +bottomXL*2.0f,
         (int) Param::V3,
         0, triodeChoices,
         (int) Monitoring::Ik3
     ));
     auto V3pos = schematic.getElement("V3")->getTerminals();
+    
+    schematic.addElement (std::make_unique<ResistorElement> (
+        "Ra2",
+        V3pos[0]+bottomL,V3pos[0],
+        (int) Param::Ra2
+    ));
+    schematic.addElement (std::make_unique<CapacitorElement> (
+        "Cfilt",
+        V3pos[0] +leftM,
+        V3pos[0],
+        (int) Param::Cfilt
+    ));
     schematic.addElement (std::make_unique<ResistorElement> (
         "Rk3",
-        V3pos[2]+ bottomM*2.0f,
+        V3pos[2]+ bottomM,
         V3pos[2],
         (int) Param::Rk3
     ));
+    schematic.addElement (std::make_unique<CapacitorElement> (
+        "Ck3",
+        schematic.getElement("Rk3")->getTerminals()[1] +  rightXS,
+        schematic.getElement("Rk3")->getTerminals()[0] +  rightXS,
+        (int) Param::Ck2
+    ));
     schematic.addElement (std::make_unique<TransformerElement> (
         "Treverb",
-        V3pos[1], V3pos[1]+topXL, V3pos[1] + rightXS +topXS, V3pos[1]+topXL +bottomXS+ rightXS, 
+        V3pos[1], V3pos[1]+topM, V3pos[1] + rightXS, V3pos[1]+topM + rightXS, 
         (int) Param::TR3
     ));
     schematic.addElement (std::make_unique<VoltageElement>(
@@ -1725,7 +1737,7 @@ void SchematicBuilder::buildTwinReverb(SchematicPanel& schematic)
     // V4
     schematic.addElement (std::make_unique<TriodeElement> (
         "V4", 
-        schematic.getElement("Treverb")->getTerminals()[3] +rightXL,
+        V3pos[0] +rightXL*2,
         (int) Param::V4,
         0, triodeChoices,
         (int) Monitoring::Ik4
@@ -1733,20 +1745,20 @@ void SchematicBuilder::buildTwinReverb(SchematicPanel& schematic)
     auto V4pos = schematic.getElement("V4")->getTerminals();
     schematic.addElement (std::make_unique<ResistorElement> (
         "Rg4",
-        V4pos[0] ,
         V4pos[0]  + bottomL,
+        V4pos[0] ,
         (int) Param::Rg4
     ));
     schematic.addElement (std::make_unique<ResistorElement> (
         "Rk4",
-        V4pos[2]+ bottomL,
+        V4pos[2]+ bottomM,
         V4pos[2],
         (int) Param::Rk4
     ));
     schematic.addElement (std::make_unique<ResistorElement> (
         "Rp4",
         V4pos[1],
-        V4pos[1] + topL,
+        V4pos[1] + topM,
         (int) Param::Rp4
     ));
     schematic.addElement (std::make_unique<CapacitorElement> (
@@ -1778,6 +1790,53 @@ void SchematicBuilder::buildTwinReverb(SchematicPanel& schematic)
         (int) Param::RVerb
     ));
 
+
+    // V5
+    schematic.addElement (std::make_unique<TriodeElement> (
+        "V5", 
+        V2pos[0] +rightXL*6,
+        (int) Param::V5,
+        0, triodeChoices,
+        (int) Monitoring::Ik5
+    ));
+    auto V5pos = schematic.getElement("V5")->getTerminals();
+    schematic.addElement (std::make_unique<ResistorElement> (
+        "Rg5",
+        V5pos[0]  + bottomL,
+        V5pos[0] ,
+        (int) Param::Rg5
+    ));
+    schematic.addElement (std::make_unique<ResistorElement> (
+        "Rk5",
+        V5pos[2]+ bottomL,
+        V5pos[2],
+        (int) Param::Rk5
+    ));
+    schematic.addElement (std::make_unique<ResistorElement> (
+        "Rp5",
+        V5pos[1],
+        V5pos[1] + topL,
+        (int) Param::Rp5
+    ));
+    schematic.addElement (std::make_unique<CapacitorElement> (
+        "Ck5",
+        schematic.getElement("Rk5")->getTerminals()[1] +  rightXS,
+        schematic.getElement("Rk5")->getTerminals()[0] +  rightXS,
+        (int) Param::Ck5
+    ));
+    schematic.addElement (std::make_unique<VoltageElement>(
+        "E5",
+        schematic.getElement("Rp5")->getTerminals()[1], 
+        (int) Param::E5
+    ));
+
+    schematic.addElement (std::make_unique<CapacitorElement> (
+        "Cp5",
+        V5pos[1],
+        V5pos[1] + rightXL,
+        (int) Param::Cp5
+    ));
+
     // Grounds
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Rg1")->getTerminals()[0]) );
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Rk1")->getTerminals()[0]) );
@@ -1786,14 +1845,19 @@ void SchematicBuilder::buildTwinReverb(SchematicPanel& schematic)
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Volume")->getTerminals()[1]) );
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Rk2")->getTerminals()[0]) );
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Ck2")->getTerminals()[1]) );
-    schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Ra2")->getTerminals()[1]) );
+    schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Ra2")->getTerminals()[0]) );
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Treverb")->getTerminals()[2]) );
+    schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Rg4")->getTerminals()[0]) );
+    schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Ck3")->getTerminals()[1]) );
+    schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Rk3")->getTerminals()[0]) );
+    schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Ck4")->getTerminals()[1]) );
+    schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Rk4")->getTerminals()[0]) );
 
     // Monitors
     schematic.addElement (std::make_unique<VoltmeterElement> (
         "Vp1", 
         V1pos[1] + leftXS,
-        (int) Monitoring::VDCp1
+        (int) Monitoring::VACp1
     ));
     schematic.addElement (std::make_unique<VoltmeterElement> (
         "Vk1", 
@@ -1804,7 +1868,7 @@ void SchematicBuilder::buildTwinReverb(SchematicPanel& schematic)
     schematic.addElement (std::make_unique<VoltmeterElement> (
         "Vp2", 
         V2pos[1] + leftXS,
-        (int) Monitoring::VDCp2
+        (int) Monitoring::VACp2
     ));
     schematic.addElement (std::make_unique<VoltmeterElement> (
         "Vk2", 
@@ -1814,7 +1878,7 @@ void SchematicBuilder::buildTwinReverb(SchematicPanel& schematic)
     schematic.addElement (std::make_unique<VoltmeterElement> (
         "Vp3", 
         V3pos[1] + leftXS,
-        (int) Monitoring::VDCp3
+        (int) Monitoring::VACp3
     ));
     schematic.addElement (std::make_unique<VoltmeterElement> (
         "Vk3", 
@@ -1825,7 +1889,7 @@ void SchematicBuilder::buildTwinReverb(SchematicPanel& schematic)
     schematic.addElement (std::make_unique<VoltmeterElement> (
         "Vp4", 
         V4pos[1] + leftXS,
-        (int) Monitoring::VDCp4
+        (int) Monitoring::VACp4
     ));
     schematic.addElement (std::make_unique<VoltmeterElement> (
         "Vk4", 
@@ -1833,16 +1897,16 @@ void SchematicBuilder::buildTwinReverb(SchematicPanel& schematic)
         (int) Monitoring::VDCk4
     ));
 
-    // schematic.addElement (std::make_unique<VoltmeterElement> (
-    //     "Vp5", 
-    //     V5pos[1] + leftXS,
-    //     (int) Monitoring::VDCp5
-    // ));
-    // schematic.addElement (std::make_unique<VoltmeterElement> (
-    //     "Vk5", 
-    //     V5pos[2] + leftXS,
-    //     (int) Monitoring::VDCk5
-    // ));
+    schematic.addElement (std::make_unique<VoltmeterElement> (
+        "Vp5", 
+        V5pos[1] + leftXS,
+        (int) Monitoring::VDCp5
+    ));
+    schematic.addElement (std::make_unique<VoltmeterElement> (
+        "Vk5", 
+        V5pos[2] + leftXS,
+        (int) Monitoring::VDCk5
+    ));
 
     // Wires
     schematic.addWire (
@@ -1856,6 +1920,14 @@ void SchematicBuilder::buildTwinReverb(SchematicPanel& schematic)
     schematic.addWire (
         schematic.getElement("Ck2")->getTerminals()[0],
         schematic.getElement("Rk2")->getTerminals()[1]
+    );
+    schematic.addWire (
+        schematic.getElement("Ck3")->getTerminals()[0],
+        schematic.getElement("Rk3")->getTerminals()[1]
+    );
+    schematic.addWire (
+        schematic.getElement("Ck4")->getTerminals()[0],
+        schematic.getElement("Rk4")->getTerminals()[1]
     );
     schematic.addWire (
         schematic.getElement("Cbright")->getTerminals()[1],
@@ -1892,6 +1964,11 @@ void SchematicBuilder::buildTwinReverb(SchematicPanel& schematic)
     schematic.addWire (
         schematic.getElement("Volume")->getTerminals()[2] ,
         V2pos[0]
+    );
+
+    schematic.addWire (
+        schematic.getElement("Cfilt")->getTerminals()[0] ,
+        schematic.getElement("Cp2")->getTerminals()[1] 
     );
 
     // schematic.addElement (std::make_unique<JunctionElement>(schematic.getElement("Master")->getTerminals()[2] + rightS));

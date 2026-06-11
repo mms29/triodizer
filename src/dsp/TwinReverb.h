@@ -1,11 +1,12 @@
 #pragma once
 
 #include <chowdsp_wdf/chowdsp_wdf.h>
-#include "dsp/TriodeQuadricWDF.h"
+#include <dsp/TriodeQuadricWDF.h>
 #include <dsp/Circuit.h>
 #include <dsp/ToneStack.h>
 #include <dsp/SpringModel.h>
 
+#include <cmath>
 
 using namespace chowdsp::wdft;
 
@@ -83,6 +84,8 @@ public:
     {
         VDCk1, VDCk2, VDCk3, VDCk4, VDCk5, 
         VDCp1, VDCp2, VDCp3, VDCp4, VDCp5, 
+        VACk1, VACk2, VACk3, VACk4, VACk5, 
+        VACp1, VACp2, VACp3, VACp4, VACp5, 
         Ik1  , Ik2  , Ik3  , Ik4  , Ik5  , 
         Count 
     };
@@ -105,6 +108,10 @@ public:
 
         // V4
         V4, Rg4, Rk4, Ck4, Rp4, E4, Cp4, RVerb,
+
+        // V5
+        V5, Rdry, Rwet, Rg5, Rk5, Ck5, Rp5, E5, Cp5, Rout,
+
         Count 
     };
     enum class Control : int 
@@ -135,8 +142,8 @@ public:
         setParam((int)Param::RVol, 1.0e6f);
 
         //V2
-        setParam((int)Param::Rk2, 820.0f);
-        setParam((int)Param::Ck2, 25e-6);
+        setParam((int)Param::Rk2, 1.5e3f);
+        setParam((int)Param::Ck2, 25e-6f);
         setParam((int)Param::E2, 410.0f);
         setParam((int)Param::Rp2, 100.0e3f);
         setParam((int)Param::Cp2, 22e-9);
@@ -145,25 +152,37 @@ public:
 
         //V3
         setParam((int)Param::Rk3, 2200.0f);
-        setParam((int)Param::Ck3, 25e-6);
+        setParam((int)Param::Ck3, 25e-6f);
         setParam((int)Param::E3, 458.0f);
         setParam((int)Param::TR3, 53.0f);
         setParam((int)Param::Rtank, 8.0f);
 
         //V4
         setParam((int)Param::Rg4, 220.0e3f);
-        setParam((int)Param::Rk4, 820.0f);
-        setParam((int)Param::Ck4, 25e-6);
+        setParam((int)Param::Rk4, 1.5e3f);
+        setParam((int)Param::Ck4, 25e-6f);
         setParam((int)Param::E4, 410.0f);
         setParam((int)Param::Rp4, 100.0e3f);
         setParam((int)Param::Cp4, 3e-9);
         setParam((int)Param::RVerb, 100e3f);
+
+        //V5
+        setParam((int)Param::Rdry, 3.3e6f);
+        setParam((int)Param::Rwet, 470e3f);
+        setParam((int)Param::Rg5, 220e3f);
+        setParam((int)Param::Rk5, 1.5e3f);
+        setParam((int)Param::Ck5, 25e-6f);
+        setParam((int)Param::E5, 410.0f);
+        setParam((int)Param::Rp5, 100.0e3f);
+        setParam((int)Param::Cp5, 100e-9);
+        setParam((int)Param::Rout, 1e6f);
 
         // Triodes
         setParam((int)Param::V1, 10.0F); 
         setParam((int)Param::V2, 10.0F); 
         setParam((int)Param::V3, 3.0F); 
         setParam((int)Param::V4, 10.0F); 
+        setParam((int)Param::V5, 10.0F); 
     }
     void setDefaultControl () 
     { 
@@ -189,8 +208,13 @@ public:
             case (int)Param::V3: w_V3.setParams((int) value,
                 22e3f,
                 getParam((int)Param::Rk3),
-                getParam((int)Param::E3)); break;
+                getParam((int)Param::E3), 
+                true); break;
             case (int)Param::V4: w_V4.setParams((int) value,
+                getParam((int)Param::Rp4),
+                getParam((int)Param::Rk4),
+                getParam((int)Param::E4)); break;
+            case (int)Param::V5: w_V5.setParams((int) value,
                 getParam((int)Param::Rp4),
                 getParam((int)Param::Rk4),
                 getParam((int)Param::E4)); break;
@@ -241,6 +265,16 @@ public:
             case (int)Param::Cp4: w_Cp4.setCapacitanceValue(value); break;
             case (int)Param::RVerb: setControl((int)Control::Reverb, 50.0f); break;
 
+
+            case (int)Param::Rdry: w_Vdry.setResistanceValue(value); break;
+            case (int)Param::Rwet: w_Vwet.setResistanceValue(value); break;
+            case (int)Param::Rg5: w_Rg5.setResistanceValue(value); break;
+            case (int)Param::Rk5: w_Rk5.setResistanceValue(value); break;
+            case (int)Param::Ck5: w_Ck5.setCapacitanceValue(value); break;
+            case (int)Param::E5:  w_E5_Rp5.setVoltage(value);  break;
+            case (int)Param::Rp5: w_E5_Rp5.setResistanceValue(value); break;
+            case (int)Param::Cp5: w_Cp5.setCapacitanceValue(value); break;
+            case (int)Param::Rout: w_Rout.setResistanceValue(value); break;
 
             case (int)Param::Count:
             default:
@@ -303,39 +337,66 @@ public:
         float x;
 
         auto& VDCk1 = monitors[(int)Monitoring::VDCk1];
+        auto& VACk1 = monitors[(int)Monitoring::VACk1];
         x = getVk1();
         VDCk1 = lowPass(x, VDCk1);
+        VACk1 = variance(x, VDCk1, VACk1);
+
         auto& VDCp1 = monitors[(int)Monitoring::VDCp1];
+        auto& VACp1 = monitors[(int)Monitoring::VACp1];
         x = getVp1();
         VDCp1 = lowPass(x, VDCp1);
+        VACp1 = variance(x, VDCp1, VACp1);
 
         auto& VDCk2 = monitors[(int)Monitoring::VDCk2];
+        auto& VACk2 = monitors[(int)Monitoring::VACk2];
         x = getVk2();
         VDCk2 = lowPass(x, VDCk2);
+        VACk2 = variance(x, VDCk2, VACk2);
+
         auto& VDCp2 = monitors[(int)Monitoring::VDCp2];
+        auto& VACp2 = monitors[(int)Monitoring::VACp2];
         x = getVp2();
-        VDCp2 = lowPass(x, VDCp2);        
-        
+        VDCp2 = lowPass(x, VDCp2);
+        VACp2 = variance(x, VDCp2, VACp2);
+
         auto& VDCk3 = monitors[(int)Monitoring::VDCk3];
+        auto& VACk3 = monitors[(int)Monitoring::VACk3];
         x = getVk3();
         VDCk3 = lowPass(x, VDCk3);
+        VACk3 = variance(x, VDCk3, VACk3);
+
         auto& VDCp3 = monitors[(int)Monitoring::VDCp3];
+        auto& VACp3 = monitors[(int)Monitoring::VACp3];
         x = getVp3();
         VDCp3 = lowPass(x, VDCp3);
+        VACp3 = variance(x, VDCp3, VACp3);
 
         auto& VDCk4 = monitors[(int)Monitoring::VDCk4];
+        auto& VACk4 = monitors[(int)Monitoring::VACk4];
         x = getVk4();
         VDCk4 = lowPass(x, VDCk4);
+        VACk4 = variance(x, VDCk4, VACk4);
+
         auto& VDCp4 = monitors[(int)Monitoring::VDCp4];
+        auto& VACp4 = monitors[(int)Monitoring::VACp4];
         x = getVp4();
         VDCp4 = lowPass(x, VDCp4);
+        VACp4 = variance(x, VDCp4, VACp4);
 
-        // auto& VDCk5 = monitors[(int)Monitoring::VDCk5];
-        // x = getVk5();
-        // VDCk5 = lowPass(x, VDCk5);
-        // auto& VDCp5 = monitors[(int)Monitoring::VDCp5];
-        // x = getVp5();
-        // VDCp5 = lowPass(x, VDCp5);
+
+        auto& VDCk5 = monitors[(int)Monitoring::VDCk5];
+        auto& VACk5 = monitors[(int)Monitoring::VACk5];
+        x = getVk5();
+        VDCk5 = lowPass(x, VDCk5);
+        VACk5 = variance(x, VDCk5, VACk5);
+
+        auto& VDCp5 = monitors[(int)Monitoring::VDCp5];
+        auto& VACp5 = monitors[(int)Monitoring::VACp5];
+        x = getVp5();
+        VDCp5 = lowPass(x, VDCp5);
+        VACp5 = variance(x, VDCp5, VACp5);
+
 
         // CURRENT 
         auto& ik1 = monitors[(int)Monitoring::Ik1];
@@ -346,8 +407,8 @@ public:
         ik3 = lowPass(getIk3(), ik3);
         auto& ik4 = monitors[(int)Monitoring::Ik4];
         ik4 = lowPass(getIk4(), ik4);
-    //     auto& ik5 = monitors[(int)Monitoring::Ik5];
-    //     ik5 = lowPass(getIk5(), ik5);
+        auto& ik5 = monitors[(int)Monitoring::Ik5];
+        ik5 = lowPass(getIk5(), ik5);
     }
 
 
@@ -362,6 +423,8 @@ public:
         w_Cfilt.prepare(sr);
         w_Ck4.prepare(sr);
         w_Cp4.prepare(sr);
+        w_Ck5.prepare(sr);
+        w_Cp5.prepare(sr);
 
         alpha = 1.0f / (sr * 0.5f); 
     }
@@ -376,6 +439,8 @@ public:
         w_Cfilt.reset();
         w_Ck4.reset();
         w_Cp4.reset();
+        w_Ck5.reset();
+        w_Cp5.reset();
     }
 
     float processSample(float x) override { 
@@ -406,8 +471,15 @@ public:
         auto V4_out = voltage<float>(w_RVerb_minus);
 
 
+        //V4
+        w_Vdry.setVoltage (V2_out);
+        w_Vwet.setVoltage (V4_out);
+        w_E5_Rp5.setVoltage(getParam((int)Param::E5));
+        w_V5.compute();
+        auto V5_out = voltage<float>(w_Rout);
+
         updateMonitors();
-        return V4_out + V2_out;
+        return V5_out;
     }
 
     // Accessor methods for monitoring internal WDF variables
@@ -418,17 +490,17 @@ public:
     float getVk2() const { return voltage<float>(w_Rk2); }
     float getVp2() const { return voltage<float>(w_E2_Rp2); }
     float getVk3() const { return voltage<float>(w_Rk3); }
-    float getVp3() const { return -voltage<float>(w_SJ_t3); }
+    float getVp3() const { return voltage<float>(w_SJ_t3); }
     float getVk4() const { return voltage<float>(w_Rk4); }
     float getVp4() const { return voltage<float>(w_E4_Rp4); }
-    // float getVk5() const { return voltage<float>(w_Rk5); }
-    // float getVp5() const { return voltage<float>(w_E5); }
+    float getVk5() const { return voltage<float>(w_Rk5); }
+    float getVp5() const { return voltage<float>(w_E5_Rp5); }
 
     float getIk1() const { return current<float>(w_Rk1); }
     float getIk2() const { return current<float>(w_Rk2); }
     float getIk3() const { return current<float>(w_Rk3); }
     float getIk4() const { return current<float>(w_Rk4); }
-    // float getIk5() const { return current<float>(w_Rk5); }
+    float getIk5() const { return current<float>(w_Rk5); }
 
 private: 
 
@@ -439,7 +511,7 @@ private:
         return mean + alpha * (x - mean);
     }
     float variance(float x, float mean, float var){
-        return var + alpha * ((x - mean)*(x - mean) - var);
+        return var + alpha * (std::sqrt((x - mean)*(x - mean)) - var);
     }
 
     // ==================================================================================================== 
@@ -537,7 +609,8 @@ private:
         80.0f, // delay ms
         0.85f, // decay
         0.7f, // Feedback
-        4000.0f, // HF cutoff HZ
+        4000.0f, // HF cutoff HZ,
+        2.5e-3f
     };
 
 
@@ -567,6 +640,35 @@ private:
 
     TriodeQuadricWDF<float, decltype(w_PJ_g4), decltype(w_PJ_k4), decltype(w_PJ_p4)> w_V4{
             w_PJ_g4, w_PJ_k4, w_PJ_p4
+    };
+
+    // ==================================================================================================== 
+    // =  Mixing stage 
+    // ==================================================================================================== 
+
+    // Grid Circuit 
+    ResistiveVoltageSourceT<float> w_Vdry { 0.0f };
+    ResistiveVoltageSourceT<float> w_Vwet { 0.0f };
+    ResistorT<float> w_Rg5 { 0.0f };
+    WDFParallelT<float, decltype (w_Vdry), decltype (w_Vwet)> w_PJ_mix { w_Vdry, w_Vwet };
+    WDFParallelT<float, decltype (w_Rg5), decltype (w_PJ_mix)> w_PJ_g5 { w_Rg5, w_PJ_mix };
+    PolarityInverterT<float, decltype (w_PJ_g5)> w_PI_g5 { w_PJ_g5 };
+
+    // Cathode Circuit    
+    ResistorT<float> w_Rk5 { 0.0f };
+    CapacitorT<float> w_Ck5 { 0.0f };
+    WDFParallelT<float, decltype (w_Rk5), decltype (w_Ck5)> w_PJ_k5 { w_Rk5, w_Ck5 };
+
+    // Plate Circuit
+    ResistiveVoltageSourceT<float> w_E5_Rp5 { 0.0f };
+    CapacitorT<float> w_Cp5 { 0.0f };
+    ResistorT<float> w_Rout { 0.0f };
+    WDFSeriesT<float, decltype (w_Cp5), decltype (w_Rout)> w_PJ_out { w_Cp5, w_Rout};
+    PolarityInverterT<float, decltype (w_PJ_out)> w_PI_p5 { w_PJ_out };
+    WDFParallelT<float, decltype (w_E5_Rp5), decltype (w_PI_p5)> w_PJ_p5 { w_E5_Rp5, w_PI_p5};
+
+    TriodeQuadricWDF<float, decltype(w_PI_g5), decltype(w_PJ_k5), decltype(w_PJ_p5)> w_V5{
+            w_PI_g5, w_PJ_k5, w_PJ_p5
     };
 
 };

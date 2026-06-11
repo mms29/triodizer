@@ -94,9 +94,9 @@ private:
 class SpringTank : public Circuit<float>
 {
 public:
-    SpringTank(float delayMs=65.0f, float decay=0.85f, float feedback=0.7f, float hfCutoff=4000.0f) : 
+    SpringTank(float delayMs=65.0f, float decay=0.85f, float feedback=0.7f, float hfCutoff=4000.0f, float gain = 2.5e-3) : 
         Circuit<float>(), 
-        baseDelayMs(delayMs), feedback(feedback), hfCutoff(hfCutoff), decayFactor(decay)
+        baseDelayMs(delayMs), feedback(feedback), hfCutoff(hfCutoff), decayFactor(decay), gain(gain)
     {}
 
     void prepare(float sr) override
@@ -138,7 +138,7 @@ public:
         line1.write(fbDrive);
         line2.write(fbDrive);
 
-        return output;
+        return output * gain;
     }
 
 private:
@@ -146,6 +146,6 @@ private:
     SpringLine line2;
 
     float maxDelayMs = 200.0f;
-    float feedback, hfCutoff, baseDelayMs, decayFactor;
+    float feedback, hfCutoff, baseDelayMs, decayFactor, gain;
 
 };

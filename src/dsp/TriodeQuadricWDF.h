@@ -18,20 +18,38 @@ struct TriodeParams
 static const TriodeParams triodeTable[] =
 {
     // name        kp            kp2           kpg
-    { "12AX7",     1.010e-05,    5.707e-08,    1.002e-05 },
-    { "12AX7A",    6.346e-06,    4.472e-08,    8.326e-06 },
-    { "12AX7ASYL", 5.993e-06,    4.250e-08,    6.964e-06 },
-    { "12AT7",     4.624e-05,    2.369e-07,    2.706e-05 },
-    { "12AU7",     6.257e-05,    3.281e-07,    1.237e-05 },
-    { "12AY7",     2.009e-05,    6.997e-08,    6.243e-06 },
-    { "12AZ7",     4.392e-05,    2.326e-07,    2.599e-05 },
-    { "12BH7A",    1.136e-04,    6.263e-07,    2.488e-05 },
-    { "6AN8T",     6.255e-05,    3.279e-07,    1.236e-05 },
-    { "6DJ8",      1.609e-04,    8.243e-07,    4.613e-05 },
-    { "7025",      6.464e-06,    3.727e-08,    1.000e-05 },
-    { "SV6N1P",    4.612e-05,    3.661e-07,    2.555e-05 },
-    { "ECC83",     6.306e-06,    4.056e-08,    7.242e-06 },
-    { "ECC81",     2.414e-05,    1.211e-08,    1.000e-05 }
+{ "12AX7"     ,    9.455e-06f,    6.053e-08f,    1.157e-05f },
+{ "12AX7A"    ,    6.141e-06f,    4.612e-08f,    9.320e-06f },
+{ "12AX7ASYL" ,    5.539e-06f,    4.450e-08f,    8.532e-06f },
+{ "12AT7"     ,    4.263e-05f,    2.562e-07f,    2.838e-05f },
+{ "12AU7"     ,    5.916e-05f,    3.438e-07f,    1.268e-05f },
+{ "12AY7"     ,    1.930e-05f,    7.972e-08f,    6.880e-06f },
+{ "12AZ7"     ,    3.979e-05f,    2.465e-07f,    2.743e-05f },
+{ "12BH7A"    ,    1.056e-04f,    6.533e-07f,    2.519e-05f },
+{ "6AN8T"     ,    5.914e-05f,    3.436e-07f,    1.267e-05f },
+{ "6DJ8"      ,    1.541e-04f,    8.853e-07f,    4.898e-05f },
+{ "7025"      ,    6.130e-06f,    3.925e-08f,    7.918e-06f },
+{ "SV6N1P"    ,    4.243e-05f,    3.823e-07f,    2.625e-05f },
+{ "ECC83"     ,    5.943e-06f,    4.254e-08f,    8.191e-06f },
+{ "ECC81"     ,    3.728e-05f,    1.429e-07f,    1.685e-05f }
+};
+static const TriodeParams parallelTriodeTable[] =
+{
+    // name        kp            kp2           kpg
+{ "12AX7"     ,    1.896e-05f,    1.208e-07f,    2.311e-05f },
+{ "12AX7A"    ,    1.211e-05f,    9.304e-08f,    1.874e-05f },
+{ "12AX7ASYL" ,    1.120e-05f,    8.826e-08f,    1.687e-05f },
+{ "12AT7"     ,    8.513e-05f,    5.127e-07f,    5.676e-05f },
+{ "12AU7"     ,    1.186e-04f,    6.858e-07f,    2.531e-05f },
+{ "12AY7"     ,    3.857e-05f,    1.596e-07f,    1.377e-05f },
+{ "12AZ7"     ,    7.962e-05f,    4.921e-07f,    5.477e-05f },
+{ "12BH7A"    ,    2.118e-04f,    1.304e-06f,    5.032e-05f },
+{ "6AN8T"     ,    1.186e-04f,    6.856e-07f,    2.530e-05f },
+{ "6DJ8"      ,    3.080e-04f,    1.772e-06f,    9.801e-05f },
+{ "7025"      ,    1.221e-05f,    7.872e-08f,    1.586e-05f },
+{ "SV6N1P"    ,    8.514e-05f,    7.634e-07f,    5.245e-05f },
+{ "ECC83"     ,    1.186e-05f,    8.522e-08f,    1.640e-05f },
+{ "ECC81"     ,    7.485e-05f,    2.838e-07f,    3.354e-05f }
 };
 
 /**
@@ -55,11 +73,17 @@ public:
         port_p.connectToParent (this);
     }
 
-    void setParams(const int index, T Rp_val, T Rk_val, T E_val) noexcept{
-        const TriodeParams &t = triodeTable[index];
-        kp  = t.kp;
-        kp2 = t.kp2;
-        kpg = t.kpg;
+    void setParams(const int index, T Rp_val, T Rk_val, T E_val, bool parallelTriode=false) noexcept{
+        if (parallelTriode){
+            const TriodeParams &t = parallelTriodeTable[index];
+            kp  = t.kp;
+            kp2 = t.kp2;
+            kpg = t.kpg;}
+        else{
+            const TriodeParams &t = triodeTable[index];
+            kp  = t.kp;
+            kp2 = t.kp2;
+            kpg = t.kpg;}
         Rp = Rp_val;
         Rk = Rk_val;
         E = E_val;
