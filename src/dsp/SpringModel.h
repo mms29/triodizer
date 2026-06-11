@@ -11,7 +11,7 @@ class SpringFilter
 public:
     void prepare(double sr, float cutoff)
     {
-        double omega = 2.0 * M_PI * cutoff / sr;
+        double omega = 2.0 * 3.14f * cutoff / sr;
         g = std::exp(-omega);
     }
 
