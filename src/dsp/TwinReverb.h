@@ -266,7 +266,7 @@ public:
             case (int)Param::RVerb: setControl((int)Control::Reverb, 50.0f); break;
 
 
-            case (int)Param::Rdry: w_Vdry.setResistanceValue(value); break;
+            case (int)Param::Rdry: w_Vdry.setResistanceValue(value); w_Rdry.setResistanceValue(value); break;
             case (int)Param::Rwet: w_Vwet.setResistanceValue(value); break;
             case (int)Param::Rg5: w_Rg5.setResistanceValue(value); break;
             case (int)Param::Rk5: w_Rk5.setResistanceValue(value); break;
@@ -454,7 +454,7 @@ public:
         w_V_Rg2.setVoltage (V1_out);
         w_E2_Rp2.setVoltage(getParam((int)Param::E2));
         w_V2.compute();
-        auto V2_out = voltage<float> (w_Ra2);
+        auto V2_out = voltage<float> (w_Rdry);
 
         //V3
         w_V_Rg3.setVoltage (V2_out);
@@ -568,8 +568,10 @@ private:
     CapacitorT<float> w_Cp2 { 0.0f };
     CapacitorT<float> w_Cfilt { 0.0f };
     ResistorT<float> w_Ra2 { 0.0f };
+    ResistorT<float> w_Rdry { 0.0f };
     WDFSeriesT<float, decltype (w_Ra2), decltype (w_Cfilt)> w_SJ_filt { w_Ra2, w_Cfilt};
-    WDFSeriesT<float, decltype (w_SJ_filt), decltype (w_Cp2)> w_SJ_p2 { w_SJ_filt, w_Cp2 };
+    WDFParallelT<float, decltype (w_SJ_filt), decltype (w_Rdry)> w_PJ_dry2 { w_SJ_filt, w_Rdry};
+    WDFSeriesT<float, decltype (w_PJ_dry2), decltype (w_Cp2)> w_SJ_p2 { w_PJ_dry2, w_Cp2 };
     PolarityInverterT<float, decltype (w_SJ_p2)> w_PI_p2 { w_SJ_p2 };
     WDFParallelT<float, decltype (w_E2_Rp2), decltype (w_PI_p2)> w_PJ_p2 { w_E2_Rp2, w_PI_p2};
 
