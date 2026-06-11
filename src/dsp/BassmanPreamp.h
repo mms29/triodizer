@@ -59,14 +59,7 @@ public:
         setParam((int)Param::RBass,   T(250e3f));    
         setParam((int)Param::RMid,    T(10e3f ));     
         setParam((int)Param::RTreble, T(250e3f)); 
-
-
-        w_Triode.setTubeLabParameters(
-            T(1.014e-5f), T(5.498e-8f), T(1.076e-5f),
-            getParam((int)Param::Rp),
-            getParam((int)Param::Rk),
-            getParam((int)Param::E)
-        );
+        setParam((int)Param::Triode, T(0.0f)); 
     }
     void setDefaultControl () 
     { 
@@ -88,7 +81,9 @@ public:
             case (int)Param::E:  w_E_Rp.setVoltage(value);  break;
             case (int)Param::Rp: w_E_Rp.setResistanceValue(value); break;
 
-            case (int)Param::Triode: break;//TODO
+            case (int)Param::Triode: w_Triode.setParams(0,getParam((int)Param::Rp),
+                            getParam((int)Param::Rk),
+                            getParam((int)Param::E)); break;
 
             case (int)Param::C1:       w_bts.setC1(value); break;
             case (int)Param::C2:       w_bts.setC2(value); break;
@@ -137,12 +132,6 @@ public:
         w_Vi.prepare (sr);
         w_Ck.prepare (sr);
         w_bts.prepare(sr);
-
-        // float duration = 0.1f;
-        // for (int i = 0; i < (int) sr *duration; ++i)
-        // {
-        //     auto y = processSample(zero);
-        // }
     }
     void reset() override {
         w_bts.reset();
@@ -195,10 +184,5 @@ private:
     PolarityInverterT<T, decltype (w_SJg)> w_PIg { w_SJg };
 
     // Triode WDF
-    // TriodeWDF<T, decltype(w_PIg), decltype(w_PJk), decltype(w_PJp)> w_Triode{
-    //         w_PIg, w_PJk, w_PJp, 0.0f, 0.0f
-    // };
-    TriodeQuadricWDF<T, decltype(w_PIg), decltype(w_PJk), decltype(w_PJp)> w_Triode{
-            w_PIg, w_PJk, w_PJp, zero,zero,zero,zero,zero,zero
-    };
+    TriodeQuadricWDF<T, decltype(w_PIg), decltype(w_PJk), decltype(w_PJp)> w_Triode{w_PIg, w_PJk, w_PJp};
 };

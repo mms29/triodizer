@@ -97,6 +97,7 @@ public:
     void buildBassmanPreampSmall(SchematicPanel& schematic);
     void buildBassmanPreamp(SchematicPanel& schematic);
     void buildDualRectifierPreamp(SchematicPanel& schematic);
+    void buildTwinReverb(SchematicPanel& schematic);
 
 private:
 
@@ -135,4 +136,22 @@ private:
         inline static const Terminal rightXL  = right  * XL;
         inline static const Terminal topXL    = top    * XL;
         inline static const Terminal bottomXL = bottom * XL;
+};
+
+static const std::vector<ValueChoice> triodeChoices =
+{
+    { "12AX7",    0.0f},
+    { "12AX7A",   1.0f},
+    { "12AX7ASYL",2.0f},
+    { "12AT7",    3.0f},
+    { "12AU7",    4.0f},
+    { "12AY7",    5.0f},
+    { "12AZ7",    6.0f},
+    { "12BH7A",   7.0f},
+    { "6AN8T",    8.0f},
+    { "6DJ8",     9.0f},
+    { "7025",     10.0f},
+    { "SV6N1P",   11.0f},
+    { "ECC83",    12.0f},
+    { "ECC81",    13.0f}
 };

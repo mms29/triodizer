@@ -8,13 +8,13 @@ const float STROKE_NORMAL = 2.5f;
 const float STROKE_HIGHLIGHT = 5.0f;
 
 const juce::Colour SCHEMATIC_BACKGROUND = juce::Colours::black;
-const juce::Colour SCHEMATIC_NORMAL = juce::Colours::white;
-const juce::Colour SCHEMATIC_HIGHLIGHT = juce::Colours::yellow;
+const juce::Colour SCHEMATIC_NORMAL = juce::Colours::grey;
+const juce::Colour SCHEMATIC_HIGHLIGHT = juce::Colours::white;
 
 struct ValueChoice
 {
-    float value;
     juce::String label;
+    float value;
 };
 
 using Terminal = juce::Point<float> ;
@@ -120,7 +120,7 @@ public:
     std::vector<ValueChoice> getChoices() const {return choices;};
     int getChoiceIndex() const noexcept {return choiceIndex;};
     void setChoiceIndex (int newIndex) noexcept {choiceIndex = newIndex;};
-    void addChoice (const float value, const juce::String label) noexcept {choices.push_back(ValueChoice{value, label}) ;}
+    void addChoice (const float value, const juce::String label) noexcept {choices.push_back(ValueChoice{label, value}) ;}
 
     const int getIndexChoiceFromValue(const float value) const{
 

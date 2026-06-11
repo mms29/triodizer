@@ -3,15 +3,15 @@
 #include <chowdsp_wdf/chowdsp_wdf.h>
 #include <dsp/Circuit.h>
 #include <cmath>
-#include <vector>
+#include <algorithm>
 
-// One-pole low-pass filter for frequency-dependent losses
-class LPF
+// Low-pass filter for HF damping
+class SpringFilter
 {
 public:
-    void setFreq(double freq, double sr)
+    void prepare(double sr, float cutoff)
     {
-        auto omega = 2.0 * M_PI * freq / sr;
+        double omega = 2.0 * M_PI * cutoff / sr;
         g = std::exp(-omega);
     }
 
@@ -29,114 +29,123 @@ private:
     float yPrev = 0.0f;
 };
 
-// Delay line with interpolated read and HF damping
-// Standard waveguide component
-class WaveguideDelay
+// Single interpolated delay line for one spring
+class SpringLine
 {
 public:
-    void prepare(double sr, int maxDelay)
+    void prepare(double sr, int maxDelaySamples, float delaySamps, float decay, float hfCutoff)
     {
-        sampleRate = sr;
-        bufferSize = maxDelay;
-        buffer.resize(bufferSize);
+        size = maxDelaySamples;
+        buffer.resize(size);
+        std::fill(buffer.begin(), buffer.end(), 0.0f);
+        delay = delaySamps;
+        decayFactor = decay;
+        hfFilter.prepare(sr, hfCutoff);
         idx = 0;
-        delay = 10000.0f;
-        gain = 0.99f;
     }
 
     void setDelay(float d) { delay = d; }
 
-    // Returns delayed sample, advances both read and write
+    float getDelay() const { return delay; }
+
+    // Read delayed sample with HF damping
     float read()
     {
-        // Read behind write by delay samples
-        int intDelay = (int)delay;
+        int intDelay = (int)std::floor(delay);
         float frac = delay - intDelay;
 
-        int readPos = (idx + bufferSize - intDelay) % bufferSize;
-        int readPosPrev = (readPos - 1 + bufferSize) % bufferSize;
+        int readIdx = (idx + size - intDelay) % size;
+        int readIdxPrev = (readIdx - 1 + size) % size;
 
-        float out = buffer[readPos] * (1.0f - frac) + buffer[readPosPrev] * frac;
-        return gain * hfFilter.process(out);
+        float delayed = buffer[readIdx] * (1.0f - frac) + buffer[readIdxPrev] * frac;
+
+        // Apply HF rolloff with low-pass filter
+        float damped = hfFilter.process(delayed);
+
+        return damped * decayFactor;
     }
 
-    void write(float input)
+    // Write sample to buffer
+    void write(float x)
     {
-        buffer[idx] = input;
-        idx = (idx + 1) % bufferSize;
+        buffer[idx] = x;
+        idx = (idx + 1) % size;
     }
 
     void reset()
     {
         std::fill(buffer.begin(), buffer.end(), 0.0f);
         hfFilter.reset();
+        idx = 0;
     }
 
 private:
     std::vector<float> buffer;
-    int idx = 0;          // write index, read is idx - delay
-    int bufferSize = 384000;
+    int idx = 0;
+    int size = 48000;
     float delay = 1000.0f;
-    float gain = 0.96f;
-    double sampleRate = 44100.0;
-    LPF hfFilter;
+    float decayFactor = 0.9f;
+    SpringFilter hfFilter;
 };
 
-// Simple dual-spring reverb tank using conventional waveguide topology
+
+// Spring reverb tank using conventional waveguide topology
+// Models two coupled springs with differential pickup
 class SpringTank : public Circuit<float>
 {
 public:
-    SpringTank() : Circuit<float>() {}
+    SpringTank(float delayMs=65.0f, float decay=0.85f, float feedback=0.7f, float hfCutoff=4000.0f) : 
+        Circuit<float>(), 
+        baseDelayMs(delayMs), feedback(feedback), hfCutoff(hfCutoff), decayFactor(decay)
+    {}
 
     void prepare(float sr) override
     {
-        sampleRate = sr;
+        int maxDelaySamples= (int)(sr * maxDelayMs/ 1000.0f);
+        // Two springs with detuned delays for chaotic behavior
+        // Guitar spring tanks: ~40-80ms round-trip delay
+        float baseDelaySamps = baseDelayMs * sr / 1000.0f;
 
-        // One-way travel time for each spring (50-100ms typical)
-        float delayMs = 60.0f;
-        float delaySamps = delayMs * sr / 1000.0f;
-
-        int maxDelay = (int)(sr * 0.2);
-        delay1.prepare(sr, maxDelay);
-        delay2.prepare(sr, maxDelay);
-
-        delay1.setDelay(delaySamps * 0.99f);
-        delay2.setDelay(delaySamps * 1.01f); // slight detune for width
+        line1.prepare(sr, maxDelaySamples, baseDelaySamps * 1.00f, decayFactor * 1.03f, hfCutoff * 1.0f);
+        line2.prepare(sr, maxDelaySamples, baseDelaySamps * 1.05f, decayFactor * 1.0f , hfCutoff * 0.9f);
     }
 
     void reset() override
     {
-        delay1.reset();
-        delay2.reset();
+        line1.reset();
+        line2.reset();
     }
 
     void setParam(int param, float val) override
     {
         if (param == 0) feedback = val;
     }
+
     void setControl(int, float) override {}
     void updateMonitors() override {}
 
     float processSample(float input) override
     {
-        // Read delayed signals (waves returning from spring far ends)
-        float r1 = delay1.read();
-        float r2 = delay2.read();
+        // Read returning waves from both springs
+        float w1 = line1.read();
+        float w2 = line2.read();
 
-        // Compute pickup output
-        float output = 0.5f * (r1 - r2);
+        // Differential pickup - characteristic of spring reverbs
+        float output = 0.5f * (w1 - w2);
 
-        // Re-inject into springs: input drives both, plus reflected waves
-        delay1.write(input - r1 * 0.95f);
-        delay2.write(input - r2 * 0.95f);
+        // Write excitation + feedback to both springs
+        float fbDrive = input + feedback * output;
+        line1.write(fbDrive);
+        line2.write(fbDrive);
 
         return output;
     }
 
 private:
-    WaveguideDelay delay1;
-    WaveguideDelay delay2;
+    SpringLine line1;
+    SpringLine line2;
 
-    double sampleRate = 44100.0;
-    float feedback = 0.95f; // decay control
+    float maxDelayMs = 200.0f;
+    float feedback, hfCutoff, baseDelayMs, decayFactor;
+
 };

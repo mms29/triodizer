@@ -98,6 +98,7 @@ TubeLabEditor::TubeLabEditor(TubeLabProcessor& p)
     presetSelector.addItem("Fender Bassman Preamp", PRESET_BASSMAN_PREAMP);
     presetSelector.addItem("Mesa/Boogie Dual Rectifier", PRESET_DUAL_RECTIFIER_PREAMP);
     presetSelector.addItem("LC Ladder", PRESET_LCLADDER);
+    presetSelector.addItem("Twin reverb", PRESET_TWIN_REVERB);
     addAndMakeVisible(presetSelector);
     presetLabel.setText("Preset", juce::dontSendNotification);
     presetLabel.attachToComponent(&presetSelector, false);
@@ -143,6 +144,9 @@ void TubeLabEditor::updateSchematic(){
         break;
     case PRESET_DUAL_RECTIFIER_PREAMP:
         schematicBuilder.buildDualRectifierPreamp(*schematic);
+        break;
+    case PRESET_TWIN_REVERB:
+        schematicBuilder.buildTwinReverb(*schematic);
         break;
     case PRESET_LCLADDER:
     default:

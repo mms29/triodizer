@@ -11,6 +11,7 @@
 #include "dsp/DualRectifierPreamp.h"
 #include "dsp/LCLadder.h"
 #include "dsp/SpringModel.h"
+#include "dsp/TwinReverb.h"
 
 
 const int PRESET_DEFAULT = 1;
@@ -20,6 +21,7 @@ const int PRESET_BASSMAN_PREAMP_SMALL = 4;
 const int PRESET_BASSMAN_PREAMP = 5;
 const int PRESET_DUAL_RECTIFIER_PREAMP = 6;
 const int PRESET_LCLADDER = 7;
+const int PRESET_TWIN_REVERB = 8;
 
 class WaveformBuffer
 {

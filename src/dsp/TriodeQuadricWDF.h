@@ -7,6 +7,33 @@
 
 using namespace chowdsp::wdft;
 
+
+struct TriodeParams
+{
+    const char* name;
+    double kp;
+    double kp2;
+    double kpg;
+};
+static const TriodeParams triodeTable[] =
+{
+    // name        kp            kp2           kpg
+    { "12AX7",     1.010e-05,    5.707e-08,    1.002e-05 },
+    { "12AX7A",    6.346e-06,    4.472e-08,    8.326e-06 },
+    { "12AX7ASYL", 5.993e-06,    4.250e-08,    6.964e-06 },
+    { "12AT7",     4.624e-05,    2.369e-07,    2.706e-05 },
+    { "12AU7",     6.257e-05,    3.281e-07,    1.237e-05 },
+    { "12AY7",     2.009e-05,    6.997e-08,    6.243e-06 },
+    { "12AZ7",     4.392e-05,    2.326e-07,    2.599e-05 },
+    { "12BH7A",    1.136e-04,    6.263e-07,    2.488e-05 },
+    { "6AN8T",     6.255e-05,    3.279e-07,    1.236e-05 },
+    { "6DJ8",      1.609e-04,    8.243e-07,    4.613e-05 },
+    { "7025",      6.464e-06,    3.727e-08,    1.000e-05 },
+    { "SV6N1P",    4.612e-05,    3.661e-07,    2.555e-05 },
+    { "ECC83",     6.306e-06,    4.056e-08,    7.242e-06 },
+    { "ECC81",     2.414e-05,    1.211e-08,    1.000e-05 }
+};
+
 /**
  * Quadric surface model implementation.
  *
@@ -20,18 +47,47 @@ template <typename T, typename PortGType, typename PortKType, typename PortPType
 class TriodeQuadricWDF final : public RootWDF
 {
 public:
-    TriodeQuadricWDF (PortGType& pg, PortKType& pk, PortPType& pp,
-                      T kp_init, T kp2_init, T kpg_init, T Rp_init, T Rk_init, T E_init)
-        : port_g (pg), port_k (pk), port_p (pp),
-          kp (kp_init), kp2 (kp2_init), kpg (kpg_init),
-          Rp(Rp_init), Rk(Rk_init), E(E_init)
+    TriodeQuadricWDF (PortGType& pg, PortKType& pk, PortPType& pp)
+        : port_g (pg), port_k (pk), port_p (pp)
     {
         port_g.connectToParent (this);
         port_k.connectToParent (this);
         port_p.connectToParent (this);
-        initialiseOperatingPoint();
     }
 
+    void setParams(const int index, T Rp_val, T Rk_val, T E_val) noexcept{
+        const TriodeParams &t = triodeTable[index];
+        kp  = t.kp;
+        kp2 = t.kp2;
+        kpg = t.kpg;
+        Rp = Rp_val;
+        Rk = Rk_val;
+        E = E_val;
+
+        initialiseOperatingPoint();
+        calcImpedance();
+
+    }
+
+    void initialiseOperatingPoint () noexcept
+    {
+        T k1 = kpg/(2*kp2) + Rp/Rk + 1;
+        T k2 = k1 * (kp/kp2 + 2*E) * kp2;
+        T k3 = Rk * k2 + 1;
+#ifdef XSIMD_HPP
+        T k1sign = xsimd::sign(k1);
+        T Vk0 =(k3 - k1sign * xsimd::sqrt(T(2.0f) * k3 - T(1.0f)))/ (T(2.0f) * Rk * k1 * k1 * kp2);
+#else
+        T k1sign = (k1 > 0.0f) ? 1.0f : (k1 < 0.0f ? -1.0f : 0.0f);
+        T Vk0 = (k3 - k1sign * std::sqrt(2*k3 - 1)) / (2 * Rk * k1 * k1 * kp2);
+#endif
+        T Vp0 = E - Rp/Rk * Vk0;
+
+        Vk = Vk0;
+        Vp = Vp0;
+        Vg = zero;
+    }
+    
     inline void calcImpedance() override {
         R0g = port_g.wdf.R;
         R0k = port_k.wdf.R;
@@ -68,17 +124,6 @@ public:
         port_g.incident (bg);
         port_k.incident (bk);
         port_p.incident (bp);
-    }
-
-    void setTubeLabParameters (T kp_val, T kp2_val, T kpg_val, T Rp_val, T Rk_val, T E_val) noexcept
-    {
-        kp  = kp_val;
-        kp2 = kp2_val;
-        kpg = kpg_val;
-        Rp  = Rp_val;
-        Rk  = Rk_val;
-        E   = E_val;
-        initialiseOperatingPoint();
     }
 
     // Accessors for monitoring 
@@ -188,27 +233,6 @@ private:
         Vp = ap; // plate voltage is reflected wave on plate port
     }
 
-    // ---------------------------------------------------------------------
-    // Initial operating point 
-    // ---------------------------------------------------------------------
-    void initialiseOperatingPoint () noexcept
-    {
-        T k1 = kpg/(2*kp2) + Rp/Rk + 1;
-        T k2 = k1 * (kp/kp2 + 2*E) * kp2;
-        T k3 = Rk * k2 + 1;
-#ifdef XSIMD_HPP
-        T k1sign = xsimd::sign(k1);
-        T Vk0 =(k3 - k1sign * xsimd::sqrt(T(2.0f) * k3 - T(1.0f)))/ (T(2.0f) * Rk * k1 * k1 * kp2);
-#else
-        T k1sign = (k1 > 0.0f) ? 1.0f : (k1 < 0.0f ? -1.0f : 0.0f);
-        T Vk0 = (k3 - k1sign * std::sqrt(2*k3 - 1)) / (2 * Rk * k1 * k1 * kp2);
-#endif
-        T Vp0 = E - Rp/Rk * Vk0;
-
-        Vk = Vk0;
-        Vp = Vp0;
-        Vg = zero;
-    }
 
     // ---------------------------------------------------------------------
     // Member variables (mirroring the original class where appropriate)
@@ -236,9 +260,7 @@ private:
 
 
     // Circuit comps for operating point
-    T Rp; 
-    T Rk; 
-    T E; 
+    T Rp {zero}, Rk {zero}, E {zero};
 
     // Port resistances (filled each compute call)
     T R0g{}, R0k{}, R0p{};
