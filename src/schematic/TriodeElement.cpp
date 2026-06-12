@@ -65,7 +65,7 @@ void TriodeElement::draw (juce::Graphics& g) const
     cathode.lineTo (p2 - Terminal {+TUBE_WIDTH/4, tubePlatesHeight});
     cathode.lineTo (p2 - Terminal {-TUBE_WIDTH/4, tubePlatesHeight});
     cathode.lineTo (p2 - Terminal {-TUBE_WIDTH/4, tubePlatesHeight});
-    g.strokePath (cathode, juce::PathStrokeType (thickness));
+    g.strokePath (cathode, juce::PathStrokeType (thickness, juce::PathStrokeType::curved, juce::PathStrokeType::rounded ));
 
     const float dashes[] = { 6.0f, 6.0f };
     g.drawLine(juce::Line<float>(p0,p0+Terminal {TUBE_WIDTH/4.0f, 0.0f}), thickness);

@@ -26,13 +26,13 @@ void SchematicElement::drawLabel(juce::Graphics& g, Terminal center, juce::Strin
     g.setFont (font);
 
     // Name
-    g.setColour (juce::Colours::yellow);
+    g.setColour (SCHEMATIC_HIGHLIGHT);
     g.drawText (getName(),
                 center.getX() - 40, center.getY() - 18, 80, 18,
                 juce::Justification::centred, true);
 
     // Value
-    g.setColour (juce::Colours::lightblue);
+    g.setColour (SCHEMATIC_NORMAL);
     g.drawText (value,
                 center.getX() - 40, center.getY() + 2, 80, 18,
                 juce::Justification::centred, true);

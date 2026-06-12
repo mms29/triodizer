@@ -117,10 +117,15 @@ void SchematicPanel::paint (juce::Graphics& g)
 
     // Draw wires first (behind elements)
     g.setColour (SCHEMATIC_NORMAL);
+    float t=0.0f;
     for (const auto& wire : wires)
     {
-        g.drawLine (wire.start.x, wire.start.y,
-                     wire.end.x,   wire.end.y, STROKE_NORMAL);
+        juce::Path w;
+        w.startNewSubPath(wire.start);
+        w.lineTo(wire.end);
+        
+        t+= 0.1f;
+        drawGlowPath(g, w, t);
     }
 
     // Draw every element on top
@@ -130,6 +135,46 @@ void SchematicPanel::paint (juce::Graphics& g)
         elem->draw (g);
     }
 }
+
+juce::Colour SchematicPanel::getSignalColour (float t)
+{
+    t = juce::jlimit (0.0f, 1.0f, t);
+
+    // Red -> Yellow -> White with smooth interpolation
+    juce::Colour red   = juce::Colours::red;
+    juce::Colour yellow= juce::Colours::yellow;
+    juce::Colour white = juce::Colours::white;
+
+    if (t < 0.5f)
+        return red.interpolatedWith (yellow, t * 2.0f);
+    else
+        return yellow.interpolatedWith (white, (t - 0.5f) * 2.0f);
+}
+void SchematicPanel::drawGlowPath(juce::Graphics& g, const juce::Path& path, float signal)
+{
+    auto colour = getSignalColour (signal);
+
+    // Outer glow (big, soft, transparent)
+    for (int i = 6; i >= 1; --i)
+    {
+        float alpha = 0.02f * i;
+        float width = i * 4.0f;
+
+        g.setColour (colour.withAlpha (alpha));
+        g.strokePath (path,
+            juce::PathStrokeType (width,
+                juce::PathStrokeType::curved,
+                juce::PathStrokeType::rounded));
+    }
+
+    // Core wire (sharp, bright)
+    g.setColour (colour.withAlpha (1.0f));
+    g.strokePath (path,
+        juce::PathStrokeType (2.5f,
+            juce::PathStrokeType::curved,
+            juce::PathStrokeType::rounded));
+}
+
 
 void SchematicPanel::resized()
 {
@@ -1689,27 +1734,28 @@ void SchematicBuilder::buildTwinReverb(SchematicPanel& schematic)
         (int) Param::Cp2
     ));
 
+    schematic.addElement (std::make_unique<CapacitorElement> (
+        "Cfilt",
+        schematic.getElement("Cp2")->getTerminals()[1]+ bottomXL,
+        schematic.getElement("Cp2")->getTerminals()[1]+ bottomXL +rightM,
+        (int) Param::Cfilt
+    ));
+    schematic.addElement (std::make_unique<ResistorElement> (
+        "Ra2",
+        schematic.getElement("Cfilt")->getTerminals()[1] +bottomM,
+        schematic.getElement("Cfilt")->getTerminals()[1],
+        (int) Param::Ra2
+    ));
     // V3
     schematic.addElement (std::make_unique<TriodeElement> (
         "V3", 
-        schematic.getElement("Cp2")->getTerminals()[1]+ rightXL +bottomXL*2.0f,
+        schematic.getElement("Cfilt")->getTerminals()[1]+rightM, 
         (int) Param::V3,
         0, triodeChoices,
         (int) Monitoring::Ik3
     ));
     auto V3pos = schematic.getElement("V3")->getTerminals();
     
-    schematic.addElement (std::make_unique<ResistorElement> (
-        "Ra2",
-        V3pos[0]+bottomL,V3pos[0],
-        (int) Param::Ra2
-    ));
-    schematic.addElement (std::make_unique<CapacitorElement> (
-        "Cfilt",
-        V3pos[0] +leftM,
-        V3pos[0],
-        (int) Param::Cfilt
-    ));
     schematic.addElement (std::make_unique<ResistorElement> (
         "Rk3",
         V3pos[2]+ bottomM,
@@ -1737,7 +1783,7 @@ void SchematicBuilder::buildTwinReverb(SchematicPanel& schematic)
     // V4
     schematic.addElement (std::make_unique<TriodeElement> (
         "V4", 
-        V3pos[0] +rightXL*2,
+        V3pos[0] +rightXL*3,
         (int) Param::V4,
         0, triodeChoices,
         (int) Monitoring::Ik4
@@ -1791,10 +1837,22 @@ void SchematicBuilder::buildTwinReverb(SchematicPanel& schematic)
     ));
 
 
+    schematic.addElement (std::make_unique<ResistorElement> (
+        "Rwet",
+        schematic.getElement("Reverb")->getTerminals()[2],
+        schematic.getElement("Reverb")->getTerminals()[2] + topL ,
+        (int) Param::Rwet
+    ));
+    schematic.addElement (std::make_unique<ResistorElement> (
+        "Rdry",
+        schematic.getElement("Cp2")->getTerminals()[1] + topL,
+        schematic.getElement("Rwet")->getTerminals()[1]+ topXL,
+        (int) Param::Rdry
+    ));
     // V5
     schematic.addElement (std::make_unique<TriodeElement> (
         "V5", 
-        V2pos[0] +rightXL*6,
+        schematic.getElement("Rwet")->getTerminals()[1] +rightXL,
         (int) Param::V5,
         0, triodeChoices,
         (int) Monitoring::Ik5
@@ -1836,6 +1894,12 @@ void SchematicBuilder::buildTwinReverb(SchematicPanel& schematic)
         V5pos[1] + rightXL,
         (int) Param::Cp5
     ));
+    schematic.addElement (std::make_unique<ResistorElement> (
+        "Rout",
+        schematic.getElement("Cp5")->getTerminals()[1], 
+        schematic.getElement("Cp5")->getTerminals()[1] + bottomXL, 
+        (int) Param::Rout
+    ));
 
     // Grounds
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Rg1")->getTerminals()[0]) );
@@ -1846,12 +1910,17 @@ void SchematicBuilder::buildTwinReverb(SchematicPanel& schematic)
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Rk2")->getTerminals()[0]) );
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Ck2")->getTerminals()[1]) );
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Ra2")->getTerminals()[0]) );
-    schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Treverb")->getTerminals()[2]) );
+    schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Treverb")->getTerminals()[2] + rightS));
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Rg4")->getTerminals()[0]) );
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Ck3")->getTerminals()[1]) );
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Rk3")->getTerminals()[0]) );
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Ck4")->getTerminals()[1]) );
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Rk4")->getTerminals()[0]) );
+    schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Reverb")->getTerminals()[1]) );
+    schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Ck5")->getTerminals()[1]) );
+    schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Rk5")->getTerminals()[0]) );
+    schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Rg5")->getTerminals()[0]) );
+    schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Rout")->getTerminals()[1]) );
 
     // Monitors
     schematic.addElement (std::make_unique<VoltmeterElement> (
@@ -1970,8 +2039,38 @@ void SchematicBuilder::buildTwinReverb(SchematicPanel& schematic)
         schematic.getElement("Cfilt")->getTerminals()[0] ,
         schematic.getElement("Cp2")->getTerminals()[1] 
     );
+    schematic.addWire (
+        schematic.getElement("Treverb")->getTerminals()[2] ,
+        schematic.getElement("Treverb")->getTerminals()[2] +rightS
+    );
+    schematic.addWire (
+        schematic.getElement("Rdry")->getTerminals()[0] ,
+        schematic.getElement("Cp2")->getTerminals()[1]
+    );
+    schematic.addWire (
+        schematic.getElement("Rdry")->getTerminals()[1] ,
+        schematic.getElement("Rwet")->getTerminals()[1]
+    );
 
-    // schematic.addElement (std::make_unique<JunctionElement>(schematic.getElement("Master")->getTerminals()[2] + rightS));
-    // schematic.addElement (std::make_unique<JunctionElement>(schematic.getElement("Rg1")->getTerminals()[0]) );
+    schematic.addWire (
+        schematic.getElement("Rg5")->getTerminals()[1] ,
+        schematic.getElement("Rwet")->getTerminals()[1]
+    );
+
+    schematic.addWire (
+        schematic.getElement("Cfilt")->getTerminals()[1] ,
+        V3pos[0]
+    );
+    schematic.addWire (
+        schematic.getElement("Ck5")->getTerminals()[0],
+        schematic.getElement("Rk5")->getTerminals()[1]
+    );
+    schematic.addWire (
+        schematic.getElement("Rout")->getTerminals()[0] ,
+        schematic.getElement("Rout")->getTerminals()[0] +rightS
+    );
+
+    schematic.addElement (std::make_unique<JunctionElement>(schematic.getElement("Rout")->getTerminals()[0] + rightS));
+    schematic.addElement (std::make_unique<JunctionElement>(schematic.getElement("Ri1")->getTerminals()[0]) );
 }
 

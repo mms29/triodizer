@@ -7,9 +7,9 @@
 const float STROKE_NORMAL = 2.5f;
 const float STROKE_HIGHLIGHT = 5.0f;
 
-const juce::Colour SCHEMATIC_BACKGROUND = juce::Colours::black;
-const juce::Colour SCHEMATIC_NORMAL = juce::Colours::grey;
-const juce::Colour SCHEMATIC_HIGHLIGHT = juce::Colours::white;
+const juce::Colour SCHEMATIC_BACKGROUND = juce::Colour(18, 10, 4);
+const juce::Colour SCHEMATIC_NORMAL = juce::Colour(195, 176, 123);
+const juce::Colour SCHEMATIC_HIGHLIGHT = juce::Colour(252, 237, 173);
 
 struct ValueChoice
 {

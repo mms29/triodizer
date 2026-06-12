@@ -67,6 +67,10 @@ public:
     void mouseWheelMove (const juce::MouseEvent& e, const juce::MouseWheelDetails& wheel) override;
 
     SchematicElement* getElementAt (juce::Point<int> position) const;
+    void drawGlowPath(juce::Graphics& g, const juce::Path& path, float signal);
+    juce::Colour getSignalColour (float t);
+
+
 
 private:
     void showPopupMenuForElement (SchematicElement* element, juce::Point<int> pos);
