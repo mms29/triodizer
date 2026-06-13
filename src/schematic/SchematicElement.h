@@ -7,10 +7,19 @@
 const float STROKE_NORMAL = 2.5f;
 const float STROKE_HIGHLIGHT = 5.0f;
 
-const juce::Colour SCHEMATIC_BACKGROUND = juce::Colour(18, 10, 4);
-const juce::Colour SCHEMATIC_NORMAL = juce::Colour(195, 176, 123);
-const juce::Colour SCHEMATIC_HIGHLIGHT = juce::Colour(252, 237, 173);
+const juce::Colour COLOR_BACKGROUND = juce::Colour(10, 5, 0);
+const juce::Colour COLOR_NORMAL = juce::Colour(195, 176, 123);
+const juce::Colour COLOR_HIGHLIGHT = juce::Colour(252, 237, 173);
+const juce::Colour COLOR_AMBER = juce::Colour(255, 166, 38);
+const juce::Colour COLOR_ELECTRICAL = juce::Colour(80, 180, 255);
+const juce::Colour COLOR_PURPLE = juce::Colour(180, 110, 255);
+const juce::Colour COLOR_HOTRED = juce::Colour(255, 110, 60);
 
+const juce::Font FONT_TITLE = juce::FontOptions(22.0f);
+const juce::Font FONT_SUB1 = juce::FontOptions(18.0f);
+const juce::Font FONT_SUB2 = juce::FontOptions(14.0f);
+
+const float POWER_SCALING = 1.0e3f;
 struct ValueChoice
 {
     juce::String label;
@@ -19,16 +28,21 @@ struct ValueChoice
 
 using Terminal = juce::Point<float> ;
 
-static constexpr float e12[] =
-{
-    1.0, 1.2, 1.5, 1.8, 2.2, 2.7, 3.3, 3.9, 4.7, 5.6, 6.8, 8.2
-};
+
+void drawGlowPath(juce::Graphics& g,
+                  const juce::Path& path,
+                  float intensity, 
+                  juce::Colour coreColour, 
+                  juce::Colour glowColour, 
+                  bool highlight
+);
+juce::Colour getSignalColour (float t);
 /* 
 ------------------------------------------------------------------------------------------------------------------------
     Base class for Elements in the schematic
 ------------------------------------------------------------------------------------------------------------------------
 */
-class SchematicElement
+class SchematicElement 
 {
 public:
     SchematicElement (const juce::String& name,
@@ -41,7 +55,7 @@ public:
     const juce::String& getName() const noexcept;
     const std::vector<Terminal>& getTerminals() const noexcept;
     bool isHighlighted() const noexcept;
-    void setHighlighted (bool shouldBeHighlighted) noexcept;
+    virtual void setHighlighted (bool shouldBeHighlighted) noexcept;
 
     // Templates
     virtual void draw (juce::Graphics& g) const = 0;
@@ -200,6 +214,7 @@ public:
         : circuitIndices(std::move(indices))
     {
         monitorValues.resize(circuitIndices.size(), 0.0f);
+        smoothedValues.resize(circuitIndices.size(), 0.0f);
     }
 
     int getNumMonitors() const noexcept
@@ -210,6 +225,7 @@ public:
     void setMonitorValue(int monitorIndex, float v) noexcept
     {
         monitorValues[(size_t) monitorIndex] = v;
+        smoothedValues[(size_t) monitorIndex] = lowPass(v, getSmoothedValue(monitorIndex));
     }
 
     int getCircuitIndex(int monitorIndex) const noexcept
@@ -221,10 +237,47 @@ public:
     {
         return monitorValues[(size_t) monitorIndex];
     }
+    float getSmoothedValue(int monitorIndex) const noexcept
+    {
+        return smoothedValues[(size_t) monitorIndex];
+    }
 
 private:
+    float alpha=.05f;
+
+    float lowPass(float x, float mean){
+        return mean + alpha * (x - mean);
+    }
+    float variance(float x, float mean, float var){
+        return var + alpha * (std::sqrt((x - mean)*(x - mean)) - var);
+    }
+
     std::vector<float> monitorValues;
+    std::vector<float> smoothedValues;
     std::vector<int> circuitIndices;
+};
+/* 
+------------------------------------------------------------------------------------------------------------------------
+    InspectableElement
+------------------------------------------------------------------------------------------------------------------------
+*/
+class ComponentInspector : public juce::Component
+{
+public:
+    ComponentInspector();
+
+    void paint (juce::Graphics& g) override;
+};
+
+class InspectableElement
+{
+public:
+    explicit InspectableElement()
+    {
+    }
+
+protected:
+    ComponentInspector inspector;
 };
 /* 
 ------------------------------------------------------------------------------------------------------------------------
@@ -233,7 +286,8 @@ private:
 */
 class PotElement :  public SchematicElement, 
                     public ControllableElement, 
-                    public SettableElement
+                    public SettableElement,
+                    public MonitoringElement
 {
 public:
     PotElement(const juce::String& name,
@@ -245,7 +299,21 @@ public:
         
         SchematicElement(name, std::vector<Terminal>{termA, termB, termC}),
         ControllableElement(controlIndex),
-        SettableElement(paramIndex)
+        SettableElement(paramIndex),
+        MonitoringElement(std::vector<int> {})
+        {};
+    PotElement(const juce::String& name,
+                    Terminal termA,
+                    Terminal termB,
+                    Terminal termC,
+                    const int controlIndex,
+                    const int paramIndex,
+                    const int currentMonitorIndex): 
+        
+        SchematicElement(name, std::vector<Terminal>{termA, termB, termC}),
+        ControllableElement(controlIndex),
+        SettableElement(paramIndex),
+        MonitoringElement(std::vector<int> {currentMonitorIndex})
         {};
     void draw (juce::Graphics& g) const override;
     void controlCallback(float value, SchematicPanelListener* l) override;

@@ -1,77 +1,101 @@
 #include "schematic/TriodeElement.h"
 
+
 void TriodeElement::draw (juce::Graphics& g) const
 {
     const auto& p0 = terminals[0];
     const auto& p1 = terminals[1];
     const auto& p2 = terminals[2];
-    float tubeScaling = 0.8;
-    const juce::Point<float> center = (p2-p1)*0.5f + p1;
+    float tubeScaling = 0.7;
+    const juce::Point<float> center = Terminal{0.0f, (p2.y-p1.y)*0.5f} + p1;
+    float intensity = 0.0f;
+    if (getNumMonitors()>0){
+        intensity = getSmoothedValue(0) *.2e3f;
+    }
 
-
-    // if (getNumMonitors()>0){
-
-
-    //     float current = getMonitorValue(0);
-    //     float intensity = juce::jlimit (0.0f, 1.0f, current*0.5e3f);
-    //     juce::ColourGradient gradient (
-    //         juce::Colours::white.withBrightness(intensity),
-    //         center.x, center.y,
-    //         juce::Colours::black,
-    //         center.x - TUBE_WIDTH * 0.5f * tubeScaling*1.5 ,center.y - TUBE_WIDTH * 0.5f * tubeScaling*1.5,
-    //         true
-    //     );
-    //     gradient.addColour (0.2*intensity, juce::Colours::yellow.withBrightness(intensity));
-    //     gradient.addColour (0.4*intensity, juce::Colour (255, 140, 0).withBrightness(intensity)); // orange
-    //     gradient.addColour (0.6*intensity, juce::Colours::red.withBrightness(intensity));
-    //     gradient.addColour (0.8*intensity, juce::Colours::darkred.withBrightness(intensity));
-    //     gradient.addColour (1.0*intensity, juce::Colours::black);
-
-    //     // g.setOpacity (current*0.5e3f);
-    //     g.setGradientFill (gradient);
-    //     g.fillEllipse (
-    //         center.x - TUBE_WIDTH*2 * 0.5f * tubeScaling,
-    //         center.y - TUBE_HEIGHT*2 * 0.5f * tubeScaling,
-    //         TUBE_WIDTH * tubeScaling*2,
-    //         TUBE_HEIGHT * tubeScaling*2
-    //     );    
-    // }
-
-
-    // colors
-    float thickness = isHighlighted() ? STROKE_HIGHLIGHT : STROKE_NORMAL;
-    g.setColour (isHighlighted() ? SCHEMATIC_HIGHLIGHT : SCHEMATIC_NORMAL);
-
-    g.drawEllipse (
-            center.x - TUBE_WIDTH * 0.5f * tubeScaling,
-            center.y - TUBE_HEIGHT * 0.5f * tubeScaling,
-            TUBE_WIDTH * tubeScaling,
-            TUBE_HEIGHT * tubeScaling, thickness
-        );    
     //PLATE
-    float tubePlatesHeight =  TUBE_HEIGHT/2.8f;
+    float tubePlatesHeight =  TUBE_HEIGHT/3.2f;
+    juce::Path plateHolder;
+    plateHolder.startNewSubPath (p1);
+    plateHolder.lineTo (p1 + Terminal {0.0f, tubePlatesHeight});
+    drawGlowPath(g, plateHolder, 0.1f,COLOR_NORMAL,COLOR_AMBER, isHighlighted());
     juce::Path plate;
-    plate.startNewSubPath (p1);
-    plate.lineTo (p1 + Terminal {0.0f, tubePlatesHeight});
-    g.strokePath (plate, juce::PathStrokeType (thickness));
-    g.drawLine(juce::Line<float>(
-        p1 + Terminal {-TUBE_WIDTH/4, tubePlatesHeight},
-        p1 + Terminal {+TUBE_WIDTH/4, tubePlatesHeight}), thickness +2.0f);
+    plate.startNewSubPath (p1 + Terminal {0.0f, tubePlatesHeight});
+    plate.lineTo (p1 + Terminal {-TUBE_WIDTH/4, tubePlatesHeight});
+    plate.lineTo (p1 + Terminal {+TUBE_WIDTH/4, tubePlatesHeight});
+    plate.lineTo (p1 + Terminal {+TUBE_WIDTH/4, tubePlatesHeight+2.0f});
+    plate.lineTo (p1 + Terminal {-TUBE_WIDTH/4, tubePlatesHeight+2.0f});
+    plate.lineTo (p1 + Terminal {-TUBE_WIDTH/4, tubePlatesHeight});
 
+    drawGlowPath(g, plate, intensity,COLOR_NORMAL,COLOR_ELECTRICAL, isHighlighted());
+
+    // CATHODE
+    float cathodeHeight =  TUBE_HEIGHT/2.8f;
+    float cathodeBend =  TUBE_HEIGHT/16.0f;
     juce::Path cathode;
     cathode.startNewSubPath (p2);
-    cathode.lineTo (p2 - Terminal {0.0f, TUBE_HEIGHT/4});
-    cathode.lineTo (p2 - Terminal {+TUBE_WIDTH/4, TUBE_HEIGHT/4});
-    cathode.lineTo (p2 - Terminal {+TUBE_WIDTH/4, tubePlatesHeight});
-    cathode.lineTo (p2 - Terminal {-TUBE_WIDTH/4, tubePlatesHeight});
-    cathode.lineTo (p2 - Terminal {-TUBE_WIDTH/4, tubePlatesHeight});
-    g.strokePath (cathode, juce::PathStrokeType (thickness, juce::PathStrokeType::curved, juce::PathStrokeType::rounded ));
+    cathode.lineTo (p2 - Terminal {0.0f, cathodeHeight-cathodeBend});
+    cathode.lineTo (p2 - Terminal {-TUBE_WIDTH/8, cathodeHeight});
+    cathode.lineTo (p2 - Terminal {-TUBE_WIDTH/4, cathodeHeight});
+    cathode.lineTo (p2 - Terminal {-TUBE_WIDTH*2/4+TUBE_WIDTH/8, cathodeHeight});
+    cathode.lineTo (p2 - Terminal {-TUBE_WIDTH*2/4, cathodeHeight-cathodeBend});
+    cathode.lineTo (p2 - Terminal {-TUBE_WIDTH*2/4, cathodeHeight-2*cathodeBend});
+    
+    drawGlowPath(g, cathode, intensity, COLOR_NORMAL,COLOR_HOTRED, isHighlighted());
 
-    const float dashes[] = { 6.0f, 6.0f };
-    g.drawLine(juce::Line<float>(p0,p0+Terminal {TUBE_WIDTH/4.0f, 0.0f}), thickness);
-    g.drawDashedLine(juce::Line<float>(
-        p0+Terminal {TUBE_WIDTH/4.0f, 0.0f},
-        p0+Terminal {TUBE_WIDTH*3.0f/4.0f, 0.0f}), dashes,2, thickness);
+
+    // grid
+    float start = TUBE_WIDTH/4.0f;
+    float segment = TUBE_WIDTH/8.0f *0.6f;
+    float dash = TUBE_WIDTH/8.0f *0.2f;
+    juce::Path gridHolder;
+    gridHolder.startNewSubPath(p0);
+    gridHolder.lineTo(p0+Terminal {start-dash, 0.0f});
+    drawGlowPath(g, gridHolder, 0.1f,COLOR_NORMAL,COLOR_AMBER, isHighlighted());
+    juce::Path grid;
+    grid.startNewSubPath(p0+Terminal {start+dash, 0.0f});
+    grid.lineTo(p0+Terminal {start+dash+segment, 0.0f});
+    grid.startNewSubPath(p0+Terminal {start+dash+segment+2*dash, 0.0f});
+    grid.lineTo(p0+Terminal {start+dash+segment+2*dash +segment, 0.0f});
+    grid.startNewSubPath(p0+Terminal {start+dash+segment+2*dash +segment +2*dash, 0.0f});
+    grid.lineTo(p0+Terminal {start+dash+segment+2*dash +segment +2*dash +segment, 0.0f});
+    grid.startNewSubPath(p0+Terminal {start+dash+segment+2*dash +segment +2*dash +segment +2*dash, 0.0f});
+    grid.lineTo(p0+Terminal {start+dash+segment+2*dash +segment +2*dash +segment +2*dash + segment, 0.0f});
+
+    drawGlowPath(g, grid, 0.1f,COLOR_PURPLE,COLOR_PURPLE, isHighlighted());
+
+    //filament
+    juce::Path filament;
+    float filamentHeight =  TUBE_HEIGHT/4.0f;
+
+    filament.startNewSubPath(p2- Terminal {-TUBE_WIDTH*1/8, filamentHeight*0.5f});
+    filament.lineTo(p2- Terminal {-TUBE_WIDTH*1/8, filamentHeight});
+    filament.lineTo(p2- Terminal {-TUBE_WIDTH/4, filamentHeight*1.2f});
+    filament.lineTo(p2- Terminal {-TUBE_WIDTH*3/8, filamentHeight});
+    filament.lineTo(p2- Terminal {-TUBE_WIDTH*3/8, filamentHeight*0.5f});
+
+    drawGlowPath(g, filament, 0.0f,COLOR_HOTRED,COLOR_HOTRED, isHighlighted());
+
+    // BULB
+    juce::Path p;
+    float x = center.x - TUBE_WIDTH * 0.5f * tubeScaling;
+    float y = center.y - TUBE_HEIGHT * 0.5f * tubeScaling;
+    float w = TUBE_WIDTH * tubeScaling;
+    float h = TUBE_HEIGHT * tubeScaling;
+    float r = h * 0.5f; // very round ends
+    p.startNewSubPath(x+w, y + h - r*0.5f);
+    p.lineTo(x+w, y +  r*0.5f);
+    p.addArc(x, y, w, r,
+             juce::MathConstants<float>::pi/2,
+             -juce::MathConstants<float>::pi/2,
+             true);
+    p.lineTo(x, y + h - r*0.5f);
+    p.addArc(x, y + h - r, w, r,
+             juce::MathConstants<float>::pi/2,
+             juce::MathConstants<float>::pi*3/2,
+             true);
+
+    drawGlowPath(g, p, 0.1f,COLOR_NORMAL,COLOR_NORMAL, isHighlighted());
 
     // Update cached bounds
     cachedBounds = juce::Rectangle<float> (center.x - TUBE_WIDTH*0.5f, center.y - TUBE_HEIGHT*0.5f, TUBE_WIDTH, TUBE_HEIGHT);
@@ -80,12 +104,8 @@ void TriodeElement::draw (juce::Graphics& g) const
     Terminal labelcenter = center + Terminal {100.0f, -50.0f};
     drawLabel(g, labelcenter, getChoiceLabel());
 
-    //Monitor
-    if (getNumMonitors()>0){
-        Terminal monitor = center + Terminal {100.0f, -30.0f};
-        g.setColour (juce::Colours::red);
-        g.drawText (juce::String(getMonitorValue(0)*1e3f, 2) + " mA",
-                    center.getX() - 40, center.getY() + 2, 80, 18,
-                    juce::Justification::centred, true);
+    if (isHighlighted()){
+        inspector.paint(g);
     }
+
 }

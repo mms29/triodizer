@@ -69,6 +69,7 @@ target_sources(TubeLabPlugin PRIVATE
     src/schematic/OneTermElement.cpp
     src/schematic/TriodeElement.cpp
     src/schematic/SchematicPanel.cpp
+    src/schematic/SchematicBuilder.cpp
 )
 
 # Link JUCE modules

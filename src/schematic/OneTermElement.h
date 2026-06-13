@@ -17,7 +17,7 @@ public:
 };
 
 class VoltageElement : public SchematicElement,
-                            public SettableElement
+                            public SettableElement, public MonitoringElement
 {
 public:
     VoltageElement(const juce::String& name,
@@ -25,7 +25,15 @@ public:
                     const int paramIndex): 
         
         SchematicElement(name, std::vector<Terminal>{termPosition}),
-        SettableElement(paramIndex)
+        SettableElement(paramIndex), MonitoringElement(std::vector<int> {})
+        {};
+    VoltageElement(const juce::String& name,
+                    Terminal termPosition,
+                    const int paramIndex, const int currentMonitorIndex): 
+        
+        SchematicElement(name, std::vector<Terminal>{termPosition}),
+        SettableElement(paramIndex), 
+        MonitoringElement(std::vector<int> {currentMonitorIndex})
         {};
     void draw (juce::Graphics& g) const override;
     juce::String valueToLabel (float v) override;

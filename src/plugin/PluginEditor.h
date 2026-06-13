@@ -5,6 +5,7 @@
 #include "plugin/PluginProcessor.h"
 
 #include "schematic/SchematicPanel.h"
+#include "schematic/SchematicBuilder.h"
 #include "gui/Knob.h"
 #include "gui/WaveformDisplay.h"
 

@@ -31,11 +31,9 @@ public:
 
     enum class Monitoring : int 
     {
-        VDCk1, VDCk2, VDCk3, 
-        VDCp1, VDCp2, VDCp3, 
-        VACk1, VACk2, VACk3, 
-        VACp1, VACp2, VACp3, 
-        Ik1  , Ik2  , Ik3  , 
+        Vk1, Vp1, Ik1, PRg1, PCi1, PRp1, PRk1, PCk1, PCp1, PRVol,
+        Vk2, Vp2, Ik2, PRk2, PRp2, 
+        Vk3, Vp3, Ik3, PRk3,
         Count 
     };
     enum class Param : int 
@@ -196,101 +194,28 @@ public:
         }
     }
     void updateMonitors() override{
-        // ======================
-        // K1
-        // ======================
-        {
-            auto& vdc = monitors[(int)Monitoring::VDCk1];
-            auto& vac = monitors[(int)Monitoring::VACk1];
+        monitors[(int)Monitoring::Vk1] = voltage<T>(w_Rk1);
+        monitors[(int)Monitoring::Vp1] = voltage<T>(w_E1_Rp1);
+        monitors[(int)Monitoring::Ik1] = current<T>(w_Rk1);
 
-            const T x = getVk1();
+        monitors[(int)Monitoring::PRg1] = std::abs(power<T>(w_Rg1));
+        monitors[(int)Monitoring::PCi1] = std::abs(power<T>(w_Vin));
+        monitors[(int)Monitoring::PRk1] = std::abs(power<T>(w_Rk1));
+        monitors[(int)Monitoring::PCk1] = std::abs(power<T>(w_Ck1));
+        monitors[(int)Monitoring::PRp1] = std::abs(power<T>(w_E1_Rp1));
+        monitors[(int)Monitoring::PCp1] = std::abs(power<T>(w_Cp1));
+        monitors[(int)Monitoring::PRVol] = std::abs(power<T>(w_SJ_o1));
 
-            vdc = lowPass(x, vdc);
-            vac = variance(x, vdc, vac);
-        }
+        monitors[(int)Monitoring::Vk2] = voltage<T>(w_Rk2) ;
+        monitors[(int)Monitoring::Vp2] = voltage<T>(w_E2_Rp2);
+        monitors[(int)Monitoring::Ik2] = current<T>(w_Rk2);
+        monitors[(int)Monitoring::PRk2] = std::abs(power<T>(w_Rk2));
+        monitors[(int)Monitoring::PRp2] = std::abs(power<T>(w_E2_Rp2));
 
-        // ======================
-        // K2
-        // ======================
-        {
-            auto& vdc = monitors[(int)Monitoring::VDCk2];
-            auto& vac = monitors[(int)Monitoring::VACk2];
-
-            const T x = getVk2();
-
-            vdc = lowPass(x, vdc);
-            vac = variance(x, vdc, vac);
-        }
-
-        // ======================
-        // K3
-        // ======================
-        {
-            auto& vdc = monitors[(int)Monitoring::VDCk3];
-            auto& vac = monitors[(int)Monitoring::VACk3];
-
-            const T x = getVk3();
-
-            vdc = lowPass(x, vdc);
-            vac = variance(x, vdc, vac);
-        }
-
-        // ======================
-        // P1
-        // ======================
-        {
-            auto& vdc = monitors[(int)Monitoring::VDCp1];
-            auto& vac = monitors[(int)Monitoring::VACp1];
-
-            const T x = getVp1();
-
-            vdc = lowPass(x, vdc);
-            vac = variance(x, vdc, vac);
-        }
-
-        // ======================
-        // P2
-        // ======================
-        {
-            auto& vdc = monitors[(int)Monitoring::VDCp2];
-            auto& vac = monitors[(int)Monitoring::VACp2];
-
-            const T x = getVp2();
-
-            vdc = lowPass(x, vdc);
-            vac = variance(x, vdc, vac);
-        }
-
-        // ======================
-        // P3
-        // ======================
-        {
-            auto& vdc = monitors[(int)Monitoring::VDCp3];
-            auto& vac = monitors[(int)Monitoring::VACp3];
-
-            const T x = getVp3();
-
-            vdc = lowPass(x, vdc);
-            vac = variance(x, vdc, vac);
-        }
-
-        // ======================
-        // CURRENT (DC only)
-        // ======================
-        {
-            auto& ik1 = monitors[(int)Monitoring::Ik1];
-            ik1 = lowPass(getIk1(), ik1);
-        }
-
-        {
-            auto& ik2 = monitors[(int)Monitoring::Ik2];
-            ik2 = lowPass(getIk2(), ik2);
-        }
-
-        {
-            auto& ik3 = monitors[(int)Monitoring::Ik3];
-            ik3 = lowPass(getIk3(), ik3);
-        }
+        monitors[(int)Monitoring::Vk3] = voltage<T>(w_Rk3);        
+        monitors[(int)Monitoring::Vp3] = voltage<T>(w_E3);
+        monitors[(int)Monitoring::Ik3] = current<T>(w_Rk3);
+        monitors[(int)Monitoring::PRk3] = std::abs(power<T>(w_Rk3));
     }
 
 
@@ -330,19 +255,6 @@ public:
         return w_bts.getVoltage();
     }
 
-    // Accessor methods for monitoring internal WDF variables
-    // T getVk1() const { return -w_V1.getVgkAcc(); }
-    // T getVp1() const { return w_V1.getVpkAcc() - w_V1.getVgkAcc(); }
-    T getVk1() const { return voltage<T>(w_Rk1); }
-    T getVp1() const { return voltage<T>(w_E1_Rp1); }
-    T getVk2() const { return voltage<T>(w_Rk2); }
-    T getVp2() const { return voltage<T>(w_E2_Rp2); }
-    T getVk3() const { return voltage<T>(w_Rk3); }
-    T getVp3() const { return voltage<T>(w_E3); }
-
-    T getIk1() const { return current<T>(w_Rk1); }
-    T getIk2() const { return current<T>(w_Rk2); }
-    T getIk3() const { return current<T>(w_Rk3); }
 
 private: 
 

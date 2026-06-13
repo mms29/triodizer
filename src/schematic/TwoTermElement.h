@@ -1,7 +1,7 @@
 #pragma once
 #include "schematic/SchematicElement.h"
 
-class ResistorElement : public SchematicElement, public SettableElement
+class ResistorElement : public SchematicElement, public SettableElement, public MonitoringElement
 {
 public:
     ResistorElement(const juce::String& name,
@@ -9,7 +9,15 @@ public:
                     const int paramIndex): 
         
         SchematicElement(name, std::vector<Terminal>{termA, termB}),
-        SettableElement(paramIndex)
+        SettableElement(paramIndex), MonitoringElement(std::vector<int> {})
+        {};
+    ResistorElement(const juce::String& name,
+                    Terminal termA, Terminal termB,
+                    const int paramIndex, const int currentMonitorIndex): 
+        
+        SchematicElement(name, std::vector<Terminal>{termA, termB}),
+        SettableElement(paramIndex), 
+        MonitoringElement(std::vector<int> {currentMonitorIndex})
         {};
     void draw (juce::Graphics& g) const override;
 
@@ -25,7 +33,7 @@ private:
 };
 
 
-class CapacitorElement : public SchematicElement, public SettableElement
+class CapacitorElement : public SchematicElement, public SettableElement, public MonitoringElement
 {
 public:
     CapacitorElement(const juce::String& name,
@@ -33,7 +41,15 @@ public:
                     const int paramIndex): 
         
         SchematicElement(name, std::vector<Terminal>{termA, termB}),
-        SettableElement(paramIndex)
+        SettableElement(paramIndex), MonitoringElement(std::vector<int> {})
+        {};
+    CapacitorElement(const juce::String& name,
+                    Terminal termA, Terminal termB,
+                    const int paramIndex, const int currentMonitorIndex): 
+        
+        SchematicElement(name, std::vector<Terminal>{termA, termB}),
+        SettableElement(paramIndex), 
+        MonitoringElement(std::vector<int> {currentMonitorIndex})
         {};
     void draw (juce::Graphics& g) const override;
     juce::String valueToLabel (float v) override;

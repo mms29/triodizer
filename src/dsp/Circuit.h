@@ -2,6 +2,13 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
+template <typename T, typename WDFType>
+inline T power (const WDFType& wdf) noexcept
+{
+    return (wdf.wdf.a - wdf.wdf.b) * ((T) 0.5 * wdf.wdf.G) *1e-1;
+}
+
+
 template <typename T>
 class Circuit
 {

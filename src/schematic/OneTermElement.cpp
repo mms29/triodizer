@@ -11,7 +11,7 @@ GroundElement::GroundElement (Terminal termPosition)
 void GroundElement::draw (juce::Graphics& g) const
 {
     float thickness = STROKE_NORMAL;
-    g.setColour (SCHEMATIC_NORMAL);
+    g.setColour (COLOR_NORMAL);
 
     float groundSize = 20.0f;
 
@@ -31,13 +31,13 @@ JunctionElement::JunctionElement (Terminal termPosition)
 }
 void JunctionElement::draw (juce::Graphics& g) const
 {
-    g.setColour (SCHEMATIC_NORMAL);
+    g.setColour (COLOR_NORMAL);
     const auto& p0 = terminals[0];
 
     float radius = 10.0f;
 
     g.fillEllipse(p0.x - radius*0.5f, p0.y - radius*0.5f, radius, radius);
-    g.setColour (SCHEMATIC_BACKGROUND);
+    g.setColour (COLOR_BACKGROUND);
     g.fillEllipse(p0.x - radius*0.25f, p0.y - radius*0.25f, radius*0.5f, radius*0.5f);
 
 }
@@ -81,17 +81,24 @@ juce::String VoltageElement::valueToLabel (float v)
 
 void VoltageElement::draw (juce::Graphics& g) const
 {
-    float thickness = isHighlighted() ? STROKE_HIGHLIGHT : STROKE_NORMAL;
-    g.setColour (isHighlighted() ? SCHEMATIC_HIGHLIGHT : SCHEMATIC_NORMAL);
-
     float groundSize = 20.0f;
 
     const auto& p0 = terminals[0];
 
-    g.drawLine(juce::Line( p0.x, p0.y, p0.x, p0.y - groundSize), thickness);
-    g.drawLine(juce::Line(p0.x - groundSize, p0.y - groundSize, p0.x + groundSize, p0.y - groundSize), thickness);
-    g.drawLine(juce::Line(p0.x - groundSize, p0.y - groundSize, p0.x , p0.y - groundSize*2), thickness);
-    g.drawLine(juce::Line(p0.x + groundSize, p0.y - groundSize, p0.x , p0.y - groundSize*2), thickness);
+    juce::Path p;
+
+    p.startNewSubPath(p0.x, p0.y);
+    p.lineTo(p0.x, p0.y - groundSize);
+
+    p.lineTo(p0.x + groundSize, p0.y - groundSize);
+    p.lineTo(p0.x , p0.y - groundSize*2);
+    p.lineTo(p0.x - groundSize, p0.y - groundSize);
+    p.lineTo(p0.x, p0.y - groundSize);
+
+    float t=0.0f;
+    if (getNumMonitors()> 0)
+        t = getSmoothedValue(0) * POWER_SCALING; 
+    drawGlowPath(g, p, t, COLOR_NORMAL,COLOR_AMBER, isHighlighted());
 
     cachedBounds = juce::Rectangle<float>(p0.x-groundSize, p0.y-groundSize*2 , groundSize*2, groundSize*2);
 
@@ -111,7 +118,7 @@ void VoltmeterElement::draw (juce::Graphics& g) const
                    METER_RADIUS * 4.0f, METER_RADIUS * 2.0f);
 
     // Border
-    g.setColour (SCHEMATIC_NORMAL);
+    g.setColour (COLOR_NORMAL);
     g.drawEllipse (p0.x - METER_RADIUS * 2.0f, p0.y - METER_RADIUS,
                    METER_RADIUS * 4.0f, METER_RADIUS * 2.0f, 2.0f);
 

@@ -62,13 +62,14 @@ void ResistorElement::draw (juce::Graphics& g) const
     const juce::Point<float> a = p0 + d*(length-zigzagLength)/(2*length);
     const juce::Point<float> b = p1 - d*(length-zigzagLength)/(2*length);
 
-    juce::Path zigzag;
-    zigzag.startNewSubPath (p0);
 
     cachedBounds = juce::Rectangle<float> (p0, p1);
     cachedBounds.expand(1.0f + std::abs(v.x*halfAmp), 1.0f + std::abs(v.y*halfAmp));
 
-    zigzag.lineTo(a);
+    juce::Path p;
+    p.startNewSubPath (p0);
+
+    p.lineTo(a);
     juce::Point<float>  curr = a;
     for (int i = 0; i <= zigzagCount; ++i)
     {
@@ -77,14 +78,16 @@ void ResistorElement::draw (juce::Graphics& g) const
         if (i != 0 && i!= zigzagCount){
             curr = curr + (halfAmp*v * sign) + (s*u);
         }
-        zigzag.lineTo (curr);
+        p.lineTo (curr);
     }
-    zigzag.lineTo(p1);
+    p.lineTo(p1);
 
     // Zigzag line
-    g.setColour (isHighlighted() ? SCHEMATIC_HIGHLIGHT : SCHEMATIC_NORMAL);
-    float thickness = isHighlighted() ? STROKE_HIGHLIGHT : STROKE_NORMAL;
-    g.strokePath (zigzag, juce::PathStrokeType (thickness));
+    float t=0.0f;
+    if (getNumMonitors()> 0)
+        t = getSmoothedValue(0) * POWER_SCALING; 
+    drawGlowPath(g, p, t,COLOR_NORMAL,COLOR_AMBER, isHighlighted());
+
 
     // Labels
     const float labelOff = -40.0f;
@@ -167,22 +170,20 @@ void CapacitorElement::draw (juce::Graphics& g) const
     cachedBounds.expand(1.0f + std::abs(v.x*plateWidth/2.0f), 1.0f + std::abs(v.y*plateWidth/2.0f));
 
     // Draw two parallel plates
-    juce::Path leftPlate, rightPlate, positivePath, negativePath;
-    leftPlate.startNewSubPath (a - plateWidth * 0.5f * v);
-    leftPlate.lineTo   (a + plateWidth * 0.5f * v);
-    rightPlate.startNewSubPath (b - plateWidth * 0.5f * v);
-    rightPlate.lineTo   (b + plateWidth * 0.5f * v);
-    positivePath.startNewSubPath (p0);
-    positivePath.lineTo   (a);
-    negativePath.startNewSubPath (p1);
-    negativePath.lineTo   (b);
+    juce::Path p;
+    p.startNewSubPath (p0);
+    p.lineTo   (a);
+    p.startNewSubPath (a - plateWidth * 0.5f * v);
+    p.lineTo   (a + plateWidth * 0.5f * v);
+    p.startNewSubPath (b - plateWidth * 0.5f * v);
+    p.lineTo   (b + plateWidth * 0.5f * v);
+    p.startNewSubPath (p1);
+    p.lineTo   (b);
 
-    g.setColour (isHighlighted() ? SCHEMATIC_HIGHLIGHT : SCHEMATIC_NORMAL);
-    float thickness = isHighlighted() ? STROKE_HIGHLIGHT : STROKE_NORMAL;
-    g.strokePath (leftPlate,  juce::PathStrokeType (thickness));
-    g.strokePath (rightPlate, juce::PathStrokeType (thickness));
-    g.strokePath (positivePath,  juce::PathStrokeType (thickness));
-    g.strokePath (negativePath, juce::PathStrokeType (thickness));
+    float t=0.0f;
+    if (getNumMonitors()> 0)
+        t = getSmoothedValue(0) * POWER_SCALING; 
+    drawGlowPath(g, p, t,COLOR_NORMAL,COLOR_AMBER, isHighlighted());
 
     // Labels
     const float labelOff = -42.0f;
@@ -196,7 +197,7 @@ void CapacitorElement::draw (juce::Graphics& g) const
 
 void TransformerElement::draw (juce::Graphics& g) const
 {
-    g.setColour (isHighlighted() ? SCHEMATIC_HIGHLIGHT : SCHEMATIC_NORMAL);
+    g.setColour (isHighlighted() ? COLOR_HIGHLIGHT : COLOR_NORMAL);
     float thickness = isHighlighted() ? STROKE_HIGHLIGHT : STROKE_NORMAL;
 
     const auto& p0 = terminals[0];

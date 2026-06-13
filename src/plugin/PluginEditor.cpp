@@ -4,7 +4,7 @@
 TubeLabEditor::TubeLabEditor(TubeLabProcessor& p)
     : AudioProcessorEditor(&p), audioProcessor(p),     
     waveformTimer([this] { waveformTimerCallback(); }, 20),
-    schematicTimer([this] { circuitTimerCallback(); }, 5),
+    schematicTimer([this] { circuitTimerCallback(); }, 20),
     waveformDisplay(p)
 {
     audioProcessor.addChangeListener(this);

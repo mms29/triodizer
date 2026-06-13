@@ -26,13 +26,13 @@ void SchematicElement::drawLabel(juce::Graphics& g, Terminal center, juce::Strin
     g.setFont (font);
 
     // Name
-    g.setColour (SCHEMATIC_HIGHLIGHT);
+    g.setColour (COLOR_HIGHLIGHT);
     g.drawText (getName(),
                 center.getX() - 40, center.getY() - 18, 80, 18,
                 juce::Justification::centred, true);
 
     // Value
-    g.setColour (SCHEMATIC_NORMAL);
+    g.setColour (COLOR_NORMAL);
     g.drawText (value,
                 center.getX() - 40, center.getY() + 2, 80, 18,
                 juce::Justification::centred, true);
@@ -71,7 +71,7 @@ void PotElement::controlCallback(float value, SchematicPanelListener* listener)
 void PotElement::draw (juce::Graphics& g) const
 {
     float thickness = isHighlighted() ? STROKE_HIGHLIGHT : STROKE_NORMAL;
-    g.setColour (isHighlighted() ? SCHEMATIC_HIGHLIGHT : SCHEMATIC_NORMAL);
+    g.setColour (isHighlighted() ? COLOR_HIGHLIGHT : COLOR_NORMAL);
 
     const auto& p0 = terminals[0];
     const auto& p1 = terminals[1];
@@ -91,12 +91,16 @@ void PotElement::draw (juce::Graphics& g) const
     const juce::Point<float> b = p1 - d*(length-zigzagLength)/(2*length);
     const juce::Point<float> ab = b-a;
 
-    juce::Path zigzag;
-    zigzag.startNewSubPath (p0);
 
     cachedBounds = juce::Rectangle<float> (p0, p1);
     cachedBounds.expand(1.0f + std::abs(v.x*halfAmp), 1.0f + std::abs(v.y*halfAmp));
+    float t=0.0f;
+    if (getNumMonitors()> 0)
+        t = getSmoothedValue(0) * POWER_SCALING; 
 
+
+    juce::Path zigzag;
+    zigzag.startNewSubPath (p0);
     zigzag.lineTo(a);
     juce::Point<float>  curr = a;
     for (int i = 0; i <= zigzagCount; ++i)
@@ -110,11 +114,15 @@ void PotElement::draw (juce::Graphics& g) const
     }
     zigzag.lineTo(p1);
 
-    // Zigzag line
+    drawGlowPath(g, zigzag, t, COLOR_NORMAL, COLOR_AMBER, isHighlighted());
+
+    // Arrow
     float ratio = (100.0f-controlValue)/100.0f ;
-    g.strokePath (zigzag, juce::PathStrokeType (thickness));
-    g.drawArrow(juce::Line(p0 + d*0.5f -v*zigzagLength, a + ab*ratio -v*zigzagAmplitude*1.3f), thickness, 10.0f, 10.0f);
-    g.drawLine(juce::Line(p0 + d*0.5f -v*zigzagLength, p2), thickness);
+    juce::Path arrow;
+    arrow.startNewSubPath(p2);
+    arrow.lineTo(p0 + d*0.5f -v*zigzagLength);
+    arrow.addArrow(juce::Line(p0 + d*0.5f -v*zigzagLength, a + ab*ratio -v*zigzagAmplitude*1.3f), 1.0f, 10.0f, 10.0f);
+    drawGlowPath(g, arrow, 0.0f, COLOR_NORMAL, COLOR_AMBER, isHighlighted());
 
     // Labels
     const float labelOff = 40.0f;
@@ -168,4 +176,106 @@ juce::String PotElement::valueToLabel (float v)
     if (v >= 1) return juce::String (v, 0) + "R";
     if (v < 1 ) return juce::String (v * 1e3, 2) + "m";
     return juce::String (v);
+}
+
+
+ComponentInspector::ComponentInspector()
+{
+    setInterceptsMouseClicks (false, false);
+}
+
+void ComponentInspector::paint (juce::Graphics& g)
+{
+    auto bounds = getLocalBounds().toFloat();
+
+    // Background
+    g.setColour (COLOR_BACKGROUND);
+    g.fillRoundedRectangle (bounds, 10.0f);
+
+    // Border
+    g.setColour (juce::Colours::white.withAlpha (0.15f));
+    g.drawRoundedRectangle (bounds.reduced (1.0f), 10.0f, 1.0f);
+
+    // Title
+    g.setColour (juce::Colours::white);
+    g.setFont (18.0f);
+
+    g.drawText ("Rk1",
+                15, 10,
+                getWidth() - 30, 24,
+                juce::Justification::left);
+
+    // Dummy values
+    g.setFont (14.0f);
+
+    g.drawText ("Voltage : 1.82 V",
+                15, 45,
+                getWidth() - 30, 20,
+                juce::Justification::left);
+
+    g.drawText ("Current : 1.21 mA",
+                15, 65,
+                getWidth() - 30, 20,
+                juce::Justification::left);
+
+    g.drawText ("Power : 2.20 mW",
+                15, 85,
+                getWidth() - 30, 20,
+                juce::Justification::left);
+
+    g.drawText ("Cathode bias resistor",
+                15, 120,
+                getWidth() - 30, 20,
+                juce::Justification::left);
+
+    g.drawText ("Used to set the tube bias point.",
+                15, 140,
+                getWidth() - 30, 40,
+                juce::Justification::topLeft);
+}
+
+
+void drawGlowPath(juce::Graphics& g,
+                  const juce::Path& path,
+                  float intensity, 
+                  juce::Colour coreColour, 
+                  juce::Colour glowColour, 
+                  bool highlight
+)
+{
+
+    intensity = juce::jlimit (0.0f, 1.0f, intensity);
+    float coreIntensity = 0.5f + intensity*0.5f;
+
+    auto white = juce::Colours::white;
+
+    juce::PathStrokeType::JointStyle joinStyle = juce::PathStrokeType::curved;
+    juce::PathStrokeType::EndCapStyle endStyle = juce::PathStrokeType::square;
+
+    if(intensity>0.0f){
+        for (int i = 0; i<9; i++){
+            g.setColour(glowColour.withAlpha(0.006f*(i+1)*(i+1) * intensity));
+            g.strokePath(path, juce::PathStrokeType(6* (10-i), joinStyle, endStyle));
+        }
+
+    }
+    // contrast
+    g.setColour(COLOR_BACKGROUND.withAlpha(0.5f * coreIntensity));
+    g.strokePath(path, juce::PathStrokeType(5.5f, joinStyle, endStyle));
+
+    // Bright plasma
+    g.setColour(coreColour.withAlpha(0.6f * coreIntensity));
+    g.strokePath(path, juce::PathStrokeType(4.0f, joinStyle, endStyle));
+    g.setColour(coreColour.withAlpha(0.7f * coreIntensity));
+    g.strokePath(path, juce::PathStrokeType(3.0f, joinStyle, endStyle));
+
+    // White hot core
+    g.setColour(white.withAlpha(coreIntensity));
+    g.strokePath(path, juce::PathStrokeType(1.5f, joinStyle, endStyle));
+
+    if (highlight){
+
+        g.setColour(white.withAlpha(coreIntensity));
+        g.strokePath(path, juce::PathStrokeType(STROKE_HIGHLIGHT, joinStyle, endStyle));
+    }
 }
