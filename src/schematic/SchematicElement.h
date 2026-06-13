@@ -3,6 +3,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <vector>
 #include "gui/Knob.h"
+#include "schematic/SignalPath.h"
     
 const float STROKE_NORMAL = 2.5f;
 const float STROKE_HIGHLIGHT = 5.0f;
@@ -19,7 +20,7 @@ const int FONT_TITLE = 22.0f;
 const int FONT_SUB1 =  18.0f;
 const int FONT_SUB2 =  14.0f;
 
-const float POWER_SCALING = 1.0e3f;
+const float POWER_SCALING = 1e3f;
 struct ValueChoice
 {
     juce::String label;
@@ -36,7 +37,15 @@ void drawGlowPath(juce::Graphics& g,
                   juce::Colour glowColour, 
                   bool highlight
 );
-juce::Colour getSignalColour (float t);
+// void drawSignalPath (juce::Graphics& g,
+//                       juce::Point<float> A,
+//                       juce::Point<float> B,
+//                       float intensity,
+//                       int clock);
+void drawSignalPath (juce::Graphics& g,
+                     const CachedPath& cachedPath,
+                     float intensity,
+                     int clockTick);
 /* 
 ------------------------------------------------------------------------------------------------------------------------
     Base class for Elements in the schematic
@@ -56,6 +65,8 @@ public:
     const std::vector<Terminal>& getTerminals() const noexcept;
     bool isHighlighted() const noexcept;
     virtual void setHighlighted (bool shouldBeHighlighted) noexcept;
+    bool isSignalPath() const noexcept {return signalPath;};
+    virtual void setSignalPath (bool should) noexcept {signalPath = should;};
 
     // Templates
     virtual void draw (juce::Graphics& g) const = 0;
@@ -64,12 +75,20 @@ public:
     // Helper function to display param label
     void drawLabel(juce::Graphics& g, Terminal center, juce::String labelValue) const;
 
+    // clock helpers
+    static int getClock() {return clock;}
+    static void incrementClock (){clock++;}
+    virtual void createSignalPath (const int signalPathMode) { setSignalPath(true);}
 
 protected:
     bool                               highlighted      = false;
     mutable juce::Rectangle<float>     cachedBounds;
     juce::String                       name;
     std::vector<Terminal>              terminals;
+    static inline int                  clock=0;
+    bool signalPath = false;
+    std::vector<CachedPath> signalPaths;
+
 };
 
 /* 
@@ -215,6 +234,7 @@ public:
     {
         monitorValues.resize(circuitIndices.size(), 0.0f);
         smoothedValues.resize(circuitIndices.size(), 0.0f);
+        rmsValues.resize(circuitIndices.size(), 0.0f);
     }
 
     int getNumMonitors() const noexcept
@@ -225,7 +245,9 @@ public:
     void setMonitorValue(int monitorIndex, float v) noexcept
     {
         monitorValues[(size_t) monitorIndex] = v;
-        smoothedValues[(size_t) monitorIndex] = lowPass(v, getSmoothedValue(monitorIndex));
+        auto s = getSmoothedValue(monitorIndex);
+        smoothedValues[(size_t) monitorIndex] = smooth(v, s);
+        rmsValues[(size_t) monitorIndex] = rms(v, s, getRMSValue(monitorIndex));
     }
 
     int getCircuitIndex(int monitorIndex) const noexcept
@@ -241,19 +263,24 @@ public:
     {
         return smoothedValues[(size_t) monitorIndex];
     }
+    float getRMSValue(int monitorIndex) const noexcept
+    {
+        return rmsValues[(size_t) monitorIndex];
+    }
 
 private:
     float alpha=.05f;
 
-    float lowPass(float x, float mean){
+    float smooth(float x, float mean){
         return mean + alpha * (x - mean);
     }
-    float variance(float x, float mean, float var){
+    float rms(float x, float mean, float var){
         return var + alpha * (std::sqrt((x - mean)*(x - mean)) - var);
     }
 
     std::vector<float> monitorValues;
     std::vector<float> smoothedValues;
+    std::vector<float> rmsValues;
     std::vector<int> circuitIndices;
 };
 /* 
@@ -290,7 +317,7 @@ public:
         ControllableElement(controlIndex),
         SettableElement(paramIndex),
         MonitoringElement(std::vector<int> {})
-        {};
+        {prepareToDraw ();};
     PotElement(const juce::String& name,
                     Terminal termA,
                     Terminal termB,
@@ -303,14 +330,22 @@ public:
         ControllableElement(controlIndex),
         SettableElement(paramIndex),
         MonitoringElement(std::vector<int> {currentMonitorIndex})
-        {};
+        {prepareToDraw ();};
     void draw (juce::Graphics& g) const override;
     void controlCallback(float value, SchematicPanelListener* l) override;
     juce::String valueToLabel (float v) override;
     float labelToValue (const juce::String s) override;
+    void prepareToDraw ();
+    void createSignalPath (const int signalPathMode) override;
 
 private:
     static constexpr int    zigzagCount    = 6;
     static constexpr float  zigzagAmplitude = 10.0f;
     static constexpr int    zigzagLength = 40.0f;
+
+    juce::Path zigzag;
+    Terminal labelCenter, pp0, pp1, pp2;    
+    juce::Path arrow;
+    
+
 };

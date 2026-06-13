@@ -64,7 +64,6 @@ public:
     T getP3(){return P3;}
     WDFMembers<T> wdf;
 
-private:
     T C1 = T(0.25e-9);
     T R4 = T(56.0e3 );
     T C2 = T(20.0e-9);

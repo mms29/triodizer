@@ -12,11 +12,14 @@
  */
 struct Wire
 {
-    Wire (juce::Point<float> startPt, juce::Point<float> endPt)
-        : start (startPt), end (endPt) {}
+    Wire (juce::Point<float> startPt, juce::Point<float> endPt, bool isSignalPath=false)
+        : start (startPt), end (endPt), isSignalPath(isSignalPath) {}
 
     juce::Point<float> start;
     juce::Point<float> end;
+
+    bool isSignalPath;
+    CachedPath signalPath;
 };
 
 

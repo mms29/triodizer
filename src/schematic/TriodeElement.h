@@ -21,21 +21,31 @@ public:
                     const int paramIndex,
                     int choiceIndex,
                     std::vector<ValueChoice> choices,
-                    int currentMonitor
-                    // int plateDCMonitor,
-                    // int plateACMonitor,
-                    // int cathodeDCMonitor,
-                    // int cathodeACMonitor
+                    int currentMonitor,
+                    int gridVoltageMonitor,
+                    int cathodeVoltageMonitor,
+                    int plateVoltageMonitor
                     )
     : SchematicElement (name , std::vector<Terminal>{
                         juce::Point<float>{center.x - TUBE_WIDTH/2, center.y},
                         juce::Point<float>{center.x, center.y - TUBE_HEIGHT/2},
                         juce::Point<float>{center.x - TUBE_WIDTH/4, center.y + TUBE_HEIGHT/2}}),
         ParametrableElement(paramIndex ,choiceIndex ,std::move(choices)) ,
-        MonitoringElement(std::vector<int>{currentMonitor}) {
-{
-}
-        }
+        MonitoringElement(std::vector<int>{currentMonitor, gridVoltageMonitor, cathodeVoltageMonitor, plateVoltageMonitor}) 
+        {prepareToDraw () ;}
+
+    TriodeElement (const juce::String& name,
+                    Terminal center,
+                    const int paramIndex,
+                    int choiceIndex,
+                    std::vector<ValueChoice> choices,
+                    int currentMonitor)
+    : SchematicElement (name , std::vector<Terminal>{
+                        juce::Point<float>{center.x - TUBE_WIDTH/2, center.y},
+                        juce::Point<float>{center.x, center.y - TUBE_HEIGHT/2},
+                        juce::Point<float>{center.x - TUBE_WIDTH/4, center.y + TUBE_HEIGHT/2}}),
+        ParametrableElement(paramIndex ,choiceIndex ,std::move(choices)) ,
+        MonitoringElement(std::vector<int>{currentMonitor}) {prepareToDraw () ;}
 
     TriodeElement (const juce::String& name,
                     Terminal center,
@@ -48,28 +58,17 @@ public:
                         juce::Point<float>{center.x, center.y - TUBE_HEIGHT/2},
                         juce::Point<float>{center.x, center.y + TUBE_HEIGHT/2}}),
         ParametrableElement(paramIndex ,choiceIndex ,std::move(choices)) ,
-        MonitoringElement(std::vector<int>{}) {
-        }
+        MonitoringElement(std::vector<int>{}) {prepareToDraw () ;}
 
                     
     void draw (juce::Graphics& g) const override;
+    void prepareToDraw () ;
     void drawInspector (juce::Graphics& g) const override;
+    void createSignalPath (const int signalPathMode) override;
 
 private:
-    //==========================================================================
-    juce::Array<juce::String> triodeValues; 
+    juce::Path grid, gridHolder, plate, plateHolder, cathode, cathodeHolder, bulb, filament;
+    std::vector<juce::Path> flow, reverseflow;
+    juce::Point<float> labelCenter;
 
-    juce::Colour warmColour (float t) const
-    {
-        t = juce::jlimit (0.0f, 1.0f, t);
-
-        juce::ColourGradient g;
-        g.addColour (0.00, juce::Colours::white);
-        g.addColour (0.25, juce::Colour (255, 255, 180)); // pale yellow
-        g.addColour (0.50, juce::Colours::yellow);
-        g.addColour (0.75, juce::Colour (255, 165, 0));   // orange
-        g.addColour (1.00, juce::Colours::red);
-
-        return g.getColourAtPosition (t);
-    };
 };

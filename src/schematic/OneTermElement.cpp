@@ -97,7 +97,7 @@ void VoltageElement::draw (juce::Graphics& g) const
 
     float t=0.0f;
     if (getNumMonitors()> 0)
-        t = getSmoothedValue(0) * POWER_SCALING; 
+        t = getRMSValue(0) * POWER_SCALING; 
     drawGlowPath(g, p, t, COLOR_NORMAL,COLOR_AMBER, isHighlighted());
 
     cachedBounds = juce::Rectangle<float>(p0.x-groundSize, p0.y-groundSize*2 , groundSize*2, groundSize*2);

@@ -31,9 +31,9 @@ public:
 
     enum class Monitoring : int 
     {
-        Vk1, Vp1, Ik1, PRg1, PCi1, PRp1, PRk1, PCk1, PCp1, PRVol,
-        Vk2, Vp2, Ik2, PRk2, PRp2, 
-        Vk3, Vp3, Ik3, PRk3,
+        Vk1, Vp1, Vg1, Ik1, PRg1, PCi1, PRp1, PRk1, PCk1, PCp1, PRVol,
+        Vk2, Vp2, Vg2, Ik2, PRk2, PRp2, 
+        Vk3, Vp3, Vg3, Ik3, PRk3, PE3, PRBass, PRMid, PRTreble, PC1, PC2, PC3, PR4,
         Count 
     };
     enum class Param : int 
@@ -196,26 +196,38 @@ public:
     void updateMonitors() override{
         monitors[(int)Monitoring::Vk1] = voltage<T>(w_Rk1);
         monitors[(int)Monitoring::Vp1] = voltage<T>(w_E1_Rp1);
+        monitors[(int)Monitoring::Vg1] = voltage<T>(w_Vin);
         monitors[(int)Monitoring::Ik1] = current<T>(w_Rk1);
 
-        monitors[(int)Monitoring::PRg1] = std::abs(power<T>(w_Rg1));
-        monitors[(int)Monitoring::PCi1] = std::abs(power<T>(w_Vin));
-        monitors[(int)Monitoring::PRk1] = std::abs(power<T>(w_Rk1));
-        monitors[(int)Monitoring::PCk1] = std::abs(power<T>(w_Ck1));
-        monitors[(int)Monitoring::PRp1] = std::abs(power<T>(w_E1_Rp1));
-        monitors[(int)Monitoring::PCp1] = std::abs(power<T>(w_Cp1));
-        monitors[(int)Monitoring::PRVol] = std::abs(power<T>(w_SJ_o1));
+        monitors[(int)Monitoring::PRg1] = current<T>((w_Rg1));
+        monitors[(int)Monitoring::PCi1] = current<T>((w_Vin));
+        monitors[(int)Monitoring::PRk1] = current<T>((w_Rk1));
+        monitors[(int)Monitoring::PCk1] = current<T>((w_Ck1));
+        monitors[(int)Monitoring::PRp1] = current<T>((w_E1_Rp1));
+        monitors[(int)Monitoring::PCp1] = current<T>((w_Cp1));
+        monitors[(int)Monitoring::PRVol] = current<T>((w_SJ_o1));
 
         monitors[(int)Monitoring::Vk2] = voltage<T>(w_Rk2) ;
         monitors[(int)Monitoring::Vp2] = voltage<T>(w_E2_Rp2);
+        monitors[(int)Monitoring::Vg2] = voltage<T>(w_V_Rg2);
         monitors[(int)Monitoring::Ik2] = current<T>(w_Rk2);
-        monitors[(int)Monitoring::PRk2] = std::abs(power<T>(w_Rk2));
-        monitors[(int)Monitoring::PRp2] = std::abs(power<T>(w_E2_Rp2));
+        monitors[(int)Monitoring::PRk2] = current<T>((w_Rk2));
+        monitors[(int)Monitoring::PRp2] = current<T>((w_E2_Rp2));
 
         monitors[(int)Monitoring::Vk3] = voltage<T>(w_Rk3);        
         monitors[(int)Monitoring::Vp3] = voltage<T>(w_E3);
+        monitors[(int)Monitoring::Vg3] = voltage<T>(w_V_Rg3);
         monitors[(int)Monitoring::Ik3] = current<T>(w_Rk3);
-        monitors[(int)Monitoring::PRk3] = std::abs(power<T>(w_Rk3));
+        monitors[(int)Monitoring::PRk3] = current<T>((w_Rk3));
+
+        monitors[(int)Monitoring::PE3] = current<T>((w_E3));
+        monitors[(int)Monitoring::PRBass] = current<T>((w_bts.w_R2));
+        monitors[(int)Monitoring::PRMid] = current<T>((w_bts.w_R3_minus));
+        monitors[(int)Monitoring::PRTreble] = current<T>((w_bts.w_R1_minus));
+        monitors[(int)Monitoring::PC1] = current<T>((w_bts.w_C1));
+        monitors[(int)Monitoring::PC2] = current<T>((w_bts.w_C2));
+        monitors[(int)Monitoring::PC3] = current<T>((w_bts.w_C3));
+        monitors[(int)Monitoring::PR4] = current<T>((w_bts.w_R4));
     }
 
 

@@ -67,12 +67,8 @@ void PotElement::controlCallback(float value, SchematicPanelListener* listener)
     return;
 }
 
-
-void PotElement::draw (juce::Graphics& g) const
+void PotElement::prepareToDraw ()
 {
-    float thickness = isHighlighted() ? STROKE_HIGHLIGHT : STROKE_NORMAL;
-    g.setColour (isHighlighted() ? COLOR_HIGHLIGHT : COLOR_NORMAL);
-
     const auto& p0 = terminals[0];
     const auto& p1 = terminals[1];
     const auto& p2 = terminals[2];
@@ -94,12 +90,7 @@ void PotElement::draw (juce::Graphics& g) const
 
     cachedBounds = juce::Rectangle<float> (p0, p1);
     cachedBounds.expand(1.0f + std::abs(v.x*halfAmp), 1.0f + std::abs(v.y*halfAmp));
-    float t=0.0f;
-    if (getNumMonitors()> 0)
-        t = getSmoothedValue(0) * POWER_SCALING; 
 
-
-    juce::Path zigzag;
     zigzag.startNewSubPath (p0);
     zigzag.lineTo(a);
     juce::Point<float>  curr = a;
@@ -113,22 +104,33 @@ void PotElement::draw (juce::Graphics& g) const
         zigzag.lineTo (curr);
     }
     zigzag.lineTo(p1);
-
-    drawGlowPath(g, zigzag, t, COLOR_NORMAL, COLOR_AMBER, isHighlighted());
+    const float labelOff = 40.0f;
+    const juce::Point<float> m = (p0 + p1) * 0.5f;
+    labelCenter = m + labelOff * v;
 
     // Arrow
     float ratio = (100.0f-controlValue)/100.0f ;
-    juce::Path arrow;
     arrow.startNewSubPath(p2);
     arrow.lineTo(p0 + d*0.5f -v*zigzagLength);
     arrow.addArrow(juce::Line(p0 + d*0.5f -v*zigzagLength, a + ab*ratio -v*zigzagAmplitude*1.3f), 1.0f, 10.0f, 10.0f);
+
+    pp0=a;
+    pp1=b;
+    pp2= p0 + d*0.5f -v*zigzagLength;
+}
+void PotElement::draw (juce::Graphics& g) const
+{
+
+    float t=0.0f;
+    if (getNumMonitors()> 0)
+        t = getRMSValue(0) * POWER_SCALING; 
+    drawGlowPath(g, zigzag, t, COLOR_NORMAL, COLOR_AMBER, isHighlighted());
     drawGlowPath(g, arrow, 0.0f, COLOR_NORMAL, COLOR_AMBER, isHighlighted());
 
+    for (auto& p : signalPaths)
+        drawSignalPath(g, p, t, getClock());
     // Labels
-    const float labelOff = 40.0f;
-    const juce::Point<float> m = (p0 + p1) * 0.5f;
-    const juce::Point<float> l = m + labelOff * v;
-    drawLabel(g, l, label);
+    drawLabel(g, labelCenter, label);
 
 }
 
@@ -178,7 +180,26 @@ juce::String PotElement::valueToLabel (float v)
     return juce::String (v);
 }
 
+void PotElement::createSignalPath (const int signalPathMode) 
+{
+    const auto& p0 = terminals[0];
+    const auto& p1 = terminals[1];
+    const auto& p2 = terminals[2];
+    
+    setSignalPath(true);
 
+    juce::Path sigpath;
+    if (signalPathMode == 0){
+        sigpath.startNewSubPath(p0);
+        sigpath.lineTo(pp0);
+        sigpath.lineTo(pp2);
+        sigpath.lineTo(p2);
+    }
+    CachedPath cachedPath;
+    cachedPath.path = sigpath;
+    cachedPath.rebuildCache();
+    signalPaths.push_back (cachedPath);
+}
 void drawGlowPath(juce::Graphics& g,
                   const juce::Path& path,
                   float intensity, 
@@ -189,21 +210,21 @@ void drawGlowPath(juce::Graphics& g,
 {
 
     intensity = juce::jlimit (0.0f, 1.0f, intensity);
-    float coreIntensity = 0.5f + intensity*0.5f;
+    float coreIntensity = 0.7f + intensity*0.3f;
 
     auto white = juce::Colours::white;
 
     juce::PathStrokeType::JointStyle joinStyle = juce::PathStrokeType::curved;
     juce::PathStrokeType::EndCapStyle endStyle = juce::PathStrokeType::square;
 
-    if(intensity>0.0f){
-        for (int i = 0; i<9; i++){
-            g.setColour(glowColour.withAlpha(0.006f*(i+1)*(i+1) * intensity));
-            g.strokePath(path, juce::PathStrokeType(6* (10-i), joinStyle, endStyle));
-        }
+    // if(intensity>0.0f){}
 
+    int init = 5-intensity*5;
+    for (int i = init; i<9; i++){
+        g.setColour(glowColour.withAlpha(0.006f*(i+1)*(i+1) * intensity));
+        g.strokePath(path, juce::PathStrokeType(6* (10-i), joinStyle, endStyle));
     }
-    // contrast
+    // // contrast
     g.setColour(COLOR_BACKGROUND.withAlpha(0.5f * coreIntensity));
     g.strokePath(path, juce::PathStrokeType(5.5f, joinStyle, endStyle));
 
@@ -223,3 +244,104 @@ void drawGlowPath(juce::Graphics& g,
         g.strokePath(path, juce::PathStrokeType(STROKE_HIGHLIGHT, joinStyle, endStyle));
     }
 }
+
+
+void drawSignalPath (juce::Graphics& g,
+                     const CachedPath& cachedPath,
+                     float intensity,
+                     int clockTick)
+{
+    constexpr float beadSpacingPx = 15;
+
+    if (cachedPath.samples.size() < 2)
+        return;
+
+    float speed = juce::jmap (intensity, 0.0f, 1.0f, 0.05f, 3.0f);
+
+    float length = cachedPath.length;
+    int numBeads = juce::jmax (1, (int) (length / beadSpacingPx));
+    float spacing = 1.0f / numBeads;
+
+    for (int i = 0; i < numBeads; ++i)
+    {
+        float phase = i * spacing;
+        float t = phase + clockTick * speed * 0.01f;
+        t -= (int) t; // fast wrap [0..1]
+
+        // use cached interpolation instead of Path queries
+        juce::Point<float> p = cachedPath.getPoint (t);
+        float beadSize = 2.0f ;
+
+        g.setColour(COLOR_LASERGREEN);
+        // g.drawEllipse(p.x - beadSize * 0.5f,
+        //                  p.y - beadSize * 0.5f,
+        //                  beadSize,
+        //                  beadSize, 1.0f);
+
+        juce::Path bead;
+        bead.addEllipse (p.x - beadSize * 0.5f,
+                         p.y - beadSize * 0.5f,
+                         beadSize,
+                         beadSize);
+
+        // g.strokePath(bead, juce::PathStrokeType(1.0f));
+        drawGlowPath (g,
+                      bead,
+                      0.05f,
+                      COLOR_LASERGREEN,
+                      COLOR_LASERGREEN,
+                      false);
+    }
+}
+// void drawSignalPath (juce::Graphics& g,
+//                      juce::Point<float> A,
+//                      juce::Point<float> B,
+//                      float intensity,
+//                      int clockTick)
+// {
+//     // FIXED distance between beads (tweak this)
+//     constexpr float beadSpacingPx = 14.0f;
+
+//     float speed = juce::jmap (intensity, 0.0f, 1.0f,
+//                               0.2f, 3.0f);
+
+//     juce::Point<float> dir = B - A;
+//     float length = dir.getDistanceFromOrigin();
+
+//     if (length <= 0.0001f)
+//         return;
+
+//     dir /= length;
+
+//     // number of beads depends on distance
+//     int numBeads = (int) (length / beadSpacingPx);
+
+//     if (numBeads < 1)
+//         numBeads = 1;
+
+//     float spacing = 1.0f / numBeads;
+
+//     for (int i = 0; i < numBeads; ++i)
+//     {
+//         float phase = i * spacing;
+
+//         float t = std::fmod (phase + clockTick * speed * 0.01f, 1.0f);
+
+//         juce::Point<float> p = A + dir * (t * length);
+
+//         float beadSize = 2.0f;
+
+//         juce::Path bead;
+//         bead.addEllipse (p.x - beadSize * 0.5f,
+//                          p.y - beadSize * 0.5f,
+//                          beadSize,
+//                          beadSize);
+
+//         drawGlowPath (g,
+//                       bead,
+//                       0.05f,
+//                       COLOR_LASERGREEN,
+//                       COLOR_LASERGREEN,
+//                       false);
+//     }
+// }

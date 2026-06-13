@@ -74,7 +74,6 @@ public:
     }
     WDFMembers<T> wdf;
 
-private:
     // Port B
     CapacitorT<T> w_C1;
     ResistorT<T> w_R1_plus;

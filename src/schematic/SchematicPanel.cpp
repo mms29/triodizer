@@ -97,6 +97,7 @@ void SchematicPanel::updateMonitoring ()
             }
         }
     }
+    SchematicElement::incrementClock();
     repaint();
 }
 //==============================================================================

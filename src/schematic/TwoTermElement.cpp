@@ -44,8 +44,7 @@ juce::String ResistorElement::valueToLabel (float v)
     return juce::String (v);
 }
 
-void ResistorElement::draw (juce::Graphics& g) const
-{
+void ResistorElement::prepareToDraw (){
     const auto& p0 = terminals[0];
     const auto& p1 = terminals[1];
 
@@ -66,10 +65,9 @@ void ResistorElement::draw (juce::Graphics& g) const
     cachedBounds = juce::Rectangle<float> (p0, p1);
     cachedBounds.expand(1.0f + std::abs(v.x*halfAmp), 1.0f + std::abs(v.y*halfAmp));
 
-    juce::Path p;
-    p.startNewSubPath (p0);
+    path.startNewSubPath (p0);
 
-    p.lineTo(a);
+    path.lineTo(a);
     juce::Point<float>  curr = a;
     for (int i = 0; i <= zigzagCount; ++i)
     {
@@ -78,23 +76,41 @@ void ResistorElement::draw (juce::Graphics& g) const
         if (i != 0 && i!= zigzagCount){
             curr = curr + (halfAmp*v * sign) + (s*u);
         }
-        p.lineTo (curr);
+        path.lineTo (curr);
     }
-    p.lineTo(p1);
+    path.lineTo(p1);
 
+    const float labelOff = -40.0f;
+    const juce::Point<float> m = (p0 + p1) * 0.5f;
+    labelCenter = m + labelOff * v;
+
+}
+
+
+void ResistorElement::draw (juce::Graphics& g) const
+{
     // Zigzag line
     float t=0.0f;
     if (getNumMonitors()> 0)
-        t = getSmoothedValue(0) * POWER_SCALING; 
-    drawGlowPath(g, p, t,COLOR_NORMAL,COLOR_AMBER, isHighlighted());
+        t = getRMSValue(0) * POWER_SCALING; 
+    drawGlowPath(g, path, t,COLOR_NORMAL,COLOR_AMBER, isHighlighted());
 
-
+    if (isSignalPath()){
+        auto& cachedPath = signalPaths.back();
+        drawSignalPath(g, cachedPath, t, getClock());
+    }
     // Labels
-    const float labelOff = -40.0f;
-    const juce::Point<float> m = (p0 + p1) * 0.5f;
-    const juce::Point<float> l = m + labelOff * v;
-    drawLabel(g, l, label);
+    drawLabel(g, labelCenter, label);
 
+}
+
+void ResistorElement::createSignalPath (const int signalPathMode) 
+{
+    setSignalPath(true);
+    CachedPath cachedPath;
+    cachedPath.path = path;
+    cachedPath.rebuildCache();
+    signalPaths.push_back (cachedPath);
 }
 
 float CapacitorElement:: labelToValue (const juce::String s)
@@ -150,7 +166,8 @@ juce::String CapacitorElement::valueToLabel (float v)
     return juce::String (v);
 }
 
-void CapacitorElement::draw (juce::Graphics& g) const
+
+void CapacitorElement::prepareToDraw ()
 {
     const auto& p0 = terminals[0];
     const auto& p1 = terminals[1];
@@ -170,27 +187,49 @@ void CapacitorElement::draw (juce::Graphics& g) const
     cachedBounds.expand(1.0f + std::abs(v.x*plateWidth/2.0f), 1.0f + std::abs(v.y*plateWidth/2.0f));
 
     // Draw two parallel plates
-    juce::Path p;
-    p.startNewSubPath (p0);
-    p.lineTo   (a);
-    p.startNewSubPath (a - plateWidth * 0.5f * v);
-    p.lineTo   (a + plateWidth * 0.5f * v);
-    p.startNewSubPath (b - plateWidth * 0.5f * v);
-    p.lineTo   (b + plateWidth * 0.5f * v);
-    p.startNewSubPath (p1);
-    p.lineTo   (b);
-
-    float t=0.0f;
-    if (getNumMonitors()> 0)
-        t = getSmoothedValue(0) * POWER_SCALING; 
-    drawGlowPath(g, p, t,COLOR_NORMAL,COLOR_AMBER, isHighlighted());
+    path.startNewSubPath (p0);
+    path.lineTo   (a);
+    path.startNewSubPath (a - plateWidth * 0.5f * v);
+    path.lineTo   (a + plateWidth * 0.5f * v);
+    path.startNewSubPath (b - plateWidth * 0.5f * v);
+    path.lineTo   (b + plateWidth * 0.5f * v);
+    path.startNewSubPath (p1);
+    path.lineTo   (b);
 
     // Labels
     const float labelOff = -42.0f;
     const juce::Point<float> m = (p0 + p1) * 0.5f;
-    const juce::Point<float> l = m + labelOff * v;
-    drawLabel(g, l, label);
+    labelCenter = m + labelOff * v;
+}
 
+void CapacitorElement::createSignalPath (const int signalPathMode) 
+{
+    setSignalPath(true);
+
+    const auto& p0 = terminals[0];
+    const auto& p1 = terminals[1];
+    juce::Path sigpath;
+    sigpath.startNewSubPath (p0);
+    sigpath.lineTo   (p1);
+    CachedPath cachedPath;
+    cachedPath.path = sigpath;
+    cachedPath.rebuildCache();
+    signalPaths.push_back (cachedPath);
+}
+void CapacitorElement::draw (juce::Graphics& g) const
+{
+    float t=0.0f;
+    if (getNumMonitors()> 0)
+        t = getRMSValue(0) * POWER_SCALING; 
+    drawGlowPath(g, path, t, COLOR_NORMAL,COLOR_AMBER, isHighlighted());
+
+ 
+    if (isSignalPath()){
+        auto& cachedPath = signalPaths.back();
+        drawSignalPath(g, cachedPath, t, getClock());
+    }
+
+    drawLabel(g, labelCenter, label);
 }
 
 
