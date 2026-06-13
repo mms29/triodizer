@@ -125,6 +125,18 @@ void SchematicPanel::paint (juce::Graphics& g)
         jassert (elem != nullptr);
         elem->draw (g);
     }
+
+    // Draw Inspectors. at the end
+    for (const auto& elem : elements)
+    {
+        jassert (elem != nullptr);
+        if (elem->isHighlighted()){
+            if (auto* inspectElem = dynamic_cast<InspectableElement*>(elem.get()) )
+            {
+                inspectElem->drawInspector(g);
+            }
+        }
+    }
 }
 
 

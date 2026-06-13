@@ -179,62 +179,6 @@ juce::String PotElement::valueToLabel (float v)
 }
 
 
-ComponentInspector::ComponentInspector()
-{
-    setInterceptsMouseClicks (false, false);
-}
-
-void ComponentInspector::paint (juce::Graphics& g)
-{
-    auto bounds = getLocalBounds().toFloat();
-
-    // Background
-    g.setColour (COLOR_BACKGROUND);
-    g.fillRoundedRectangle (bounds, 10.0f);
-
-    // Border
-    g.setColour (juce::Colours::white.withAlpha (0.15f));
-    g.drawRoundedRectangle (bounds.reduced (1.0f), 10.0f, 1.0f);
-
-    // Title
-    g.setColour (juce::Colours::white);
-    g.setFont (18.0f);
-
-    g.drawText ("Rk1",
-                15, 10,
-                getWidth() - 30, 24,
-                juce::Justification::left);
-
-    // Dummy values
-    g.setFont (14.0f);
-
-    g.drawText ("Voltage : 1.82 V",
-                15, 45,
-                getWidth() - 30, 20,
-                juce::Justification::left);
-
-    g.drawText ("Current : 1.21 mA",
-                15, 65,
-                getWidth() - 30, 20,
-                juce::Justification::left);
-
-    g.drawText ("Power : 2.20 mW",
-                15, 85,
-                getWidth() - 30, 20,
-                juce::Justification::left);
-
-    g.drawText ("Cathode bias resistor",
-                15, 120,
-                getWidth() - 30, 20,
-                juce::Justification::left);
-
-    g.drawText ("Used to set the tube bias point.",
-                15, 140,
-                getWidth() - 30, 40,
-                juce::Justification::topLeft);
-}
-
-
 void drawGlowPath(juce::Graphics& g,
                   const juce::Path& path,
                   float intensity, 

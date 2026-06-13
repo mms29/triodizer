@@ -15,9 +15,9 @@ const juce::Colour COLOR_ELECTRICAL = juce::Colour(80, 180, 255);
 const juce::Colour COLOR_PURPLE = juce::Colour(180, 110, 255);
 const juce::Colour COLOR_HOTRED = juce::Colour(255, 110, 60);
 
-const juce::Font FONT_TITLE = juce::FontOptions(22.0f);
-const juce::Font FONT_SUB1 = juce::FontOptions(18.0f);
-const juce::Font FONT_SUB2 = juce::FontOptions(14.0f);
+const int FONT_TITLE = 22.0f;
+const int FONT_SUB1 =  18.0f;
+const int FONT_SUB2 =  14.0f;
 
 const float POWER_SCALING = 1.0e3f;
 struct ValueChoice
@@ -261,23 +261,12 @@ private:
     InspectableElement
 ------------------------------------------------------------------------------------------------------------------------
 */
-class ComponentInspector : public juce::Component
-{
-public:
-    ComponentInspector();
-
-    void paint (juce::Graphics& g) override;
-};
-
 class InspectableElement
 {
 public:
-    explicit InspectableElement()
-    {
-    }
-
-protected:
-    ComponentInspector inspector;
+    InspectableElement () = default;
+    virtual ~InspectableElement() = default;
+    virtual void drawInspector (juce::Graphics& g) const =0;
 };
 /* 
 ------------------------------------------------------------------------------------------------------------------------

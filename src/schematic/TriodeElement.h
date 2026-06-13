@@ -53,6 +53,7 @@ public:
 
                     
     void draw (juce::Graphics& g) const override;
+    void drawInspector (juce::Graphics& g) const override;
 
 private:
     //==========================================================================

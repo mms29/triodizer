@@ -104,8 +104,40 @@ void TriodeElement::draw (juce::Graphics& g) const
     Terminal labelcenter = center + Terminal {100.0f, -50.0f};
     drawLabel(g, labelcenter, getChoiceLabel());
 
-    if (isHighlighted()){
-        inspector.paint(g);
-    }
+}
 
+
+void TriodeElement::drawInspector (juce::Graphics& g) const
+{
+    const auto& p1 = terminals[1];
+    const auto& p2 = terminals[2];
+    const juce::Point<float> center = Terminal{0.0f, (p2.y-p1.y)*0.5f} + p1 ;
+
+    Terminal inspecTopLeft = center + Terminal {100.0f, -50.0f};
+
+    juce::Rectangle<float> bounds { inspecTopLeft.x, inspecTopLeft.y, 200.0f, 300.0f};
+
+    // Background
+    g.setColour (COLOR_BACKGROUND);
+    g.fillRoundedRectangle (bounds, 10.0f);
+
+    // Border
+    g.setColour (COLOR_NORMAL);
+    g.drawRoundedRectangle (bounds.reduced (1.0f), 10.0f, 2.0f);
+
+    // Title
+    g.setColour (COLOR_HIGHLIGHT);
+    g.setFont (FONT_TITLE);
+
+    g.drawText (getName() + " - " + getChoiceLabel(),bounds,
+                juce::Justification::topLeft);
+
+    bounds.removeFromTop(20);
+    g.drawLine (juce::Line(bounds.getTopLeft(), bounds.getTopRight()), 1.0f);
+    // Dummy values
+    g.setFont (FONT_SUB1);
+
+    g.drawText ("Power : 2.20 mW",
+                bounds.removeFromTop(20),
+                juce::Justification::left);
 }
