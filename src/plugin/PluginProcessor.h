@@ -14,27 +14,29 @@
 #include "dsp/TwinReverb.h"
 
 
-const int PRESET_DEFAULT = 1;
-const int PRESET_COMMONCATHODE = 2;
-const int PRESET_BASSMAN_TS = 3;
-const int PRESET_BASSMAN_PREAMP_SMALL = 4;
-const int PRESET_BASSMAN_PREAMP = 5;
-const int PRESET_DUAL_RECTIFIER_PREAMP = 6;
-const int PRESET_LCLADDER = 7;
-const int PRESET_TWIN_REVERB = 8;
+inline constexpr int PRESET_DEFAULT = 1;
+inline constexpr int PRESET_COMMONCATHODE = 2;
+inline constexpr int PRESET_BASSMAN_TS = 3;
+inline constexpr int PRESET_BASSMAN_PREAMP_SMALL = 4;
+inline constexpr int PRESET_BASSMAN_PREAMP = 5;
+inline constexpr int PRESET_DUAL_RECTIFIER_PREAMP = 6;
+inline constexpr int PRESET_LCLADDER = 7;
+inline constexpr int PRESET_TWIN_REVERB = 8;
 
+// WaveformBuffer: Ring buffer for waveform display visualization
+// size must be a power of 2 for efficient wrapping with bitwise AND
 class WaveformBuffer
 {
 public:
-    void push(float sample)
+    void push (float sample) noexcept
     {
         buffer[writeIndex] = sample;
         writeIndex = (writeIndex + 1) & (size - 1);
     }
 
-    void getLastBlock(float* dest, int numSamples) const
+    void getLastBlock (float* dest, int numSamples) const noexcept
     {
-        auto idx = writeIndex.load(std::memory_order_relaxed);
+        auto idx = writeIndex.load (std::memory_order_relaxed);
         for (int i = 0; i < numSamples; ++i)
         {
             idx = (idx + size - 1) & (size - 1);
@@ -48,6 +50,8 @@ private:
     std::atomic<int> writeIndex { 0 };
 };
 
+// TubeLabProcessor: Main audio processor class for the TubeLab plugin
+// Handles audio processing, parameter management, and circuit state
 class TubeLabProcessor : public juce::AudioProcessor,
                         public juce::ChangeBroadcaster
 {
@@ -57,81 +61,84 @@ public:
 
     const juce::String getName() const override { return "TubeLab"; }
 
-    // Overrides
+    // Audio processor overrides
     bool acceptsMidi() const override { return false; }
     bool producesMidi() const override { return false; }
     bool isMidiEffect() const override { return false; }
     double getTailLengthSeconds() const override { return 0.0; }
-    void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
+
+    void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
     int getNumPrograms() override;
     int getCurrentProgram() override;
-    void setCurrentProgram(int index) override;
-    const juce::String getProgramName(int index) override;
-    void changeProgramName(int index, const juce::String& newName) override;
-    bool isBusesLayoutSupported(const BusesLayout& layouts) const override;
-    void prepareToPlay(double sampleRate, int samplesPerBlock) override;
+    void setCurrentProgram (int index) override;
+    const juce::String getProgramName (int index) override;
+    void changeProgramName (int index, const juce::String& newName) override;
+
+    bool isBusesLayoutSupported (const BusesLayout& layouts) const override;
+    void prepareToPlay (double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
 
-    // Preset
+    // Preset management
     void updatePreset();
-    int getCurrentPreset() const {return currentPreset;}
+    int getCurrentPreset() const { return currentPreset; }
 
-    // Oversampler
+    // Oversampling management
     void updateOversampler();
     void buildOversampler();
 
     // State information
-    void getStateInformation(juce::MemoryBlock& destData) override;
-    void setStateInformation(const void* data, int sizeInBytes) override;
+    void getStateInformation (juce::MemoryBlock& destData) override;
+    void setStateInformation (const void* data, int sizeInBytes) override;
     void loadCircuitState (const juce::ValueTree& t);
     juce::ValueTree saveCircuitState() const;
 
-    // Editor
+    // Editor creation
     bool hasEditor() const override { return true; }
     juce::AudioProcessorEditor* createEditor() override;
     bool supportsDoublePrecisionProcessing() const override { return false; }
 
-    // Circuit
-    void prepareCircuit(double sr);
+    // Circuit interface
+    void prepareCircuit (double sr);
     void resetCircuit();
     void buildCircuit();
     bool circuitReady() const;
-    float getCircuitMonitoring  (const int index, const int ch = 0) const;
-    float getCircuitParam  (const int index, const int ch = 0) const;
-    float getCircuitControl  (const int index, const int ch = 0) const;
-    void setCircuitParam(const int index, float value);
-    void setCircuitControl(const int index, float value);
 
-    // Wave display
-    const WaveformBuffer& getWaveformInputBuffer() const noexcept {return waveformInputBuffer;}
-    const WaveformBuffer& getWaveformOutputBuffer() const noexcept {return waveformOutputBuffer;}
+    float getCircuitMonitoring (const int index, const int ch = 0) const;
+    float getCircuitParam (const int index, const int ch = 0) const;
+    float getCircuitControl (const int index, const int ch = 0) const;
+    void setCircuitParam (const int index, float value);
+    void setCircuitControl (const int index, float value);
 
-    // parameters
+    // Waveform display access
+    const WaveformBuffer& getWaveformInputBuffer() const noexcept { return waveformInputBuffer; }
+    const WaveformBuffer& getWaveformOutputBuffer() const noexcept { return waveformOutputBuffer; }
+
+    // Parameter state (public for editor access)
     juce::AudioProcessorValueTreeState parameters;
 
 private:
-    #ifdef XSIMD_HPP
-    std::unique_ptr<Circuit<xsimd::batch<float>>> circuit;  // one circuit with SIMD channels
-    #else
-    std::unique_ptr<Circuit<float>> circuit[2];  // one per channel
-    #endif
+#ifdef XSIMD_HPP
+    std::unique_ptr<Circuit<xsimd::batch<float>>> circuit;  // One circuit with SIMD channels
+#else
+    std::unique_ptr<Circuit<float>> circuit[2];  // One per channel
+#endif
+
     double sampleRate = 48000.0;
     double oversampleRate = 48000.0;
     int blockSize = 512;
     int oversamplingStages = -1;
 
-    // Waveform ring buffer for continuous display
+    // Waveform ring buffers for continuous display
     WaveformBuffer waveformInputBuffer;
     WaveformBuffer waveformOutputBuffer;
 
     // Oversampling
     std::unique_ptr<juce::dsp::Oversampling<float>> oversampler;
 
-    // Preset
+    // Preset selection
     int currentPreset = PRESET_DEFAULT;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TubeLabProcessor)
-
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TubeLabProcessor)
 };
 
 

@@ -3,10 +3,13 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "plugin/PluginProcessor.h"
 
+// ==============================================================================
+// WaveformDisplay: Component for visualizing input/output waveforms
 class WaveformDisplay : public juce::Component
 {
 public:
     WaveformDisplay (TubeLabProcessor& p) : processor (p) {}
+
     void paint (juce::Graphics& g) override;
 
     void setWaveformColour (juce::Colour c) { waveformColour = c; }

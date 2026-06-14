@@ -1,5 +1,7 @@
 #include "gui/WaveformDisplay.h"
 
+//==============================================================================
+
 void WaveformDisplay::paint (juce::Graphics& g)
 {
     processor.getWaveformInputBuffer().getLastBlock (inputBuffer.data(), displaySize);
@@ -11,10 +13,11 @@ void WaveformDisplay::paint (juce::Graphics& g)
 
     auto halfWidth = bounds.getWidth() * 0.5f;
 
-    auto inputArea  = bounds.removeFromLeft (halfWidth);
+    auto inputArea = bounds.removeFromLeft (halfWidth);
     auto outputArea = bounds;
 
-    auto drawGrid = [&g, this](juce::Rectangle<float> area)
+    // Draw grid with voltage labels
+    auto drawGrid = [&g, this] (juce::Rectangle<float> area)
     {
         g.setColour (juce::Colours::darkgrey);
 
@@ -23,25 +26,27 @@ void WaveformDisplay::paint (juce::Graphics& g)
             auto y = area.getY() + (area.getHeight() * i / 4.0f);
             g.drawLine (area.getX(), y, area.getRight(), y, 1.0f);
         }
-        g.drawText(juce::String((float) area.getHeight()/(4.0f*amplitudeScale), 2 ) +"V", 
+
+        g.drawText (juce::String ((float) area.getHeight() / (4.0f * amplitudeScale), 2) + "V",
             area,
             juce::Justification::bottomLeft, true);
     };
-    g.setColour (juce::Colours::darkgrey);
-    g.drawLine (juce::Line(inputArea.getTopRight() , inputArea.getBottomRight()), 1.5f);
 
-    // GRID + MID LINE
+    g.setColour (juce::Colours::darkgrey);
+    g.drawLine (juce::Line (inputArea.getTopRight(), inputArea.getBottomRight()), 1.5f);
+
+    // Grid + mid line
     drawGrid (inputArea);
     drawGrid (outputArea);
 
-    // =========================
+    //==========================================================================
     // INPUT (LEFT)
-    // =========================
+    //==========================================================================
     if (displaySize > 0)
     {
         auto centerY = inputArea.getCentreY();
-        auto width   = inputArea.getWidth();
-        auto xStep   = width / (float) displaySize;
+        auto width = inputArea.getWidth();
+        auto xStep = width / (float) displaySize;
 
         juce::Path inputPath;
 
@@ -60,14 +65,14 @@ void WaveformDisplay::paint (juce::Graphics& g)
         g.strokePath (inputPath, juce::PathStrokeType (1.5f));
     }
 
-    // =========================
+    //==========================================================================
     // OUTPUT (RIGHT)
-    // =========================
+    //==========================================================================
     if (displaySize > 0)
     {
         auto centerY = outputArea.getCentreY();
-        auto width   = outputArea.getWidth();
-        auto xStep   = width / (float) displaySize;
+        auto width = outputArea.getWidth();
+        auto xStep = width / (float) displaySize;
 
         juce::Path outputPath;
 

@@ -9,70 +9,70 @@
 #include "gui/Knob.h"
 #include "gui/WaveformDisplay.h"
 
-#include "dsp/TriodeGainStage.h"
+// ==============================================================================
+// Parameter constants for drive and gain controls
+inline constexpr float DRIVE_MIN = -60.0f;
+inline constexpr float DRIVE_MAX = 60.0f;
+inline constexpr float DRIVE_DEFAULT = 0.0f;
+inline constexpr float DRIVE_STEP = 0.1f;
 
+inline constexpr float GAIN_MIN = -60.0f;
+inline constexpr float GAIN_MAX = 60.0f;
+inline constexpr float GAIN_DEFAULT = 0.0f;
+inline constexpr float GAIN_STEP = 0.1f;
 
-
-inline constexpr float  DRIVE_MIN = -60.0f;
-inline constexpr float  DRIVE_MAX = 60.0f;
-inline constexpr float  DRIVE_DEFAULT = 0.0f;
-inline constexpr float  DRIVE_STEP = 0.1f;
-
-inline constexpr float  GAIN_MIN = -60.0f;
-inline constexpr float  GAIN_MAX = 60.0f;
-inline constexpr float  GAIN_DEFAULT = 0.0f;
-inline constexpr float  GAIN_STEP = 0.1f;
-
+// Window dimensions
 inline constexpr int WINDOW_WIDTH = 1600;
 inline constexpr int WINDOW_HEIGHT = 920;
 
-
-
+// ==============================================================================
+// CallbackTimer: Timer utility that invokes a callback at specified frequency
 class CallbackTimer : public juce::Timer
 {
 public:
     using Callback = std::function<void()>;
-    CallbackTimer(Callback cb, int hz): callback(std::move(cb)){
-        startTimerHz(hz);
+
+    CallbackTimer (Callback cb, int hz) : callback (std::move (cb))
+    {
+        startTimerHz (hz);
     }
 
     void timerCallback() override
     {
-        if (callback)callback();
+        if (callback)
+            callback();
     }
+
 private:
     Callback callback;
 };
 
+// ==============================================================================
+// TubeLabEditor: Main editor component for the TubeLab plugin
+// Manages the schematic panel, controls, and waveform display
 class TubeLabEditor : public juce::AudioProcessorEditor,
                      public SchematicPanelListener,
                      public juce::ChangeListener
 {
 public:
-    TubeLabEditor(TubeLabProcessor&);
+    TubeLabEditor (TubeLabProcessor&);
     ~TubeLabEditor() override;
 
-    void paint(juce::Graphics&) override;
+    void paint (juce::Graphics&) override;
     void resized() override;
-    
+
     void updateSchematic();
-    void changeListenerCallback(juce::ChangeBroadcaster*) override;
+    void changeListenerCallback (juce::ChangeBroadcaster*) override;
 
     void circuitTimerCallback();
     void waveformTimerCallback();
 
-    // SchematicPanel::Listener
-    void setCircuitParam (const int index, float newValue) override{
-        audioProcessor.setCircuitParam (index, newValue);}
-    void setCircuitControl (const int index, float newValue) override{
-        audioProcessor.setCircuitControl (index, newValue);}
-    float getCircuitMonitoring(const int index) override{
-         return audioProcessor.getCircuitMonitoring (index);}
-    float getCircuitParam(const int index) override{
-         return audioProcessor.getCircuitParam (index);}
-    float getCircuitControl(const int index) override{
-         return audioProcessor.getCircuitControl (index);}
-
+    // SchematicPanel::Listener interface
+    void setCircuitParam (const int index, float newValue) override;
+    void setCircuitControl (const int index, float newValue) override;
+    float getCircuitMonitoring (const int index) override;
+    float getCircuitParam (const int index) override;
+    float getCircuitControl (const int index) override;
 
 private:
     TubeLabProcessor& audioProcessor;
@@ -87,29 +87,26 @@ private:
     std::unique_ptr<SchematicPanel> schematic;
     SchematicBuilder schematicBuilder;
 
-    // Sliders for drive / gain 
+    // Sliders for drive / gain
     std::unique_ptr<Knob> driveKnob;
     std::unique_ptr<Knob> gainKnob;
 
-    // Oversample
+    // Oversampling control
     juce::ComboBox oversampleSelector;
     juce::Label oversampleLabel;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment>
-        oversampleAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> oversampleAttachment;
 
-    //Preset
+    // Preset selection
     juce::ComboBox presetSelector;
     juce::Label presetLabel;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment>
-        presetAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> presetAttachment;
 
     // Zoom controls
-    juce::TextButton resetViewButton {"Reset View"};
+    juce::TextButton resetViewButton { "Reset View" };
 
-    // Mono stereo
+    // Mono/stereo mode toggle
     juce::ToggleButton monoStereoButton;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> monoStereoAttachment;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TubeLabEditor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TubeLabEditor)
 };
-
