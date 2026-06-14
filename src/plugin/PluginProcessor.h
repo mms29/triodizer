@@ -3,8 +3,8 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_dsp/juce_dsp.h>
 
-// #include <xsimd/xsimd.hpp>
-#include <chowdsp_wdf/chowdsp_wdf.h>
+#include "constants/SchematicConstants.h"
+
 #include "dsp/Circuit.h"
 #include "dsp/BassmanPreamp.h"
 #include "dsp/FullBassmanPreamp.h"
@@ -13,16 +13,7 @@
 #include "dsp/SpringModel.h"
 #include "dsp/TwinReverb.h"
 
-
-inline constexpr int PRESET_DEFAULT = 1;
-inline constexpr int PRESET_COMMONCATHODE = 2;
-inline constexpr int PRESET_BASSMAN_TS = 3;
-inline constexpr int PRESET_BASSMAN_PREAMP_SMALL = 4;
-inline constexpr int PRESET_BASSMAN_PREAMP = 5;
-inline constexpr int PRESET_DUAL_RECTIFIER_PREAMP = 6;
-inline constexpr int PRESET_LCLADDER = 7;
-inline constexpr int PRESET_TWIN_REVERB = 8;
-
+// ==============================================================================
 // WaveformBuffer: Ring buffer for waveform display visualization
 // size must be a power of 2 for efficient wrapping with bitwise AND
 class WaveformBuffer
@@ -50,6 +41,7 @@ private:
     std::atomic<int> writeIndex { 0 };
 };
 
+// ==============================================================================
 // TubeLabProcessor: Main audio processor class for the TubeLab plugin
 // Handles audio processing, parameter management, and circuit state
 class TubeLabProcessor : public juce::AudioProcessor,
@@ -140,8 +132,3 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TubeLabProcessor)
 };
-
-
-
-
-

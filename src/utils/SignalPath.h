@@ -1,10 +1,11 @@
 #pragma once
 
 #include <juce_gui_basics/juce_gui_basics.h>
-
-const juce::Colour COLOR_LASERGREEN = juce::Colour(51, 255, 102);
+#include "constants/SchematicConstants.h"
+#include "utils/Glow.h"
 
 constexpr float sampleSpacing = 4.0f; // pixels
+
 
 struct CachedPath
 {
@@ -52,4 +53,8 @@ struct CachedPath
 };
 
 
+void drawSignalPath (juce::Graphics& g,
+                     const CachedPath& cachedPath,
+                     float intensity,
+                     int clockTick);
 

@@ -5,33 +5,14 @@
 #include "schematic/TriodeElement.h"
 #include "schematic/TwoTermElement.h"
 #include "schematic/OneTermElement.h"
+#include "schematic/MultiTermElement.h"
 #include "gui/Knob.h"
-// //==============================================================================
-// /**
-//  * A single wire connecting two terminal positions on the schematic.
-//  */
-// struct Wire
-// {
-//     Wire (juce::Point<float> startPt, juce::Point<float> endPt, bool isSignalPath=false)
-//         : start (startPt), end (endPt), isSignalPath(isSignalPath) {}
-
-//     juce::Point<float> start;
-//     juce::Point<float> end;
-
-//     bool isSignalPath;
-//     CachedPath signalPath;
-// };
 
 
 //==============================================================================
 /**
  * Interactive schematic panel that owns all elements and wires.
- *
- * Acts as a JUCE Component placed inside the editor. Elements are drawn
- * in the order they are added — later elements appear on top.
- *
- * Clicking an element opens a popup menu so the user can pick a new
- * value from the element's getChoices() list.
+    * It handles mouse events, drawing, and communication with the circuit model.
  */
 class SchematicPanel : public juce::Component,
                         private juce::PopupMenu::Options

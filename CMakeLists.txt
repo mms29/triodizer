@@ -66,10 +66,13 @@ target_sources(TubeLabPlugin PRIVATE
     src/gui/Knob.cpp
     src/schematic/SchematicElement.cpp
     src/schematic/TwoTermElement.cpp
+    src/schematic/MultiTermElement.cpp
     src/schematic/OneTermElement.cpp
     src/schematic/TriodeElement.cpp
     src/schematic/SchematicPanel.cpp
     src/schematic/SchematicBuilder.cpp
+    src/utils/Glow.cpp
+    src/utils/SignalPath.cpp
 )
 
 # Link JUCE modules

@@ -3,49 +3,13 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <vector>
 #include "gui/Knob.h"
-#include "schematic/SignalPath.h"
-    
-const float STROKE_NORMAL = 2.5f;
-const float STROKE_HIGHLIGHT = 5.0f;
+#include "utils/SignalPath.h"
+#include "constants/SchematicConstants.h"
+#include "utils/Glow.h"
 
-const juce::Colour COLOR_BACKGROUND = juce::Colour(10, 5, 0);
-const juce::Colour COLOR_NORMAL = juce::Colour(195, 176, 123);
-const juce::Colour COLOR_HIGHLIGHT = juce::Colour(252, 237, 173);
-const juce::Colour COLOR_AMBER = juce::Colour(255, 166, 38);
-const juce::Colour COLOR_ELECTRICAL = juce::Colour(80, 180, 255);
-const juce::Colour COLOR_PURPLE = juce::Colour(180, 110, 255);
-const juce::Colour COLOR_HOTRED = juce::Colour(255, 110, 60);
-
-const int FONT_TITLE = 22.0f;
-const int FONT_SUB1 =  18.0f;
-const int FONT_SUB2 =  14.0f;
-
-const float POWER_SCALING = 1e3f;
-struct ValueChoice
-{
-    juce::String label;
-    float value;
-};
 
 using Terminal = juce::Point<float> ;
 
-
-void drawGlowPath(juce::Graphics& g,
-                  const juce::Path& path,
-                  float intensity, 
-                  juce::Colour coreColour, 
-                  juce::Colour glowColour, 
-                  bool highlight
-);
-// void drawSignalPath (juce::Graphics& g,
-//                       juce::Point<float> A,
-//                       juce::Point<float> B,
-//                       float intensity,
-//                       int clock);
-void drawSignalPath (juce::Graphics& g,
-                     const CachedPath& cachedPath,
-                     float intensity,
-                     int clockTick);
 /* 
 ------------------------------------------------------------------------------------------------------------------------
     Base class for Elements in the schematic
@@ -68,6 +32,7 @@ public:
 
     // Templates
     virtual void draw (juce::Graphics& g) const = 0;
+    virtual void prepareToDraw () {}
     virtual bool hitTest (juce::Point<float> point) const;
 
     // clock helpers
@@ -145,6 +110,12 @@ protected:
     Parametrable element with a popup menu 
 ------------------------------------------------------------------------------------------------------------------------
 */
+
+struct ValueChoice
+{
+    juce::String label;
+    float value;
+};
 class ParametrableElement
 {
 public:
@@ -314,11 +285,9 @@ public:
                 monitoringIndex >= 0
                     ? std::vector<int>{monitoringIndex}
                     : std::vector<int>{})
+                    
     {
-        prepareToDraw();
-        if (isSignalPath)
-            createSignalPath(0);
-
+        setSignalPath(isSignalPath);
     };
     void createSignalPath (const int ) override { 
         setSignalPath(true);
@@ -326,7 +295,7 @@ public:
         cachedWirePath.rebuildCache();
         signalPaths.push_back(cachedWirePath);
     }
-    void prepareToDraw ()
+    void prepareToDraw () override
     {
         jassert (terminals.size() == 2);
         const auto& start = terminals[0];
@@ -334,12 +303,15 @@ public:
 
         wirePath.startNewSubPath(start);
         wirePath.lineTo(end);
+
+        if (isSigPath)
+            createSignalPath(0);
     }
 
     void draw (juce::Graphics& g) const override
     {
 
-        drawGlowPath(g, wirePath, 0.0f, COLOR_NORMAL,COLOR_AMBER,false);
+        drawGlowPath(g, wirePath, 0.0f, getColourNormal(),getColourAmber(),false);
 
         for (const auto& sigpath : signalPaths)
             drawSignalPath(g, sigpath, 0.0f, getClock());
@@ -359,57 +331,4 @@ public:
     InspectableElement () = default;
     virtual ~InspectableElement() = default;
     virtual void drawInspector (juce::Graphics& g) const =0;
-};
-/* 
-------------------------------------------------------------------------------------------------------------------------
-    Potentiometer element
-------------------------------------------------------------------------------------------------------------------------
-*/
-class PotElement :  public SchematicElement, 
-                    public ControllableElement, 
-                    public SettableElement,
-                    public MonitoringElement
-{
-public:
-    PotElement(const juce::String& name,
-                    Terminal termA,
-                    Terminal termB,
-                    Terminal termC,
-                    const int controlIndex,
-                    const int paramIndex): 
-        
-        SchematicElement(name, std::vector<Terminal>{termA, termB, termC}),
-        ControllableElement(controlIndex),
-        SettableElement(paramIndex),
-        MonitoringElement(std::vector<int> {})
-        {prepareToDraw ();};
-    PotElement(const juce::String& name,
-                    Terminal termA,
-                    Terminal termB,
-                    Terminal termC,
-                    const int controlIndex,
-                    const int paramIndex,
-                    const int currentMonitorIndex): 
-        
-        SchematicElement(name, std::vector<Terminal>{termA, termB, termC}),
-        ControllableElement(controlIndex),
-        SettableElement(paramIndex),
-        MonitoringElement(std::vector<int> {currentMonitorIndex})
-        {prepareToDraw ();};
-    void draw (juce::Graphics& g) const override;
-    void controlCallback(float value, SchematicPanelListener* l) override;
-    juce::String valueToLabel (float v) override;
-    float labelToValue (const juce::String s) override;
-    void prepareToDraw ();
-    void createSignalPath (const int signalPathMode) override;
-
-private:
-    static constexpr int    zigzagCount    = 6;
-    static constexpr float  zigzagAmplitude = 10.0f;
-    static constexpr int    zigzagLength = 40.0f;
-
-    juce::Path zigzag;
-    Terminal labelCenter, pp0, pp1, pp2, arrowDir;    
-    
-
 };

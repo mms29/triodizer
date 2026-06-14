@@ -4,26 +4,12 @@
 
 #include "plugin/PluginProcessor.h"
 
+#include "constants/SchematicConstants.h"
+
 #include "schematic/SchematicPanel.h"
 #include "schematic/SchematicBuilder.h"
 #include "gui/Knob.h"
 #include "gui/WaveformDisplay.h"
-
-// ==============================================================================
-// Parameter constants for drive and gain controls
-inline constexpr float DRIVE_MIN = -60.0f;
-inline constexpr float DRIVE_MAX = 60.0f;
-inline constexpr float DRIVE_DEFAULT = 0.0f;
-inline constexpr float DRIVE_STEP = 0.1f;
-
-inline constexpr float GAIN_MIN = -60.0f;
-inline constexpr float GAIN_MAX = 60.0f;
-inline constexpr float GAIN_DEFAULT = 0.0f;
-inline constexpr float GAIN_STEP = 0.1f;
-
-// Window dimensions
-inline constexpr int WINDOW_WIDTH = 1600;
-inline constexpr int WINDOW_HEIGHT = 920;
 
 // ==============================================================================
 // CallbackTimer: Timer utility that invokes a callback at specified frequency

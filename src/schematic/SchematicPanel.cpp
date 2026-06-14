@@ -9,7 +9,8 @@ SchematicPanel::SchematicPanel(SchematicPanelListener* l) : listener(l)
 void SchematicPanel::addElement (std::unique_ptr<SchematicElement> element)
 {
     jassert (element != nullptr);
-    
+    element->prepareToDraw();
+
     if (auto* ctrlElem = dynamic_cast<ControllableElement*>(element.get()))
     {
         std::unique_ptr<Knob> controlKnob = std::make_unique<Knob>(
@@ -66,11 +67,12 @@ void SchematicPanel::syncSchematicToCircuit(){
 
 void SchematicPanel::addWire (juce::Point<float> start, juce::Point<float> end)
 {
-    wires.push_back (std::make_unique<WireElement>(std::vector<Terminal>{start, end}));
+    addWireElem(std::make_unique<WireElement>(std::vector<Terminal>{start, end}));
 }
 
 void SchematicPanel::addWireElem (std::unique_ptr<WireElement> wire)
 {
+    wire->prepareToDraw();
     wires.push_back (std::move (wire));
 }
 
@@ -109,7 +111,7 @@ void SchematicPanel::updateMonitoring ()
 void SchematicPanel::paint (juce::Graphics& g)
 {
     // Background
-    g.fillAll (COLOR_BACKGROUND);
+    g.fillAll (getColourBackground());
 
     // Apply zoom and pan transform
     g.addTransform(juce::AffineTransform::scale(zoomFactor).followedBy(
@@ -119,6 +121,7 @@ void SchematicPanel::paint (juce::Graphics& g)
     for (const auto& wire : wires)
     {
         jassert (wire != nullptr);
+        std::cout<<wire->isSignalPath()<<std::endl;
         wire->draw (g);
     }
 

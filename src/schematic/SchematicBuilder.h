@@ -24,41 +24,35 @@ public:
 
 private:
 
-        static constexpr float XS = 50.0f;
-        static constexpr float S  = 75.0f;
-        static constexpr float M  = 100.0f;
-        static constexpr float L  = 150.0f;
-        static constexpr float XL = 200.0f;
-
         inline static const Terminal left   {-1.0f,  0.0f};
         inline static const Terminal right  { 1.0f,  0.0f};
         inline static const Terminal top    { 0.0f, -1.0f};
         inline static const Terminal bottom { 0.0f,  1.0f};
 
-        inline static const Terminal leftXS   = left   * XS;
-        inline static const Terminal rightXS  = right  * XS;
-        inline static const Terminal topXS    = top    * XS;
-        inline static const Terminal bottomXS = bottom * XS;
+        inline static const Terminal leftXS   = left   * SPACING_XS;
+        inline static const Terminal rightXS  = right  * SPACING_XS;
+        inline static const Terminal topXS    = top    * SPACING_XS;
+        inline static const Terminal bottomXS = bottom * SPACING_XS;
 
-        inline static const Terminal leftS    = left   * S;
-        inline static const Terminal rightS   = right  * S;
-        inline static const Terminal topS     = top    * S;
-        inline static const Terminal bottomS  = bottom * S;
+        inline static const Terminal leftS    = left   * SPACING_S;
+        inline static const Terminal rightS   = right  * SPACING_S;
+        inline static const Terminal topS     = top    * SPACING_S;
+        inline static const Terminal bottomS  = bottom * SPACING_S;
 
-        inline static const Terminal leftM    = left   * M;
-        inline static const Terminal rightM   = right  * M;
-        inline static const Terminal topM     = top    * M;
-        inline static const Terminal bottomM  = bottom * M;
+        inline static const Terminal leftM    = left   * SPACING_M;
+        inline static const Terminal rightM   = right  * SPACING_M;
+        inline static const Terminal topM     = top    * SPACING_M;
+        inline static const Terminal bottomM  = bottom * SPACING_M;
 
-        inline static const Terminal leftL    = left   * L;
-        inline static const Terminal rightL   = right  * L;
-        inline static const Terminal topL     = top    * L;
-        inline static const Terminal bottomL  = bottom * L;
+        inline static const Terminal leftL    = left   * SPACING_L;
+        inline static const Terminal rightL   = right  * SPACING_L;
+        inline static const Terminal topL     = top    * SPACING_L;
+        inline static const Terminal bottomL  = bottom * SPACING_L;
 
-        inline static const Terminal leftXL   = left   * XL;
-        inline static const Terminal rightXL  = right  * XL;
-        inline static const Terminal topXL    = top    * XL;
-        inline static const Terminal bottomXL = bottom * XL;
+        inline static const Terminal leftXL   = left   * SPACING_XL;
+        inline static const Terminal rightXL  = right  * SPACING_XL;
+        inline static const Terminal topXL    = top    * SPACING_XL;
+        inline static const Terminal bottomXL = bottom * SPACING_XL;
 };
 
 static const std::vector<ValueChoice> triodeChoices =
