@@ -1,10 +1,9 @@
 #include "schematic/SchematicElement.h"
 
-const juce::String& SchematicElement::getName() const noexcept       { return name; }
-bool                SchematicElement::isHighlighted() const noexcept  { return highlighted; }
-void SchematicElement::setHighlighted (bool should) noexcept { highlighted = should; }
+bool                BaseElement::isHighlighted() const noexcept  { return highlighted; }
+void BaseElement::setHighlighted (bool should) noexcept { highlighted = should; }
 
-bool SchematicElement::hitTest (juce::Point<float> point) const
+bool BaseElement::hitTest (juce::Point<float> point) const
 {
     for (const auto& terminal : terminals)
         if (terminal.getDistanceFrom (point) < 12.0f)
@@ -14,11 +13,12 @@ bool SchematicElement::hitTest (juce::Point<float> point) const
     return false;
 }
 
-const std::vector<Terminal>& SchematicElement::getTerminals() const noexcept
+const std::vector<Terminal>& BaseElement::getTerminals() const noexcept
 {
     return terminals;
 }
 
+const juce::String& SchematicElement::getName() const noexcept       { return name; }
 void SchematicElement::drawLabel(juce::Graphics& g, Terminal center, juce::String value) const{
     juce::Font font (juce::FontOptions (18.0f));
     if (isHighlighted())
@@ -108,18 +108,20 @@ void PotElement::prepareToDraw ()
     const juce::Point<float> m = (p0 + p1) * 0.5f;
     labelCenter = m + labelOff * v;
 
-    // Arrow
-    float ratio = (100.0f-controlValue)/100.0f ;
-    arrow.startNewSubPath(p2);
-    arrow.lineTo(p0 + d*0.5f -v*zigzagLength);
-    arrow.addArrow(juce::Line(p0 + d*0.5f -v*zigzagLength, a + ab*ratio -v*zigzagAmplitude*1.3f), 1.0f, 10.0f, 10.0f);
-
     pp0=a;
     pp1=b;
     pp2= p0 + d*0.5f -v*zigzagLength;
+    arrowDir = v;
 }
 void PotElement::draw (juce::Graphics& g) const
 {
+    const auto& p2 = terminals[2];
+    // Arrow
+    float ratio = (100.0f-controlValue)/100.0f ;
+    juce::Path arrow;
+    arrow.startNewSubPath(p2);
+    arrow.lineTo(pp2);
+    arrow.addArrow(juce::Line(pp2, pp0 + (pp1-pp0)*ratio -arrowDir*zigzagAmplitude*1.3f), 1.0f, 10.0f, 10.0f);
 
     float t=0.0f;
     if (getNumMonitors()> 0)

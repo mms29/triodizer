@@ -51,29 +51,24 @@ void drawSignalPath (juce::Graphics& g,
     Base class for Elements in the schematic
 ------------------------------------------------------------------------------------------------------------------------
 */
-class SchematicElement 
+class BaseElement 
 {
 public:
-    SchematicElement (const juce::String& name,
-                      std::vector<Terminal> terminals)
-                      : name (name), terminals (std::move (terminals)){};
+    BaseElement (std::vector<Terminal> terminals)
+                 : terminals (std::move (terminals)){};
 
-    virtual ~SchematicElement() = default;
+    virtual ~BaseElement() = default;
 
     // Accessors
-    const juce::String& getName() const noexcept;
     const std::vector<Terminal>& getTerminals() const noexcept;
     bool isHighlighted() const noexcept;
     virtual void setHighlighted (bool shouldBeHighlighted) noexcept;
-    bool isSignalPath() const noexcept {return signalPath;};
-    virtual void setSignalPath (bool should) noexcept {signalPath = should;};
+    bool isSignalPath() const noexcept {return isSigPath;};
+    virtual void setSignalPath (bool value) noexcept {isSigPath = value;};
 
     // Templates
     virtual void draw (juce::Graphics& g) const = 0;
     virtual bool hitTest (juce::Point<float> point) const;
-
-    // Helper function to display param label
-    void drawLabel(juce::Graphics& g, Terminal center, juce::String labelValue) const;
 
     // clock helpers
     static int getClock() {return clock;}
@@ -83,11 +78,29 @@ public:
 protected:
     bool                               highlighted      = false;
     mutable juce::Rectangle<float>     cachedBounds;
-    juce::String                       name;
     std::vector<Terminal>              terminals;
     static inline int                  clock=0;
-    bool signalPath = false;
+    bool isSigPath = false;
     std::vector<CachedPath> signalPaths;
+
+};
+class SchematicElement : public BaseElement
+{
+public:
+    SchematicElement (const juce::String& name,
+                      std::vector<Terminal> terminals)
+                      : name (name), BaseElement(terminals){};
+
+    virtual ~SchematicElement() = default;
+
+    // Accessors
+    const juce::String& getName() const noexcept;
+
+    // Helper function to display param label
+    void drawLabel(juce::Graphics& g, Terminal center, juce::String labelValue) const;
+
+protected:
+    juce::String                       name;
 
 };
 
@@ -283,6 +296,58 @@ private:
     std::vector<float> rmsValues;
     std::vector<int> circuitIndices;
 };
+
+
+/* 
+------------------------------------------------------------------------------------------------------------------------
+    Wire element
+------------------------------------------------------------------------------------------------------------------------
+*/
+class WireElement : public BaseElement, public MonitoringElement
+{
+public:
+    WireElement(std::vector<Terminal> terminals,
+                    bool isSignalPath = false,
+                    int monitoringIndex = -1)
+            : BaseElement(terminals),
+            MonitoringElement(
+                monitoringIndex >= 0
+                    ? std::vector<int>{monitoringIndex}
+                    : std::vector<int>{})
+    {
+        prepareToDraw();
+        if (isSignalPath)
+            createSignalPath(0);
+
+    };
+    void createSignalPath (const int ) override { 
+        setSignalPath(true);
+        CachedPath cachedWirePath {wirePath};
+        cachedWirePath.rebuildCache();
+        signalPaths.push_back(cachedWirePath);
+    }
+    void prepareToDraw ()
+    {
+        jassert (terminals.size() == 2);
+        const auto& start = terminals[0];
+        const auto& end = terminals[1];
+
+        wirePath.startNewSubPath(start);
+        wirePath.lineTo(end);
+    }
+
+    void draw (juce::Graphics& g) const override
+    {
+
+        drawGlowPath(g, wirePath, 0.0f, COLOR_NORMAL,COLOR_AMBER,false);
+
+        for (const auto& sigpath : signalPaths)
+            drawSignalPath(g, sigpath, 0.0f, getClock());
+    }
+private:
+    juce::Path wirePath;
+};
+
 /* 
 ------------------------------------------------------------------------------------------------------------------------
     InspectableElement
@@ -344,8 +409,7 @@ private:
     static constexpr int    zigzagLength = 40.0f;
 
     juce::Path zigzag;
-    Terminal labelCenter, pp0, pp1, pp2;    
-    juce::Path arrow;
+    Terminal labelCenter, pp0, pp1, pp2, arrowDir;    
     
 
 };

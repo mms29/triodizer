@@ -66,7 +66,12 @@ void SchematicPanel::syncSchematicToCircuit(){
 
 void SchematicPanel::addWire (juce::Point<float> start, juce::Point<float> end)
 {
-    wires.emplace_back (start, end);
+    wires.push_back (std::make_unique<WireElement>(std::vector<Terminal>{start, end}));
+}
+
+void SchematicPanel::addWireElem (std::unique_ptr<WireElement> wire)
+{
+    wires.push_back (std::move (wire));
 }
 
 int SchematicPanel::getNumElements() const noexcept
@@ -113,11 +118,8 @@ void SchematicPanel::paint (juce::Graphics& g)
     // Draw wires first (behind elements)
     for (const auto& wire : wires)
     {
-        juce::Path w;
-        w.startNewSubPath(wire.start);
-        w.lineTo(wire.end);
-        
-        drawGlowPath(g, w, 0.0f, COLOR_NORMAL,COLOR_AMBER,false);
+        jassert (wire != nullptr);
+        wire->draw (g);
     }
 
     // Draw every element on top

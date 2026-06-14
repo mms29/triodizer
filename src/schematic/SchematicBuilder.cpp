@@ -1071,13 +1071,16 @@ void SchematicBuilder::buildBassmanPreamp(SchematicPanel& schematic)
         schematic.getElement("Treble")->getTerminals()[2] ,
         schematic.getElement("Treble")->getTerminals()[2] + rightL
     );
-    schematic.addWire (
+    schematic.addWireElem (std::make_unique<WireElement>(
+        std::vector<Terminal>{
         V3pos[2] ,
-        schematic.getElement("C1")->getTerminals()[0] 
+        schematic.getElement("C1")->getTerminals()[0] }, true)
     );
-    schematic.addWire (
-        V3pos[0] ,
-        V2pos[1]
+    schematic.addWireElem (
+        std::make_unique<WireElement>(
+            std::vector<Terminal>{V2pos[1], V3pos[0]},
+            true
+        )
     );
 
     // I/O

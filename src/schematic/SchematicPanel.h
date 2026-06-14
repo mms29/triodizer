@@ -6,21 +6,21 @@
 #include "schematic/TwoTermElement.h"
 #include "schematic/OneTermElement.h"
 #include "gui/Knob.h"
-//==============================================================================
-/**
- * A single wire connecting two terminal positions on the schematic.
- */
-struct Wire
-{
-    Wire (juce::Point<float> startPt, juce::Point<float> endPt, bool isSignalPath=false)
-        : start (startPt), end (endPt), isSignalPath(isSignalPath) {}
+// //==============================================================================
+// /**
+//  * A single wire connecting two terminal positions on the schematic.
+//  */
+// struct Wire
+// {
+//     Wire (juce::Point<float> startPt, juce::Point<float> endPt, bool isSignalPath=false)
+//         : start (startPt), end (endPt), isSignalPath(isSignalPath) {}
 
-    juce::Point<float> start;
-    juce::Point<float> end;
+//     juce::Point<float> start;
+//     juce::Point<float> end;
 
-    bool isSignalPath;
-    CachedPath signalPath;
-};
+//     bool isSignalPath;
+//     CachedPath signalPath;
+// };
 
 
 //==============================================================================
@@ -45,6 +45,7 @@ public:
 
     void addElement (std::unique_ptr<SchematicElement> element);
     void addWire (juce::Point<float> start, juce::Point<float> end);
+    void addWireElem (std::unique_ptr<WireElement> wire);
     int getNumElements() const noexcept;
     SchematicElement* getElement (juce::String name) const noexcept;
 
@@ -76,7 +77,7 @@ private:
     //==========================================================================
     std::vector<std::unique_ptr<SchematicElement>> elements;
     std::vector<std::unique_ptr<Knob>>             controls;
-    std::vector<Wire>                              wires;
+    std::vector<std::unique_ptr<WireElement>>      wires;
     SchematicPanelListener*                        listener;
     SchematicElement*                              hoveredElement = nullptr;
 
