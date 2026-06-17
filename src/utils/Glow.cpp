@@ -16,7 +16,7 @@ void drawGlowPath(juce::Graphics& g,
     auto white = juce::Colours::white;
 
     juce::PathStrokeType::JointStyle joinStyle = juce::PathStrokeType::curved;
-    juce::PathStrokeType::EndCapStyle endStyle = juce::PathStrokeType::square;
+    juce::PathStrokeType::EndCapStyle endStyle = juce::PathStrokeType::rounded;
 
     // if(intensity>0.0f){}
 

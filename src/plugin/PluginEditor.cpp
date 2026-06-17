@@ -21,35 +21,82 @@ TubeLabEditor::TubeLabEditor (TubeLabProcessor& p)
     //==========================================================================
     // WAVEFORM DISPLAY
     //==========================================================================
-    waveformDisplay.setBackgroundColour (juce::Colours::black);
-    waveformDisplay.setWaveformColour (juce::Colours::cyan);
     addAndMakeVisible (waveformDisplay);
+    juce::Path sinepath = createSineWavePath(juce::Rectangle<float>(10, 10, 40, 40), 2.0f, 0.35f);
+    sinepath.addRoundedRectangle (0, 0, 60, 60, 10.0f);
+
+    scopeButton = std::make_unique<PathToggleButton> (sinepath, "SCOPE", juce::Colours::darkgrey,  getColourHotRed());
+    scopeButton->setClickingTogglesState (true);
+    scopeButton->onClick = [this] 
+    {
+        showScope = scopeButton->getToggleState();
+        waveformDisplay.setVisible (showScope);
+        resized();
+    };
+    addAndMakeVisible (*scopeButton);
 
     //==========================================================================
-    // DRIVE
+    // SIGNAL DISPLAY
     //==========================================================================
-    driveKnob = std::make_unique<Knob> (
-        audioProcessor.parameters,
-        "drive",
-        "Drive",
-        DRIVE_MIN,
-        DRIVE_MAX,
-        DRIVE_STEP,
-        " dB");
-    addAndMakeVisible (*driveKnob);
+    juce::Path sigPath;
+    sigPath.addEllipse (25, 25, 10, 10);
+    sigPath.addEllipse (20, 20, 20, 20);
+    sigPath.addRoundedRectangle (0, 0, 60, 60, 10.0f);
+
+    signalButton = std::make_unique<PathToggleButton> (sigPath, "SIGNAL", juce::Colours::darkgrey,  getColourLaserGreen());
+    signalButton->setClickingTogglesState (true);
+    signalButton->onClick = [this] 
+    {
+    };
+    addAndMakeVisible (*signalButton);
 
     //==========================================================================
-    // GAIN
+    // INSPECT DISPLAY
     //==========================================================================
-    gainKnob = std::make_unique<Knob> (
-        audioProcessor.parameters,
-        "gain",
-        "Gain",
-        GAIN_MIN,
-        GAIN_MAX,
-        GAIN_STEP,
-        " dB");
-    addAndMakeVisible (*gainKnob);
+    juce::Path inspectPath;
+    inspectPath.addEllipse (10, 10, 25, 25);
+    float x = 22.5f + 12.5f * std::sqrt(0.5f);
+    float y = 22.5f + 12.5f * std::sqrt(0.5f);
+    inspectPath.startNewSubPath(x,y);
+    inspectPath.lineTo(50, 50);
+    schematic->setInspectorhActivated(false);
+
+    // inspectPath.addEllipse (20, 20, 20, 20);
+    inspectPath.addRoundedRectangle (0, 0, 60, 60, 10.0f);
+
+    inspectButton = std::make_unique<PathToggleButton> (inspectPath, "INSPECT", juce::Colours::darkgrey,  getColourAmber());
+    inspectButton->setClickingTogglesState (true);
+    inspectButton->onClick = [this] 
+    {
+        schematic->setInspectorhActivated(inspectButton->getToggleState());
+    };
+    addAndMakeVisible (*inspectButton);
+
+    // //==========================================================================
+    // // DRIVE
+    // //==========================================================================
+    // driveKnob = std::make_unique<Knob> (
+    //     audioProcessor.parameters,
+    //     "drive",
+    //     "Drive",
+    //     DRIVE_MIN,
+    //     DRIVE_MAX,
+    //     DRIVE_STEP,
+    //     " dB");
+    // addAndMakeVisible (*driveKnob);
+
+    // //==========================================================================
+    // // GAIN
+    // //==========================================================================
+    // gainKnob = std::make_unique<Knob> (
+    //     audioProcessor.parameters,
+    //     "gain",
+    //     "Gain",
+    //     GAIN_MIN,
+    //     GAIN_MAX,
+    //     GAIN_STEP,
+    //     " dB");
+    // addAndMakeVisible (*gainKnob);
 
     //==========================================================================
     // OVERSAMPLING
@@ -58,10 +105,15 @@ TubeLabEditor::TubeLabEditor (TubeLabProcessor& p)
     oversampleSelector.addItem ("2x", 2);
     oversampleSelector.addItem ("4x", 3);
     oversampleSelector.addItem ("8x", 4);
+    updateOversampleLabels(audioProcessor.getSampleRate());
+    oversampleSelector.setLookAndFeel(&glowComboBoxLF);
     addAndMakeVisible (oversampleSelector);
 
     oversampleLabel.setText ("Oversample", juce::dontSendNotification);
-    oversampleLabel.attachToComponent (&oversampleSelector, false);
+    oversampleLabel.attachToComponent (&oversampleSelector, true);
+    oversampleLabel.setColour (juce::Label::textColourId, getColourGrey());
+
+    oversampleLabel.setFont (juce::Font (juce::FontOptions (FONT_SUB2)));
     addAndMakeVisible (oversampleLabel);
 
     oversampleAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment> (
@@ -103,11 +155,12 @@ TubeLabEditor::TubeLabEditor (TubeLabProcessor& p)
     presetSelector.addItem ("Mesa/Boogie Dual Rectifier", PRESET_DUAL_RECTIFIER_PREAMP);
     presetSelector.addItem ("LC Ladder", PRESET_LCLADDER);
     presetSelector.addItem ("Twin reverb", PRESET_TWIN_REVERB);
+    presetSelector.setLookAndFeel(&glowComboBoxLF);
     addAndMakeVisible (presetSelector);
 
-    presetLabel.setText ("Preset", juce::dontSendNotification);
-    presetLabel.attachToComponent (&presetSelector, false);
-    addAndMakeVisible (presetLabel);
+    // presetLabel.setText ("Preset", juce::dontSendNotification);
+    // presetLabel.attachToComponent (&presetSelector, false);
+    // addAndMakeVisible (presetLabel);
 
     presetAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment> (
         audioProcessor.parameters, "preset", presetSelector);
@@ -176,7 +229,6 @@ void TubeLabEditor::updateSchematic()
 
 void TubeLabEditor::circuitTimerCallback()
 {
-    // TODO: Implement monitoring updates
     schematic->updateMonitoring();
 }
 
@@ -189,40 +241,111 @@ void TubeLabEditor::waveformTimerCallback()
 
 void TubeLabEditor::paint (juce::Graphics& g)
 {
-    g.fillAll (juce::Colours::darkgrey);
+    // Background
+    g.fillAll (getColourBackground());
+
+    // Top line
+    juce::Path topLine;
+    topLine.startNewSubPath(0.0f, WINDOW_TOP_PANEL+1.5f);
+    topLine.lineTo((float) getWidth(), WINDOW_TOP_PANEL+1.5f);
+    drawGlowPath(g, topLine, 0.1f, getColourNormal(), getColourAmber(), false);
+    g.setColour (getColourBackground());
+    g.fillRect(botRect);
+
+    // Left panel separator
+    g.setColour(getColourGrey().withAlpha(0.5f));
+    g.drawLine(WINDOW_LEFT_PANEL,WINDOW_TOP_PANEL, WINDOW_LEFT_PANEL, (float) getHeight(), 1.0f);
+    
+
+
+    // Title
+    juce::Path titleWavePath;
+    juce::Font font  = juce::FontOptions (FONT_MAINTITLE);
+    juce::GlyphArrangement glyphWave;
+    glyphWave.addLineOfText (font, "WAVE", 0.0f, 0.0f);
+    glyphWave.createPath (titleWavePath);
+    titleWavePath.applyTransform (
+        juce::AffineTransform::translation (
+            titleRect.getCentreX() - titleWavePath.getBounds().getWidth(),
+            titleRect.getCentreY() - titleWavePath.getBounds().getCentreY() ));
+    
+    drawGlowPath (g, titleWavePath, 0.2f, getColourNormal(), getColourAmber(), false);
+
+    g.setFont (font);
+    g.setColour (getColourNormal()); 
+    g.drawText ("AMP",
+                juce::Rectangle<float> (
+                    titleRect.getX() + titleWavePath.getBounds().getRight() + FONT_MAINTITLE*0.5f, 
+                    titleRect.getY(), 
+                    WINDOW_TITLE_SIZE, 
+                    WINDOW_TOP_PANEL), juce::Justification::centredLeft);
+    g.setFont (FONT_SUB2);
+    g.setColour (getColourGrey().withAlpha(0.5f)); 
+    g.drawText ("v0.1",titleRect, juce::Justification::centredRight);
+    
+    // Subtitle
+    g.setFont (FONT_SUB1);
+    g.drawText ("WAVE DIGITAL CIRCUIT SIMULATOR",
+                juce::Rectangle<float> (
+                    subtitleRect.getX(), 
+                    subtitleRect.getY(), 
+                    WINDOW_SUBTITLE_SIZE, 
+                    WINDOW_TOP_PANEL), juce::Justification::centred);
+
 }
 
 void TubeLabEditor::resized()
 {
-    auto area = getLocalBounds().reduced (4);
+    auto area = getLocalBounds();
+    auto topPanel = area.removeFromTop (WINDOW_TOP_PANEL);
 
-    // Waveform display at top
-    waveformDisplay.setBounds (area.removeFromTop (120));
+    topRect = topPanel;
+    botRect = area;
 
-    // Schematic takes remaining space
-    schematic->setBounds (area.removeFromTop (area.getHeight() - 100));
-
-    // Bottom strip for drive / gain / oversample controls
-    auto bottom = area.removeFromBottom (120);
-
-    // Oversample
-    oversampleLabel.setBounds (bottom.removeFromRight (80).reduced (0, 30));
-    oversampleSelector.setBounds (bottom.removeFromRight (100).reduced (0, 30));
+    // Title area
+    titleRect = topPanel.removeFromLeft (WINDOW_TITLE_SIZE);
+    subtitleRect = topPanel.removeFromLeft (WINDOW_SUBTITLE_SIZE);
 
     // Preset
-    presetLabel.setBounds (bottom.removeFromRight (80).reduced (0, 30));
-    presetSelector.setBounds (bottom.removeFromRight (100).reduced (0, 30));
+    auto presetArea =topPanel.removeFromLeft(WINDOW_PRESET_SIZE).reduced (50, 10);
+    presetSelector.setBounds (presetArea);
 
-    // Reset view button
-    resetViewButton.setBounds (bottom.removeFromRight (80).reduced (0, 30));
+    oversampleSelector.setBounds (topPanel.removeFromRight(120).reduced (10));
 
-    // Mono stereo button
-    monoStereoButton.setBounds (bottom.removeFromRight (80).reduced (0, 30));
 
-    // Drive / gain knobs
-    driveKnob->setBounds (bottom.removeFromLeft (120).reduced (0, 10));
-    bottom.removeFromLeft (20);
-    gainKnob->setBounds (bottom.removeFromLeft (120).reduced (0, 10));
+
+    auto leftPanel = area.removeFromLeft (WINDOW_LEFT_PANEL);
+
+    scopeButton->setBounds (leftPanel.removeFromTop (TOGGLE_BUTTON_SIZE).reduced (10, 10));
+    signalButton->setBounds (leftPanel.removeFromTop (TOGGLE_BUTTON_SIZE).reduced (10, 10));
+    inspectButton->setBounds (leftPanel.removeFromTop (TOGGLE_BUTTON_SIZE).reduced (10, 10));
+    // // Oversample
+    // // oversampleLabel.setBounds (topPanel.removeFromRight (80).reduced (0, 30));
+    // oversampleSelector.setBounds (topPanel.removeFromRight (100));
+
+    // // Reset view button
+    // resetViewButton.setBounds (topPanel.removeFromRight (80));
+
+    // // Mono stereo button
+    // monoStereoButton.setBounds (topPanel.removeFromRight (80));
+
+
+    // Waveform display at top
+    if (showScope)
+        waveformDisplay.setBounds (area.removeFromBottom (120));
+
+        
+    // Schematic takes remaining space
+    schematic->setBounds (area);
+
+    // Bottom strip for drive / gain / oversample controls
+
+
+
+    // // Drive / gain knobs
+    // driveKnob->getSlider().setBounds (bottom.removeFromLeft (120).reduced (0, 10));
+    // bottom.removeFromLeft (20);
+    // gainKnob->getSlider().setBounds (bottom.removeFromLeft (120).reduced (0, 10));
 }
 
 //==============================================================================
@@ -241,7 +364,10 @@ float TubeLabEditor::getCircuitMonitoring (const int index)
 {
     return audioProcessor.getCircuitMonitoring (index);
 }
-
+void TubeLabEditor::updateCircuitMonitoring ()
+{
+    audioProcessor.updateCircuitMonitoring();
+}
 float TubeLabEditor::getCircuitParam (const int index)
 {
     return audioProcessor.getCircuitParam (index);

@@ -26,18 +26,25 @@ public:
         SettableElement(paramIndex),
         MonitoringElement(std::vector<int> {})
         {};
+
     PotElement(const juce::String& name,
                     Terminal termA,
                     Terminal termB,
                     Terminal termC,
                     const int controlIndex,
                     const int paramIndex,
-                    const int currentMonitorIndex): 
+                    const int voltagePlusMonitorIndex,
+                    const int currentPlusMonitorIndex,
+                    const int voltageMinusMonitorIndex,
+                    const int currentMinusMonitorIndex): 
         
         SchematicElement(name, std::vector<Terminal>{termA, termB, termC}),
         ControllableElement(controlIndex),
         SettableElement(paramIndex),
-        MonitoringElement(std::vector<int> {currentMonitorIndex})
+        MonitoringElement(std::vector<int> {voltagePlusMonitorIndex,
+                                            currentPlusMonitorIndex,
+                                            voltageMinusMonitorIndex,
+                                            currentMinusMonitorIndex})
         {};
     void draw (juce::Graphics& g) const override;
     void controlCallback(float value, SchematicPanelListener* l) override;
@@ -45,6 +52,7 @@ public:
     float labelToValue (const juce::String s) override;
     void prepareToDraw () override;
     void createSignalPath (const int signalPathMode) override;
+    void updateSignalPath () override;
 
 private:
     juce::Path zigzag;

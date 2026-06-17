@@ -7,6 +7,7 @@
 #include "dsp/FullBassmanPreamp.h"
 #include "dsp/DualRectifierPreamp.h"
 #include "dsp/TwinReverb.h"
+#include "constants/StringConstants.h"
 
 
 class SchematicBuilder

@@ -6,6 +6,7 @@
 #include "schematic/TwoTermElement.h"
 #include "schematic/OneTermElement.h"
 #include "schematic/MultiTermElement.h"
+#include "schematic/Inspector.h"
 #include "gui/Knob.h"
 
 
@@ -52,6 +53,9 @@ public:
     void mouseWheelMove (const juce::MouseEvent& e, const juce::MouseWheelDetails& wheel) override;
     SchematicElement* getElementAt (juce::Point<int> position) const;
 
+    void setSignalPathActivated(bool v) {signalPathActivated = v; }
+    void setInspectorhActivated(bool v) { inspector.setVisible(v); }
+
 private:
     void showPopupMenuForElement (SchematicElement* element, juce::Point<int> pos);
 
@@ -61,10 +65,14 @@ private:
     std::vector<std::unique_ptr<WireElement>>      wires;
     SchematicPanelListener*                        listener;
     SchematicElement*                              hoveredElement = nullptr;
+    Inspector                                      inspector;
 
     // Viewport state for pan/zoom
     juce::Point<float>                             viewOffset     = {0.0f, 0.0f};
     juce::Point<float>                             dragStartMouse = {0.0f, 0.0f};
     juce::Point<float>                             dragStartOffset = {0.0f, 0.0f};
     float                                          zoomFactor     = 1.0f;
+
+    // SigPath
+    bool signalPathActivated = false;
 };

@@ -9,17 +9,17 @@ TubeLabProcessor::TubeLabProcessor()
       parameters (*this, nullptr,
           juce::Identifier ("TubeLabParameters"),
           {
-              std::make_unique<juce::AudioParameterFloat> (
-                  "drive",
-                  "Drive",
-                  juce::NormalisableRange<float> (DRIVE_MIN, DRIVE_MAX, DRIVE_STEP),
-                  DRIVE_DEFAULT),
+            //   std::make_unique<juce::AudioParameterFloat> (
+            //       "drive",
+            //       "Drive",
+            //       juce::NormalisableRange<float> (DRIVE_MIN, DRIVE_MAX, DRIVE_STEP),
+            //       DRIVE_DEFAULT),
 
-              std::make_unique<juce::AudioParameterFloat> (
-                  "gain",
-                  "Gain",
-                  juce::NormalisableRange<float> (GAIN_MIN, GAIN_MAX, GAIN_STEP),
-                  GAIN_DEFAULT),
+            //   std::make_unique<juce::AudioParameterFloat> (
+            //       "gain",
+            //       "Gain",
+            //       juce::NormalisableRange<float> (GAIN_MIN, GAIN_MAX, GAIN_STEP),
+            //       GAIN_DEFAULT),
 
               std::make_unique<juce::AudioParameterChoice> (
                   "oversample",
@@ -94,13 +94,13 @@ void TubeLabProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     // Read parameters
     bool monoMode = *parameters.getRawParameterValue ("monoStereo") > 0.5f;
 
-    float drive_dB = *parameters.getRawParameterValue ("drive");
-    float gain_dB = *parameters.getRawParameterValue ("gain");
+    // float drive_dB = *parameters.getRawParameterValue ("drive");
+    // float gain_dB = *parameters.getRawParameterValue ("gain");
 
-    float drive_G = juce::Decibels::decibelsToGain (drive_dB);
-    float gain_G = juce::Decibels::decibelsToGain (gain_dB);
+    // float drive_G = juce::Decibels::decibelsToGain (drive_dB);
+    // float gain_G = juce::Decibels::decibelsToGain (gain_dB);
 
-    buffer.applyGain (drive_G);
+    // buffer.applyGain (drive_G);
 
     // Capture input samples for waveform display
     if (numChannels >= 1 && numSamples > 0)
@@ -153,7 +153,7 @@ void TubeLabProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     // DOWNSAMPLE BACK INTO ORIGINAL BUFFER
     oversampler->processSamplesDown (block);
 
-    buffer.applyGain (gain_G);
+    // buffer.applyGain (gain_G);
 
     // Capture output samples for waveform display
     if (numChannels >= 1 && numSamples > 0)
@@ -375,7 +375,10 @@ juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 }
 
 //==============================================================================
-
+void TubeLabProcessor::updateCircuitMonitoring ( const int ch)
+{
+    circuit[ch]->updateMonitors();
+}
 float TubeLabProcessor::getCircuitMonitoring (const int index, const int ch) const
 {
 #ifdef XSIMD_HPP

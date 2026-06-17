@@ -834,7 +834,9 @@ void SchematicBuilder::buildBassmanPreamp(SchematicPanel& schematic)
         (int) Monitoring::Ik1,
         (int) Monitoring::Vg1,
         (int) Monitoring::Vk1,
-        (int) Monitoring::Vp1
+        (int) Monitoring::Vp1, 
+        DESCR_TRIODE_COMMON_CATHODE()
+    
     ));
     auto V1pos = schematic.getElement("V1")->getTerminals();
 
@@ -845,20 +847,27 @@ void SchematicBuilder::buildBassmanPreamp(SchematicPanel& schematic)
         V1pos[0]  + leftM,
         V1pos[0] ,
         (int) Param::Rg1 ,
-        (int) Monitoring::PRg1
+        (int) Monitoring::Rg1_V,
+        (int) Monitoring::Rg1_I,
+        DESCR_GRID_LEAK_RESISTOR()
     ));
     schematic.addElement (std::make_unique<CapacitorElement> (
         "Ci1",
         schematic.getElement("Rg1")->getTerminals()[0] + leftL,
         schematic.getElement("Rg1")->getTerminals()[0],
         (int) Param::Ci1,
-        (int) Monitoring::PCi1
+        (int) Monitoring::Ci1_V,
+        (int) Monitoring::Ci1_I,
+        DESCR_COUPLING_CAPACITOR()
     ));
     schematic.addElement (std::make_unique<ResistorElement> (
         "Ri1",
         schematic.getElement("Rg1")->getTerminals()[0],
         schematic.getElement("Rg1")->getTerminals()[0] + bottomL,
-        (int) Param::Ri1
+        (int) Param::Ri1,
+        (int) Monitoring::Ri1_V,
+        (int) Monitoring::Ri1_I,
+        DESCR_GRID_LEAK_RESISTOR()
     ));
 
     // Cathode Circuit
@@ -867,14 +876,18 @@ void SchematicBuilder::buildBassmanPreamp(SchematicPanel& schematic)
         V1pos[2]+ bottomL,
         V1pos[2],
         (int) Param::Rk1,
-        (int) Monitoring::PCk1
+        (int) Monitoring::Rk1_V,
+        (int) Monitoring::Rk1_I,
+        DESCR_CATHODE_RESISTOR()
     ));
     schematic.addElement (std::make_unique<CapacitorElement> (
         "Ck1",
         schematic.getElement("Rk1")->getTerminals()[1] +  rightXS,
         schematic.getElement("Rk1")->getTerminals()[0] +  rightXS,
         (int) Param::Ck1,
-        (int) Monitoring::PCk1
+        (int) Monitoring::Ck1_V,
+        (int) Monitoring::Ck1_I,
+        DESCR_CATHODE_BYPASS_CAP()
     ));
 
     // Plate Circuit
@@ -883,20 +896,23 @@ void SchematicBuilder::buildBassmanPreamp(SchematicPanel& schematic)
         V1pos[1],
         V1pos[1] + topL,
         (int) Param::Rp1,
-        (int) Monitoring::PCp1
+        (int) Monitoring::Rp1_V,
+        (int) Monitoring::Rp1_I,
+        DESCR_PLATE_RESISTOR()
     ));
     schematic.addElement (std::make_unique<VoltageElement>(
         "E1",
         schematic.getElement("Rp1")->getTerminals()[1], 
-        (int) Param::E1,
-        (int) Monitoring::PCp1
+        (int) Param::E1
     ));
     schematic.addElement (std::make_unique<CapacitorElement> (
         "Cp1",
         V1pos[1],
         V1pos[1] + rightXL,
         (int) Param::Cp1,
-        (int) Monitoring::PCp1
+        (int) Monitoring::Cp1_V,
+        (int) Monitoring::Cp1_I,
+        DESCR_COUPLING_CAPACITOR()
     ));
 
 
@@ -907,7 +923,10 @@ void SchematicBuilder::buildBassmanPreamp(SchematicPanel& schematic)
         schematic.getElement("Cp1")->getTerminals()[1] + rightXS + bottomXL*0.5f ,
         (int) Control::Volume,
         (int) Param::RVol,
-        (int) Monitoring::PRVol
+        (int) Monitoring::RVol_plus_V,
+        (int) Monitoring::RVol_plus_I,
+        (int) Monitoring::RVol_minus_V,
+        (int) Monitoring::RVol_minus_I
     ));
 
     // V2
@@ -919,34 +938,41 @@ void SchematicBuilder::buildBassmanPreamp(SchematicPanel& schematic)
         (int) Monitoring::Ik2,
         (int) Monitoring::Vg2,
         (int) Monitoring::Vk2,
-        (int) Monitoring::Vp2
+        (int) Monitoring::Vp2,
+        DESCR_TRIODE_COMMON_CATHODE()
     ));
     auto V2pos = schematic.getElement("V2")->getTerminals();
     schematic.addElement (std::make_unique<ResistorElement> (
         "Rg2",
         schematic.getElement("Volume")->getTerminals()[2],
         V2pos[0],
-        (int) Param::Rg2
+        (int) Param::Rg2,
+        (int) Monitoring::Rg2_V,
+        (int) Monitoring::Rg2_I,
+        DESCR_GRID_STOPPER()
     ));
     schematic.addElement (std::make_unique<ResistorElement> (
         "Rk2",
         V2pos[2]+ bottomL,
         V2pos[2],
         (int) Param::Rk2,
-        (int) Monitoring::PRk2
+        (int) Monitoring::Rk2_V,
+        (int) Monitoring::Rk2_I,
+        DESCR_CATHODE_RESISTOR()
     ));
     schematic.addElement (std::make_unique<ResistorElement> (
         "Rp2",
         V2pos[1],
         V2pos[1] + topL,
         (int) Param::Rp2,
-        (int) Monitoring::PRp2
+        (int) Monitoring::Rp2_V,
+        (int) Monitoring::Rp2_I,
+        DESCR_PLATE_RESISTOR()
     ));
     schematic.addElement (std::make_unique<VoltageElement>(
         "E2",
         schematic.getElement("Rp2")->getTerminals()[1], 
-        (int) Param::E2,
-        (int) Monitoring::PRp2
+        (int) Param::E2
     ));
 
 
@@ -959,7 +985,8 @@ void SchematicBuilder::buildBassmanPreamp(SchematicPanel& schematic)
         (int) Monitoring::Ik3,
         (int) Monitoring::Vg3,
         (int) Monitoring::Vk3,
-        (int) Monitoring::Vp3
+        (int) Monitoring::Vp3,
+        DESCR_CATHODE_FOLLOWER()
     ));
     auto V3pos = schematic.getElement("V3")->getTerminals();
     schematic.addElement (std::make_unique<ResistorElement> (
@@ -967,13 +994,14 @@ void SchematicBuilder::buildBassmanPreamp(SchematicPanel& schematic)
         V3pos[2]+ bottomM*2.0f,
         V3pos[2],
         (int) Param::Rk3,
-        (int) Monitoring::PRk3
+        (int) Monitoring::Rk3_V,
+        (int) Monitoring::Rk3_I,
+        DESCR_CATHODE_RESISTOR()
     ));
     schematic.addElement (std::make_unique<VoltageElement>(
         "E3",
         V3pos[1], 
-        (int) Param::E3,
-        (int) Monitoring::PE3
+        (int) Param::E3
     ));
 
 
@@ -984,29 +1012,25 @@ void SchematicBuilder::buildBassmanPreamp(SchematicPanel& schematic)
         "R4",
         toneStackPosition + bottomL,
         toneStackPosition,
-        (int) Param::R4,
-        (int) Monitoring::PR4
+        (int) Param::R4
     ));
     schematic.addElement (std::make_unique<CapacitorElement> (
         "C1",
         toneStackPosition,
         toneStackPosition + rightL,
-        (int) Param::C1,
-        (int) Monitoring::PC1
+        (int) Param::C1
     ));
     schematic.addElement (std::make_unique<CapacitorElement> (
         "C2",
         toneStackPosition + bottomL,
         toneStackPosition + bottomL + rightL,
-        (int) Param::C2,
-        (int) Monitoring::PC2
+        (int) Param::C2
     ));
     schematic.addElement (std::make_unique<CapacitorElement> (
         "C3",
         toneStackPosition + bottomL*2.0f + rightL*0.25f,
         toneStackPosition + bottomL*2.0f + rightL*0.75f,
-        (int) Param::C3,
-        (int) Monitoring::PC3
+        (int) Param::C3
     ));
 
     schematic.addElement (std::make_unique<PotElement> (
@@ -1015,8 +1039,7 @@ void SchematicBuilder::buildBassmanPreamp(SchematicPanel& schematic)
         schematic.getElement("C2")->getTerminals()[1],
         schematic.getElement("C1")->getTerminals()[1] + rightXS + bottomL*0.5f ,
         (int) Control::Treble,
-        (int) Param::RTreble,
-        (int) Monitoring::PRTreble
+        (int) Param::RTreble
     ));
     schematic.addElement (std::make_unique<PotElement> (
         "Bass",
@@ -1024,8 +1047,7 @@ void SchematicBuilder::buildBassmanPreamp(SchematicPanel& schematic)
         schematic.getElement("C2")->getTerminals()[1] + bottomM,
         schematic.getElement("C2")->getTerminals()[1] + bottomM*0.5f + rightXS,
         (int) Control::Bass,
-        (int) Param::RBass,
-        (int) Monitoring::PRBass
+        (int) Param::RBass
     ));
     schematic.addElement (std::make_unique<PotElement> (
         "Mid",
@@ -1033,8 +1055,7 @@ void SchematicBuilder::buildBassmanPreamp(SchematicPanel& schematic)
         schematic.getElement("Bass")->getTerminals()[1] ,
         schematic.getElement("Bass")->getTerminals()[1]  + bottomM*0.5f + leftXS,
         (int) Control::Mid,
-        (int) Param::RMid,
-        (int) Monitoring::PRMid
+        (int) Param::RMid
     ));
     // Grounds
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Mid")->getTerminals()[0]) );

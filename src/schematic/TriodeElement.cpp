@@ -97,7 +97,7 @@ void TriodeElement::prepareToDraw ()
     cachedBounds = juce::Rectangle<float> (center.x - TUBE_WIDTH*0.5f, center.y - TUBE_HEIGHT*0.5f, TUBE_WIDTH, TUBE_HEIGHT);
 
     // Labels
-    labelCenter = center + Terminal {100.0f, -50.0f};
+    labelCenter = center - Terminal {50.0f, 100.0f};
     
 }
 void TriodeElement::createSignalPath (const int signalPathMode)
@@ -119,6 +119,19 @@ void TriodeElement::createSignalPath (const int signalPathMode)
     for (auto& p : signalPaths)
         p.rebuildCache();
 }
+
+
+void TriodeElement::updateSignalPath () {
+    float t=0.0f;
+    if (getNumMonitors()> 0)
+        t = getRMSValue(0) * POWER_SCALING; 
+
+    for (auto& cachedPath : signalPaths)
+    {
+        updateCachedPath(t, SchematicElement::getClock(), cachedPath);
+    }
+
+};
 void TriodeElement::draw (juce::Graphics& g) const
 {
     float intensity = 0.0f;
@@ -140,68 +153,55 @@ void TriodeElement::draw (juce::Graphics& g) const
     drawGlowPath(g, filament, 0.0f,getColourHotRed(),getColourHotRed(), isHighlighted());
     drawGlowPath(g, bulb, 0.1f,getColourNormal(),getColourNormal(), isHighlighted());
 
-    for (auto& p : signalPaths)
-        drawSignalPath(g, p, 1.0f, getClock());
-    drawLabel(g, labelCenter, getChoiceLabel());
+    juce::Font fontName = juce::FontOptions (FONT_TITLE);
+    juce::Font fontValue = juce::FontOptions (FONT_SUB1);
+    if (isHighlighted()){
+        fontName = fontName.boldened();
+        fontValue = fontValue.boldened();
+    }
+
+    // Name
+    g.setFont (fontName);
+    g.setColour (getColourHighlight());
+    g.drawText (getName(),
+                labelCenter.getX() - 40, labelCenter.getY() - 18, 80, 18,
+                juce::Justification::centred, true);
+
+    // Value
+    g.setFont (fontValue);
+    g.setColour (getColourNormal());
+    g.drawText (getChoiceLabel(),
+                labelCenter.getX() - 40, labelCenter.getY() + 2, 80, 18,
+                juce::Justification::centred, true);
+
 
 }
 
 
-void TriodeElement::drawInspector (juce::Graphics& g) const
+juce::AttributedString TriodeElement::getInspectContent () 
 {
-    const auto& p1 = terminals[1];
-    const auto& p2 = terminals[2];
-    const juce::Point<float> center = Terminal{0.0f, (p2.y-p1.y)*0.5f} + p1 ;
-
-    Terminal inspecTopLeft = center + Terminal {100.0f, -50.0f};
-
-    juce::Rectangle<float> bounds { inspecTopLeft.x, inspecTopLeft.y, 200.0f, 300.0f};
-
-    // Border
-    juce::Path borderPath;
-    borderPath.addRoundedRectangle(bounds, 10.0f, 10.0f);
-    drawGlowPath(g, borderPath, .1f, getColourNormal(), getColourNormal(), false);
-
-    // Background
-    g.setColour (getColourBackground().withAlpha(0.9f));
-    g.fillRoundedRectangle (bounds, 10.0f);
-
-    // Title
-    bounds.reduced (4.0f);
-    bounds.removeFromLeft(10.0f);
-    bounds.removeFromRight(10.0f);
-    bounds.removeFromTop(5.0f);
-
-    juce::AttributedString textTitle;
-    textTitle.append (getName(), juce::Font (juce::FontOptions(FONT_TITLE)).boldened(), getColourHighlight());
-    textTitle.append (" - "+ getChoiceLabel(),juce::Font (juce::FontOptions(FONT_TITLE)), getColourNormal());
-    textTitle.draw (g, bounds.toFloat());
-
-    // line
-    g.setColour (getColourNormal());
-    bounds.removeFromTop(30);
-    g.drawLine (juce::Line(bounds.getTopLeft(), bounds.getTopRight()), 1.0f);
-    
-    // Content    
-    bounds.removeFromTop(10);
     juce::AttributedString textContent;
     auto font = juce::Font (juce::FontOptions(FONT_SUB1));
     if (getNumMonitors()>1){
         textContent.append ("Plate voltage : \n", font, getColourNormal());
-        textContent.append ("\t"+ juce::String(getSmoothedValue(3), 1)+" VDC\n", font, getColourElectrical());
-        textContent.append ("\t"+ juce::String(getRMSValue(3), 1)+" VAC\n", font, getColourElectrical());
+        textContent.append ("\t"+ formatVoltage(getSmoothedValue(3))+" \t(DC)\n", font, getColourElectrical());
+        textContent.append ("\t"+ formatVoltage(getRMSValue(3))+" \t(AC RMS)\n", font, getColourElectrical());
         textContent.append ("Grid voltage : \n", font, getColourNormal());
-        textContent.append ("\t"+ juce::String(getSmoothedValue(1), 1)+" VDC\n", font, getColourPurple());
-        textContent.append ("\t"+ juce::String(getRMSValue(1), 1)+" VAC\n", font, getColourPurple());
+        textContent.append ("\t"+ formatVoltage(getSmoothedValue(1))+" \t(DC)\n", font, getColourPurple());
+        textContent.append ("\t"+ formatVoltage(getRMSValue(1))+" \t(AC RMS)\n", font, getColourPurple());
         textContent.append ("Cathode voltage : \n", font, getColourNormal());
-        textContent.append ("\t"+ juce::String(getSmoothedValue(2), 1)+" VDC\n", font, getColourHotRed());
-        textContent.append ("\t"+ juce::String(getRMSValue(2), 1)+" VAC\n", font, getColourHotRed());
+        textContent.append ("\t"+ formatVoltage(getSmoothedValue(2))+" \t(DC)\n", font, getColourHotRed());
+        textContent.append ("\t"+ formatVoltage(getRMSValue(2))+" \t(AC RMS)\n", font, getColourHotRed());
 
     }
     if (getNumMonitors()>0){
         textContent.append ("Current : \n", font, getColourNormal());
-        textContent.append ("\t"+ juce::String(getSmoothedValue(0)*1e3f, 2)+" mA\n", font, getColourAmber());
+        textContent.append ("\t"+ formatCurrent(getSmoothedValue(0))+" \n", font, getColourAmber());
     }
-    textContent.draw (g, bounds.toFloat());
+    return textContent;
+}
 
+juce::String TriodeElement::getInspectValue () 
+{
+    return getChoiceLabel();
 }

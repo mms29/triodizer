@@ -4,6 +4,10 @@
 SchematicPanel::SchematicPanel(SchematicPanelListener* l) : listener(l)
 {
     setInterceptsMouseClicks (true, true);
+
+    addAndMakeVisible(inspector);
+    inspector.setAlwaysOnTop(true);
+    
 }
 
 void SchematicPanel::addElement (std::unique_ptr<SchematicElement> element)
@@ -73,6 +77,7 @@ void SchematicPanel::addWire (juce::Point<float> start, juce::Point<float> end)
 void SchematicPanel::addWireElem (std::unique_ptr<WireElement> wire)
 {
     wire->prepareToDraw();
+
     wires.push_back (std::move (wire));
 }
 
@@ -92,6 +97,9 @@ SchematicElement* SchematicPanel::getElement (juce::String name) const noexcept
 
 void SchematicPanel::updateMonitoring ()
 {
+    listener->updateCircuitMonitoring();
+    
+    SchematicElement::incrementClock();
     for (const auto& element : elements){
         if (auto* monitor = dynamic_cast<MonitoringElement*>(element.get())){
 
@@ -103,8 +111,24 @@ void SchematicPanel::updateMonitoring ()
                 );
             }
         }
+        if (element->isSignalPath()){
+            element->updateSignalPath();
+        }
     }
-    SchematicElement::incrementClock();
+
+    // update inspector
+    if (hoveredElement != nullptr){
+        if (auto* inspectElem = dynamic_cast<InspectableElement*>(hoveredElement) )
+        {
+            inspector.setContent(
+                hoveredElement->getName(),
+                inspectElem->getInspectValue(),
+                inspectElem->getInspectContent(),
+                inspectElem->getInspectDescr()
+            );
+        }
+    }
+
     repaint();
 }
 //==============================================================================
@@ -121,8 +145,12 @@ void SchematicPanel::paint (juce::Graphics& g)
     for (const auto& wire : wires)
     {
         jassert (wire != nullptr);
-        std::cout<<wire->isSignalPath()<<std::endl;
         wire->draw (g);
+
+        if (wire->isSignalPath()){
+            for (auto& cachedPath : wire->getSignalPaths())
+                drawSignalPath(g, cachedPath);
+        }
     }
 
     // Draw every element on top
@@ -130,17 +158,10 @@ void SchematicPanel::paint (juce::Graphics& g)
     {
         jassert (elem != nullptr);
         elem->draw (g);
-    }
 
-    // Draw Inspectors. at the end
-    for (const auto& elem : elements)
-    {
-        jassert (elem != nullptr);
-        if (elem->isHighlighted()){
-            if (auto* inspectElem = dynamic_cast<InspectableElement*>(elem.get()) )
-            {
-                inspectElem->drawInspector(g);
-            }
+        if (elem->isSignalPath()){
+            for (auto& cachedPath : elem->getSignalPaths())
+                drawSignalPath(g, cachedPath);
         }
     }
 }
@@ -148,23 +169,19 @@ void SchematicPanel::paint (juce::Graphics& g)
 
 void SchematicPanel::resized()
 {
-    // Elements use absolute positions, nothing to do here.
     auto area = getLocalBounds().reduced(4);
 
-
-    float butSizeX = 120;
-    float butSizeY = 120;
-    float offset = area.getWidth()*.5f -  (butSizeX * controls.size())*0.5f - butSizeX*0.5f +10 ;
+    float offset = area.getWidth()*.5f -  (SCHEMATIC_BUTTON_SIZE * controls.size())*0.5f - SCHEMATIC_BUTTON_SIZE*0.5f +10 ;
 
 
-    auto bot = area.removeFromBottom(butSizeY);
+    auto bot = area.removeFromBottom(SCHEMATIC_BUTTON_SIZE);
     bot.removeFromLeft(offset);
     for (const auto& control : controls){
         bot.removeFromLeft(10);
-        control->setBounds(bot.removeFromLeft(butSizeX));
+        control->setBounds(bot.removeFromLeft(SCHEMATIC_BUTTON_SIZE));
         bot.removeFromLeft(10);
     }
-
+    inspector.setBounds(area.removeFromRight(SCHEMATIC_INSPECTOR_SIZE));
 }
 
 //==============================================================================
@@ -303,6 +320,16 @@ void SchematicPanel::mouseMove (const juce::MouseEvent& e)
 
         if (hoveredElement != nullptr){
             hoveredElement->setHighlighted (true);
+
+            if (auto* inspectElem = dynamic_cast<InspectableElement*>(hoveredElement) )
+            {
+                inspector.setContent(
+                    hoveredElement->getName(),
+                    inspectElem->getInspectValue(),
+                    inspectElem->getInspectContent(),
+                    inspectElem->getInspectDescr()
+                );
+            }
         }
 
         repaint();
@@ -384,7 +411,6 @@ void SchematicPanel::showPopupMenuForElement (SchematicElement* element,
                         paramElem->setChoiceIndex (static_cast<int> (chosenIndex));
                         repaint();
 
-                        // Notify listener (e.g. PluginEditor) to update the DSP
                         if (listener != nullptr)
                         {
                             float newValue = paramElem->getChoiceValue();
@@ -393,6 +419,7 @@ void SchematicPanel::showPopupMenuForElement (SchematicElement* element,
                     }
                 }
             });
+            
     }
     if (auto* setElem = dynamic_cast<SettableElement*>(element) )
     {

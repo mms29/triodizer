@@ -70,19 +70,28 @@ void PotElement::draw (juce::Graphics& g) const
     arrow.addArrow(juce::Line(pp2, pp0 + (pp1-pp0)*ratio -arrowDir*RESISTOR_ZIGZAG_AMPLITUDE*1.3f), 1.0f, 10.0f, 10.0f);
 
     float t=0.0f;
-    if (getNumMonitors()> 0)
-        t = getRMSValue(0) * POWER_SCALING; 
+    if (getNumMonitors()> 1)
+        t = getRMSValue(1) * POWER_SCALING; 
     drawGlowPath(g, zigzag, t, getColourNormal(), getColourAmber(), isHighlighted());
     drawGlowPath(g, arrow, 0.0f, getColourNormal(), getColourAmber(), isHighlighted());
 
-    for (auto& p : signalPaths)
-        drawSignalPath(g, p, t, getClock());
     // Labels
     drawLabel(g, labelCenter, label);
 
 }
 
 
+void PotElement::updateSignalPath () {
+    float t=0.0f;
+    if (getNumMonitors()> 1)
+        t = getRMSValue(1) * POWER_SCALING; 
+
+    for (auto& cachedPath : signalPaths)
+    {
+        updateCachedPath(t, SchematicElement::getClock(), cachedPath);
+    }
+
+};
 
 float PotElement::labelToValue (const juce::String s)
 {

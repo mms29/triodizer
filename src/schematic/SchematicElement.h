@@ -6,6 +6,8 @@
 #include "utils/SignalPath.h"
 #include "constants/SchematicConstants.h"
 #include "utils/Glow.h"
+#include "schematic/SchematicPanelListener.h"
+#include "utils/Format.h"
 
 
 using Terminal = juce::Point<float> ;
@@ -38,7 +40,11 @@ public:
     // clock helpers
     static int getClock() {return clock;}
     static void incrementClock (){clock++;}
+
+    // Sig path
     virtual void createSignalPath (const int signalPathMode) { setSignalPath(true);}
+    virtual void updateSignalPath () {}
+    virtual std::vector<CachedPath> getSignalPaths () noexcept {return signalPaths;};
 
 protected:
     bool                               highlighted      = false;
@@ -67,22 +73,6 @@ public:
 protected:
     juce::String                       name;
 
-};
-
-/* 
-------------------------------------------------------------------------------------------------------------------------
-    Listener. TODO: Move to separate file
-------------------------------------------------------------------------------------------------------------------------
-*/
-class SchematicPanelListener
-{
-public:
-    virtual ~SchematicPanelListener() = default;
-    virtual void setCircuitParam (const int index, float newValue) = 0;
-    virtual void setCircuitControl (const int index, float newValue) = 0;
-    virtual float getCircuitMonitoring (const int index) = 0;
-    virtual float getCircuitParam (const int index) = 0;
-    virtual float getCircuitControl (const int index) = 0;
 };
 
 
@@ -253,12 +243,12 @@ public:
     }
 
 private:
-    float alpha=.05f;
+    static constexpr float alpha=.05f;
 
-    float smooth(float x, float mean){
+    static float smooth(float x, float mean) noexcept{
         return mean + alpha * (x - mean);
     }
-    float rms(float x, float mean, float var){
+    static float rms(float x, float mean, float var) noexcept{
         return var + alpha * (std::sqrt((x - mean)*(x - mean)) - var);
     }
 
@@ -289,33 +279,11 @@ public:
     {
         setSignalPath(isSignalPath);
     };
-    void createSignalPath (const int ) override { 
-        setSignalPath(true);
-        CachedPath cachedWirePath {wirePath};
-        cachedWirePath.rebuildCache();
-        signalPaths.push_back(cachedWirePath);
-    }
-    void prepareToDraw () override
-    {
-        jassert (terminals.size() == 2);
-        const auto& start = terminals[0];
-        const auto& end = terminals[1];
+    void createSignalPath (const int ) override;
+    void prepareToDraw () override;
+    void draw (juce::Graphics& g) const override;
+    void updateSignalPath () override;
 
-        wirePath.startNewSubPath(start);
-        wirePath.lineTo(end);
-
-        if (isSigPath)
-            createSignalPath(0);
-    }
-
-    void draw (juce::Graphics& g) const override
-    {
-
-        drawGlowPath(g, wirePath, 0.0f, getColourNormal(),getColourAmber(),false);
-
-        for (const auto& sigpath : signalPaths)
-            drawSignalPath(g, sigpath, 0.0f, getClock());
-    }
 private:
     juce::Path wirePath;
 };
@@ -328,7 +296,13 @@ private:
 class InspectableElement
 {
 public:
-    InspectableElement () = default;
+    InspectableElement (juce::AttributedString descr=juce::AttributedString {}) : description(std::move(descr)){};
     virtual ~InspectableElement() = default;
-    virtual void drawInspector (juce::Graphics& g) const =0;
+    virtual juce::AttributedString getInspectContent () =0;
+    virtual juce::AttributedString getInspectDescr () {return description;};
+    virtual juce::String getInspectValue () {return value;};
+
+protected:
+    juce::AttributedString description;
+    juce::String value;
 };

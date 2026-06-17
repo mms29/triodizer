@@ -64,6 +64,8 @@ target_sources(TubeLabPlugin PRIVATE
     src/plugin/PluginEditor.cpp
     src/gui/WaveformDisplay.cpp
     src/gui/Knob.cpp
+    src/gui/Button.cpp
+    src/gui/Selector.cpp
     src/schematic/SchematicElement.cpp
     src/schematic/TwoTermElement.cpp
     src/schematic/MultiTermElement.cpp

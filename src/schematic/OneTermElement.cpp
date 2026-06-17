@@ -102,10 +102,10 @@ void VoltageElement::prepareToDraw () {
 void VoltageElement::draw (juce::Graphics& g) const
 {
 
-    float t=0.0f;
+    float t=0.2f;
     if (getNumMonitors()> 0)
         t = getRMSValue(0) * POWER_SCALING; 
-    drawGlowPath(g, votlagePath, t, getColourNormal(),getColourAmber(), isHighlighted());
+    drawGlowPath(g, votlagePath, t, getColourNormal(),getColourHotRed(), isHighlighted());
 
 
     drawLabel(g,labelCenter, label);

@@ -2,9 +2,9 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_dsp/juce_dsp.h>
+#include "gui/Knob.h"
 
 #include "constants/SchematicConstants.h"
-
 #include "dsp/Circuit.h"
 #include "dsp/BassmanPreamp.h"
 #include "dsp/FullBassmanPreamp.h"
@@ -77,6 +77,7 @@ public:
     // Oversampling management
     void updateOversampler();
     void buildOversampler();
+    double getBaseSampleRate() {return sampleRate;}
 
     // State information
     void getStateInformation (juce::MemoryBlock& destData) override;
@@ -100,6 +101,7 @@ public:
     float getCircuitControl (const int index, const int ch = 0) const;
     void setCircuitParam (const int index, float value);
     void setCircuitControl (const int index, float value);
+    void updateCircuitMonitoring ( const int ch=0);
 
     // Waveform display access
     const WaveformBuffer& getWaveformInputBuffer() const noexcept { return waveformInputBuffer; }

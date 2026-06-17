@@ -63,6 +63,7 @@ void WaveformDisplay::paint (juce::Graphics& g)
 
         g.setColour (waveformColour);
         g.strokePath (inputPath, juce::PathStrokeType (1.5f));
+        
     }
 
     //==========================================================================

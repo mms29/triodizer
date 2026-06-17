@@ -18,8 +18,10 @@ inline juce::Colour getColourElectrical() { return juce::Colour (80, 180, 255); 
 inline juce::Colour getColourPurple() { return juce::Colour (180, 110, 255); }
 inline juce::Colour getColourHotRed() { return juce::Colour (255, 110, 60); }
 inline juce::Colour getColourLaserGreen() { return juce::Colour (51, 255, 102); }
+inline juce::Colour getColourGrey() { return juce::Colours::grey; }
 
 // Fonts
+inline constexpr int FONT_MAINTITLE = 28;
 inline constexpr int FONT_TITLE = 22;
 inline constexpr int FONT_SUB1 = 18;
 inline constexpr int FONT_SUB2 = 14;
@@ -57,6 +59,10 @@ inline constexpr float SPACING_M = 100.0f;
 inline constexpr float SPACING_L = 150.0f;
 inline constexpr float SPACING_XL = 200.0f;
 
+inline constexpr float SCHEMATIC_BUTTON_SIZE = 120.0f;
+inline constexpr float SCHEMATIC_INSPECTOR_SIZE = 400.0f;
+
+
 
 // ==============================================================================
 // Plugin parameter and UI constants
@@ -77,6 +83,13 @@ inline constexpr float GAIN_STEP = 0.1f;
 // Window dimensions
 inline constexpr int WINDOW_WIDTH = 1600;
 inline constexpr int WINDOW_HEIGHT = 920;
+inline constexpr int WINDOW_LEFT_PANEL = 130;
+inline constexpr int WINDOW_TOP_PANEL = 60;
+inline constexpr int WINDOW_TITLE_SIZE = 250;
+inline constexpr int WINDOW_SUBTITLE_SIZE = 300;
+inline constexpr int WINDOW_PRESET_SIZE = 500;
+
+inline constexpr int TOGGLE_BUTTON_SIZE = 150;
 
 // Preset selection indices
 inline constexpr int PRESET_DEFAULT = 1;

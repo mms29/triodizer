@@ -31,9 +31,26 @@ public:
 
     enum class Monitoring : int 
     {
-        Vk1, Vp1, Vg1, Ik1, PRg1, PCi1, PRp1, PRk1, PCk1, PCp1, PRVol,
-        Vk2, Vp2, Vg2, Ik2, PRk2, PRp2, 
-        Vk3, Vp3, Vg3, Ik3, PRk3, PE3, PRBass, PRMid, PRTreble, PC1, PC2, PC3, PR4,
+        Vk1, Vp1, Vg1, Ik1, 
+        Vk2, Vp2, Vg2, Ik2, 
+        Vk3, Vp3, Vg3, Ik3,
+        
+        Rg1_V, Rg1_I, 
+        Ci1_V, Ci1_I, 
+        Ri1_V, Ri1_I, 
+        Rk1_V, Rk1_I, 
+        Ck1_V, Ck1_I, 
+        Rp1_V, Rp1_I,
+        Cp1_V, Cp1_I,
+        RVol_plus_V, RVol_plus_I, 
+        RVol_minus_V, RVol_minus_I, 
+        
+        Rg2_V, Rg2_I,
+        Rk2_V, Rk2_I,
+        Rp2_V, Rp2_I,
+
+        Rk3_V, Rk3_I,
+
         Count 
     };
     enum class Param : int 
@@ -199,35 +216,44 @@ public:
         monitors[(int)Monitoring::Vg1] = voltage<T>(w_Vin);
         monitors[(int)Monitoring::Ik1] = current<T>(w_Rk1);
 
-        monitors[(int)Monitoring::PRg1] = current<T>((w_Rg1));
-        monitors[(int)Monitoring::PCi1] = current<T>((w_Vin));
-        monitors[(int)Monitoring::PRk1] = current<T>((w_Rk1));
-        monitors[(int)Monitoring::PCk1] = current<T>((w_Ck1));
-        monitors[(int)Monitoring::PRp1] = current<T>((w_E1_Rp1));
-        monitors[(int)Monitoring::PCp1] = current<T>((w_Cp1));
-        monitors[(int)Monitoring::PRVol] = current<T>((w_SJ_o1));
-
         monitors[(int)Monitoring::Vk2] = voltage<T>(w_Rk2) ;
         monitors[(int)Monitoring::Vp2] = voltage<T>(w_E2_Rp2);
         monitors[(int)Monitoring::Vg2] = voltage<T>(w_V_Rg2);
         monitors[(int)Monitoring::Ik2] = current<T>(w_Rk2);
-        monitors[(int)Monitoring::PRk2] = current<T>((w_Rk2));
-        monitors[(int)Monitoring::PRp2] = current<T>((w_E2_Rp2));
 
         monitors[(int)Monitoring::Vk3] = voltage<T>(w_Rk3);        
         monitors[(int)Monitoring::Vp3] = voltage<T>(w_E3);
         monitors[(int)Monitoring::Vg3] = voltage<T>(w_V_Rg3);
         monitors[(int)Monitoring::Ik3] = current<T>(w_Rk3);
-        monitors[(int)Monitoring::PRk3] = current<T>((w_Rk3));
 
-        monitors[(int)Monitoring::PE3] = current<T>((w_E3));
-        monitors[(int)Monitoring::PRBass] = current<T>((w_bts.w_R2));
-        monitors[(int)Monitoring::PRMid] = current<T>((w_bts.w_R3_minus));
-        monitors[(int)Monitoring::PRTreble] = current<T>((w_bts.w_R1_minus));
-        monitors[(int)Monitoring::PC1] = current<T>((w_bts.w_C1));
-        monitors[(int)Monitoring::PC2] = current<T>((w_bts.w_C2));
-        monitors[(int)Monitoring::PC3] = current<T>((w_bts.w_C3));
-        monitors[(int)Monitoring::PR4] = current<T>((w_bts.w_R4));
+        monitors[(int)Monitoring::Rg1_V] = voltage<T>(w_Rg1);  
+        monitors[(int)Monitoring::Rg1_I] = current<T>(w_Rg1);  
+        monitors[(int)Monitoring::Ci1_V] = voltage<T>(w_Vin);  
+        monitors[(int)Monitoring::Ci1_I] = current<T>(w_Vin);  
+        monitors[(int)Monitoring::Ri1_V] = voltage<T>(w_Ri1);  
+        monitors[(int)Monitoring::Ri1_I] = current<T>(w_Ri1);  
+        monitors[(int)Monitoring::Rk1_V] = voltage<T>(w_Rk1);  
+        monitors[(int)Monitoring::Rk1_I] = current<T>(w_Rk1);  
+        monitors[(int)Monitoring::Ck1_V] = voltage<T>(w_Ck1);  
+        monitors[(int)Monitoring::Ck1_I] = current<T>(w_Ck1);  
+        monitors[(int)Monitoring::RVol_plus_V] = voltage<T>(w_Ro1_plus);  
+        monitors[(int)Monitoring::RVol_plus_I] = current<T>(w_Ro1_plus);  
+        monitors[(int)Monitoring::RVol_minus_V] = voltage<T>(w_Ro1_minus);  
+        monitors[(int)Monitoring::RVol_minus_I] = current<T>(w_Ro1_minus);  
+
+        monitors[(int)Monitoring::Rp1_V] = voltage<T>(w_E1_Rp1);    
+        monitors[(int)Monitoring::Rp1_I] = current<T>(w_E1_Rp1);  
+        monitors[(int)Monitoring::Cp1_V] = voltage<T>(w_Cp1);    
+        monitors[(int)Monitoring::Cp1_I] = current<T>(w_Cp1);    
+        monitors[(int)Monitoring::Rg2_V] = voltage<T>(w_V_Rg2);    
+        monitors[(int)Monitoring::Rg2_I] = current<T>(w_V_Rg2);    
+        monitors[(int)Monitoring::Rk2_V] = voltage<T>(w_Rk2);    
+        monitors[(int)Monitoring::Rk2_I] = current<T>(w_Rk2);    
+        monitors[(int)Monitoring::Rp2_V] = voltage<T>(w_E2_Rp2);    
+        monitors[(int)Monitoring::Rp2_I] = current<T>(w_E2_Rp2);    
+
+        monitors[(int)Monitoring::Rk3_V] = voltage<T>(w_Rk3);    
+        monitors[(int)Monitoring::Rk3_I] = current<T>(w_Rk3);    
     }
 
 
@@ -236,7 +262,6 @@ public:
         w_Ck1.prepare (sr);
         w_Cp1.prepare (sr);
         w_bts.prepare(sr);
-        alpha = 1.0f / (sr * 0.5f); 
     }
     void reset() override {
         w_bts.reset();
@@ -263,23 +288,13 @@ public:
         w_E3.setVoltage(getParam((int)Param::E3));
         w_V3.compute();
 
-        updateMonitors();
-        return w_bts.getVoltage();
+        return w_bts.getVoltage() * outputGain;
     }
 
 
 private: 
 
-// Monitoring utils
-    T alpha=1.0f;
-
-    T lowPass(T x, T mean){
-        return mean + alpha * (x - mean);
-    }
-    T variance(T x, T mean, T var){
-        return var + alpha * ((x - mean)*(x - mean) - var);
-    }
-
+    T outputGain = T(2e-3);
     // ==================================================================================================== 
     // =  First stage 
     // ==================================================================================================== 

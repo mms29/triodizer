@@ -11,50 +11,14 @@ struct CachedPath
 {
     juce::Path path;
     float length = 0.0f;
+    float phase = 0.0f;
     std::vector<juce::Point<float>> samples;
-
-    juce::Point<float> getPoint (float t) const
-    {
-        if (samples.size() < 2)
-            return {};
-
-        // IMPORTANT: clamp instead of wrap
-        t = juce::jlimit (0.0f, 1.0f, t);
-
-        float pos = t * (samples.size() - 1);
-
-        int i0 = (int) pos;
-        int i1 = std::min (i0 + 1, (int) samples.size() - 1);
-
-        float frac = pos - i0;
-
-        return samples[i0]
-            + (samples[i1] - samples[i0]) * frac;
-    }
-    void rebuildCache ()
-    {
-        length = path.getLength();
-
-        int numSamples = std::max(
-            2,
-            (int) std::ceil(length / sampleSpacing)
-        );
-        samples.clear();
-        samples.reserve(numSamples);
-
-        for (int i = 0; i < numSamples; ++i)
-        {
-            float t = (float) i / (numSamples - 1);
-
-            samples.push_back(
-                path.getPointAlongPath(t * length));
-        }
-    }
+    
+    juce::Point<float> getPoint (float t) const;
+    void rebuildCache ();
 };
 
+void updateCachedPath (float intensity, int clockTick, CachedPath& cachedPath);
 
-void drawSignalPath (juce::Graphics& g,
-                     const CachedPath& cachedPath,
-                     float intensity,
-                     int clockTick);
+void drawSignalPath (juce::Graphics& g, const CachedPath& cachedPath);
 

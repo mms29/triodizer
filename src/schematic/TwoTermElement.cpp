@@ -1,5 +1,64 @@
 #include "schematic/TwoTermElement.h"
 
+
+void TwoTermElement::draw (juce::Graphics& g) const
+{
+    float t=0.0f;
+    if (getNumMonitors()> 1)
+        t = getRMSValue(1) * POWER_SCALING; 
+    drawGlowPath(g, path, t,getColourNormal(),getColourAmber(), isHighlighted());
+
+    // Labels
+    drawLabel(g, labelCenter, label);
+
+}
+
+void TwoTermElement::updateSignalPath () {
+    float t=0.0f;
+    if (getNumMonitors()> 1)
+        t = getRMSValue(1) * POWER_SCALING; 
+
+    for (auto& cachedPath : signalPaths)
+    {
+        updateCachedPath(t, SchematicElement::getClock(), cachedPath);
+    }
+
+};
+
+juce::AttributedString TwoTermElement::getInspectContent () 
+{
+    juce::AttributedString textContent;
+    auto font = juce::Font (juce::FontOptions(FONT_SUB1));
+    if (getNumMonitors() == 2){
+        float v = getSmoothedValue(0);
+        float c = getSmoothedValue(1);
+        textContent.append ("Voltage : \n", font, getColourNormal());
+        textContent.append ("\t"+ juce::String(v, 1)+" VDC\n", font, getColourElectrical());
+        textContent.append ("\t"+ juce::String(getRMSValue(0), 1)+" VAC\n", font, getColourElectrical());
+        textContent.append ("Current : \n", font, getColourNormal());
+        textContent.append ("\t"+ juce::String(c*1e3f, 1)+" mA\n", font, getColourAmber());
+        textContent.append ("Power : \n", font, getColourNormal());
+        textContent.append ("\t"+ juce::String(v*c, 1)+" W\n", font, getColourPurple());
+
+    }
+    return textContent;
+}
+
+juce::String TwoTermElement::getInspectValue () 
+{
+    return label;
+}
+
+
+void ResistorElement::createSignalPath (const int signalPathMode) 
+{
+    setSignalPath(true);
+    CachedPath cachedPath;
+    cachedPath.path = path;
+    cachedPath.rebuildCache();
+    signalPaths.push_back (cachedPath);
+}
+
 float ResistorElement::labelToValue (const juce::String s)
 {
     auto str = s.trim().toLowerCase();
@@ -87,31 +146,6 @@ void ResistorElement::prepareToDraw (){
 }
 
 
-void ResistorElement::draw (juce::Graphics& g) const
-{
-    // Zigzag line
-    float t=0.0f;
-    if (getNumMonitors()> 0)
-        t = getRMSValue(0) * POWER_SCALING; 
-    drawGlowPath(g, path, t,getColourNormal(),getColourAmber(), isHighlighted());
-
-    if (isSignalPath()){
-        auto& cachedPath = signalPaths.back();
-        drawSignalPath(g, cachedPath, t, getClock());
-    }
-    // Labels
-    drawLabel(g, labelCenter, label);
-
-}
-
-void ResistorElement::createSignalPath (const int signalPathMode) 
-{
-    setSignalPath(true);
-    CachedPath cachedPath;
-    cachedPath.path = path;
-    cachedPath.rebuildCache();
-    signalPaths.push_back (cachedPath);
-}
 
 float CapacitorElement:: labelToValue (const juce::String s)
 {
@@ -215,19 +249,4 @@ void CapacitorElement::createSignalPath (const int signalPathMode)
     cachedPath.path = sigpath;
     cachedPath.rebuildCache();
     signalPaths.push_back (cachedPath);
-}
-void CapacitorElement::draw (juce::Graphics& g) const
-{
-    float t=0.0f;
-    if (getNumMonitors()> 0)
-        t = getRMSValue(0) * POWER_SCALING; 
-    drawGlowPath(g, path, t, getColourNormal(),getColourAmber(), isHighlighted());
-
- 
-    if (isSignalPath()){
-        auto& cachedPath = signalPaths.back();
-        drawSignalPath(g, cachedPath, t, getClock());
-    }
-
-    drawLabel(g, labelCenter, label);
 }

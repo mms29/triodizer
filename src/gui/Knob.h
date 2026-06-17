@@ -1,6 +1,20 @@
 #pragma once
 
 #include <juce_audio_processors/juce_audio_processors.h>
+#include "utils/Glow.h"
+
+
+class GlowLookAndFeel : public juce::LookAndFeel_V4
+{
+public:
+    void drawRotarySlider (juce::Graphics& g,
+                           int x, int y,
+                           int width, int height,
+                           float sliderPos,
+                           float rotaryStartAngle,
+                           float rotaryEndAngle,
+                           juce::Slider& slider) override;
+};
 
 // ==============================================================================
 // Knob: Custom rotary slider component for parameter control
@@ -37,6 +51,7 @@ public:
     juce::String getName() const { return label.getText(); }
 
 private:
+    GlowLookAndFeel glowLF;
     juce::Slider slider;
     juce::Label label;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> attachment;

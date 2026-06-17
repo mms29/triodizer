@@ -299,52 +299,52 @@ public:
         // Voltages
         float x;
 
-        auto& VDCk1 = monitors[(int)Monitoring::VDCk1];
-        x = getVk1();
-        VDCk1 = lowPass(x, VDCk1);
-        auto& VDCp1 = monitors[(int)Monitoring::VDCp1];
-        x = getVp1();
-        VDCp1 = lowPass(x, VDCp1);
+        // auto& VDCk1 = monitors[(int)Monitoring::VDCk1];
+        // x = getVk1();
+        // VDCk1 = lowPass(x, VDCk1);
+        // auto& VDCp1 = monitors[(int)Monitoring::VDCp1];
+        // x = getVp1();
+        // VDCp1 = lowPass(x, VDCp1);
 
-        auto& VDCk2 = monitors[(int)Monitoring::VDCk2];
-        x = getVk2();
-        VDCk2 = lowPass(x, VDCk2);
-        auto& VDCp2 = monitors[(int)Monitoring::VDCp2];
-        x = getVp2();
-        VDCp2 = lowPass(x, VDCp2);
+        // auto& VDCk2 = monitors[(int)Monitoring::VDCk2];
+        // x = getVk2();
+        // VDCk2 = lowPass(x, VDCk2);
+        // auto& VDCp2 = monitors[(int)Monitoring::VDCp2];
+        // x = getVp2();
+        // VDCp2 = lowPass(x, VDCp2);
 
-        auto& VDCk3 = monitors[(int)Monitoring::VDCk3];
-        x = getVk3();
-        VDCk3 = lowPass(x, VDCk3);
-        auto& VDCp3 = monitors[(int)Monitoring::VDCp3];
-        x = getVp3();
-        VDCp3 = lowPass(x, VDCp3);
+        // auto& VDCk3 = monitors[(int)Monitoring::VDCk3];
+        // x = getVk3();
+        // VDCk3 = lowPass(x, VDCk3);
+        // auto& VDCp3 = monitors[(int)Monitoring::VDCp3];
+        // x = getVp3();
+        // VDCp3 = lowPass(x, VDCp3);
 
-        auto& VDCk4 = monitors[(int)Monitoring::VDCk4];
-        x = getVk4();
-        VDCk4 = lowPass(x, VDCk4);
-        auto& VDCp4 = monitors[(int)Monitoring::VDCp4];
-        x = getVp4();
-        VDCp4 = lowPass(x, VDCp4);
+        // auto& VDCk4 = monitors[(int)Monitoring::VDCk4];
+        // x = getVk4();
+        // VDCk4 = lowPass(x, VDCk4);
+        // auto& VDCp4 = monitors[(int)Monitoring::VDCp4];
+        // x = getVp4();
+        // VDCp4 = lowPass(x, VDCp4);
 
-        auto& VDCk5 = monitors[(int)Monitoring::VDCk5];
-        x = getVk5();
-        VDCk5 = lowPass(x, VDCk5);
-        auto& VDCp5 = monitors[(int)Monitoring::VDCp5];
-        x = getVp5();
-        VDCp5 = lowPass(x, VDCp5);
+        // auto& VDCk5 = monitors[(int)Monitoring::VDCk5];
+        // x = getVk5();
+        // VDCk5 = lowPass(x, VDCk5);
+        // auto& VDCp5 = monitors[(int)Monitoring::VDCp5];
+        // x = getVp5();
+        // VDCp5 = lowPass(x, VDCp5);
 
-        // CURRENT 
-        auto& ik1 = monitors[(int)Monitoring::Ik1];
-        ik1 = lowPass(getIk1(), ik1);
-        auto& ik2 = monitors[(int)Monitoring::Ik2];
-        ik2 = lowPass(getIk2(), ik2);
-        auto& ik3 = monitors[(int)Monitoring::Ik3];
-        ik3 = lowPass(getIk3(), ik3);
-        auto& ik4 = monitors[(int)Monitoring::Ik4];
-        ik4 = lowPass(getIk4(), ik4);
-        auto& ik5 = monitors[(int)Monitoring::Ik5];
-        ik5 = lowPass(getIk5(), ik5);
+        // // CURRENT 
+        // auto& ik1 = monitors[(int)Monitoring::Ik1];
+        // ik1 = lowPass(getIk1(), ik1);
+        // auto& ik2 = monitors[(int)Monitoring::Ik2];
+        // ik2 = lowPass(getIk2(), ik2);
+        // auto& ik3 = monitors[(int)Monitoring::Ik3];
+        // ik3 = lowPass(getIk3(), ik3);
+        // auto& ik4 = monitors[(int)Monitoring::Ik4];
+        // ik4 = lowPass(getIk4(), ik4);
+        // auto& ik5 = monitors[(int)Monitoring::Ik5];
+        // ik5 = lowPass(getIk5(), ik5);
     }
 
 
@@ -361,8 +361,6 @@ public:
         w_Ck4.prepare(sr);
         w_TS.prepare(sr);
         w_C5.prepare(sr);
-
-        alpha = 1.0f / (sr * 0.5f); 
     }
     void reset() override {
         w_Ck1.reset();
@@ -411,7 +409,7 @@ public:
         auto V5_out = voltage<float> (w_Rk5);
 
         updateMonitors();
-        return voltage<float>(w_RMas_minus);
+        return voltage<float>(w_RMas_minus)* outputGain;
     }
 
     // Accessor methods for monitoring internal WDF variables
@@ -436,15 +434,8 @@ public:
 
 private: 
 
-// Monitoring utils
-    float alpha=1.0f;
+    float outputGain = 2e-3f;
 
-    float lowPass(float x, float mean){
-        return mean + alpha * (x - mean);
-    }
-    float variance(float x, float mean, float var){
-        return var + alpha * ((x - mean)*(x - mean) - var);
-    }
 
     // ==================================================================================================== 
     // =  First stage 

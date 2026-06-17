@@ -9,6 +9,8 @@
 #include "schematic/SchematicPanel.h"
 #include "schematic/SchematicBuilder.h"
 #include "gui/Knob.h"
+#include "gui/Button.h"
+#include "gui/Selector.h"
 #include "gui/WaveformDisplay.h"
 
 // ==============================================================================
@@ -57,25 +59,41 @@ public:
     void setCircuitParam (const int index, float newValue) override;
     void setCircuitControl (const int index, float newValue) override;
     float getCircuitMonitoring (const int index) override;
+    void updateCircuitMonitoring () override;
     float getCircuitParam (const int index) override;
     float getCircuitControl (const int index) override;
+
+    void updateOversampleLabels (double sampleRate)
+    {
+        oversampleSelector.changeItemText (1, juce::String(sampleRate/1e3, 1) + "kHz");
+        oversampleSelector.changeItemText (2, juce::String(2*sampleRate/1e3, 1) + "kHz");
+        oversampleSelector.changeItemText (3, juce::String(4*sampleRate/1e3, 1) + "kHz");
+        oversampleSelector.changeItemText (4, juce::String(8*sampleRate/1e3, 1) + "kHz");
+    }
 
 private:
     TubeLabProcessor& audioProcessor;
     int timerCount = 0;
 
+
+    // Top panel
+    juce::Rectangle<int> topRect, botRect, titleRect, subtitleRect;
+    GlowComboBoxLookAndFeel glowComboBoxLF;
+
     // Waveform display for input/output comparison
+    std::unique_ptr<PathToggleButton> scopeButton;
     WaveformDisplay waveformDisplay;
     CallbackTimer waveformTimer;
-    CallbackTimer schematicTimer;
+    bool showScope = false;
 
     // Schematic panel — the interactive circuit
     std::unique_ptr<SchematicPanel> schematic;
     SchematicBuilder schematicBuilder;
+    CallbackTimer schematicTimer;
 
-    // Sliders for drive / gain
-    std::unique_ptr<Knob> driveKnob;
-    std::unique_ptr<Knob> gainKnob;
+    // // Sliders for drive / gain
+    // std::unique_ptr<Knob> driveKnob;
+    // std::unique_ptr<Knob> gainKnob;
 
     // Oversampling control
     juce::ComboBox oversampleSelector;
@@ -84,11 +102,17 @@ private:
 
     // Preset selection
     juce::ComboBox presetSelector;
-    juce::Label presetLabel;
+    // juce::Label presetLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> presetAttachment;
 
     // Zoom controls
     juce::TextButton resetViewButton { "Reset View" };
+
+    // Signal path
+    std::unique_ptr<PathToggleButton> signalButton;
+
+    // Inspect button
+    std::unique_ptr<PathToggleButton> inspectButton;
 
     // Mono/stereo mode toggle
     juce::ToggleButton monoStereoButton;
