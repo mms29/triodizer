@@ -1,15 +1,76 @@
 #include "schematic/MultiTermElement.h"
 
 
+juce::String PotElement::getInspectValue () 
+{
+    return label;
+}
+
+juce::AttributedString PotElement::getInspectContent () 
+{
+    juce::AttributedString textContent;
+    auto font = juce::Font (juce::FontOptions(FONT_SUB1));
+    if (getNumMonitors() > 0){
+        float vp = getSmoothedValue(0, MONITOR_PORT_V);
+        float cp = getSmoothedValue(0, MONITOR_PORT_I);
+        float vm = getSmoothedValue(1, MONITOR_PORT_V);
+        float cm = getSmoothedValue(1, MONITOR_PORT_I);
+        float vp_rms = getRMSValue(0, MONITOR_PORT_V);
+        float cp_rms = getRMSValue(0, MONITOR_PORT_I);
+        float vm_rms = getRMSValue(1, MONITOR_PORT_V);
+        float cm_rms = getRMSValue(1, MONITOR_PORT_I);
+        textContent.append ("Resistor A: ", font, getColourNormal());
+        textContent.append ("\n\t");
+        textContent.append (formatVDCAC(vp, vp_rms), font, getColourElectrical());
+        textContent.append ("\n\t");
+        textContent.append (formatCurrent(cp), font, getColourAmber());
+        textContent.append ("\n");
+        textContent.append ("Resistor B: ", font, getColourNormal());
+        textContent.append ("\n\t");
+        textContent.append (formatVDCAC(vm, vm_rms), font, getColourElectrical());
+        textContent.append ("\n\t");
+        textContent.append (formatCurrent(cm), font, getColourAmber());
+        textContent.append ("\n\t");
+        
+        
+
+    }
+    return textContent;
+}
+
+void PotElement::updateArrow()
+{
+    const auto& p2 = terminals[2];
+    // Arrow
+    float ratio = (100.0f-controlValue)/100.0f ;
+    arrow.clear();
+    arrow.startNewSubPath(p2);
+    arrow.lineTo(pp2);
+    arrow.addArrow(juce::Line(pp2, pp0 + (pp1-pp0)*ratio -arrowDir*RESISTOR_ZIGZAG_AMPLITUDE*1.3f), 1.0f, 10.0f, 10.0f);
+    
+
+    if (signalPaths.size()>0){
+        auto& p = signalPaths[0].getSignalPaths()[2];
+        p.path = arrow;
+        p.rebuildCache();
+    }
+    
+}
+
 
 void PotElement::controlCallback(float value, SchematicPanelListener* listener)
 {
     if (value <=0.1f) value = 0.1f;
     if (value >=99.9f) value = 99.9f;
-
     listener->setCircuitControl(getControlIndex(), value);
-
     controlValue = value;
+
+    updateArrow();
+
+    path.clear();
+    path.addPath(arrow);
+    path.addPath(zigzag);
+    
     return;
 }
 
@@ -37,60 +98,87 @@ void PotElement::prepareToDraw ()
     cachedBounds = juce::Rectangle<float> (p0, p1);
     cachedBounds.expand(1.0f + std::abs(v.x*halfAmp), 1.0f + std::abs(v.y*halfAmp));
 
-    zigzag.startNewSubPath (p0);
-    zigzag.lineTo(a);
+    zigzagPlus.startNewSubPath (p0);
+    zigzagPlus.lineTo(a);
     juce::Point<float>  curr = a;
-    for (int i = 0; i <= RESISTOR_ZIGZAG_COUNT; ++i)
+    for (int i = 0; i < RESISTOR_ZIGZAG_COUNT/2; ++i)
     {
         int sign = std::pow(-1, i);
         curr = curr + (halfAmp * v * sign) + (s * u);
         if (i != 0 && i!= RESISTOR_ZIGZAG_COUNT){
             curr = curr + (halfAmp*v * sign) + (s*u);
         }
-        zigzag.lineTo (curr);
+        zigzagPlus.lineTo (curr);
     }
-    zigzag.lineTo(p1);
-    const float labelOff = 40.0f;
-    const juce::Point<float> m = (p0 + p1) * 0.5f;
-    labelCenter = m + labelOff * v;
+
+    zigzagMinus.startNewSubPath (curr);
+    for (int i = RESISTOR_ZIGZAG_COUNT/2; i <= RESISTOR_ZIGZAG_COUNT; ++i)
+    {
+        int sign = std::pow(-1, i);
+        curr = curr + (halfAmp * v * sign) + (s * u);
+        if (i != 0 && i!= RESISTOR_ZIGZAG_COUNT){
+            curr = curr + (halfAmp*v * sign) + (s*u);
+        }
+        zigzagMinus.lineTo (curr);
+    }
+    zigzagMinus.lineTo(p1);
+
+    zigzag.addPath(zigzagPlus);
+    zigzag.addPath(zigzagMinus);
 
     pp0=a;
     pp1=b;
-    pp2= p0 + d*0.5f -v*RESISTOR_ZIGZAG_LENGTH;
-    arrowDir = v;
-}
-void PotElement::draw (juce::Graphics& g) const
-{
-    const auto& p2 = terminals[2];
-    // Arrow
+
+    float sign =1.0f;
+    if ( p2.getDistanceFrom(p0 + d*0.5f +v*RESISTOR_ZIGZAG_LENGTH) >=
+         p2.getDistanceFrom(p0 + d*0.5f -v*RESISTOR_ZIGZAG_LENGTH)   )
+         sign = -1.0f;
+    pp2= p0 + d*0.5f + sign*v*RESISTOR_ZIGZAG_LENGTH;
+    arrowDir = -sign*v;
+
+
     float ratio = (100.0f-controlValue)/100.0f ;
-    juce::Path arrow;
     arrow.startNewSubPath(p2);
+    arrow.lineTo(pp2.x, p2.y);
     arrow.lineTo(pp2);
     arrow.addArrow(juce::Line(pp2, pp0 + (pp1-pp0)*ratio -arrowDir*RESISTOR_ZIGZAG_AMPLITUDE*1.3f), 1.0f, 10.0f, 10.0f);
 
-    float t=0.0f;
-    if (getNumMonitors()> 1)
-        t = getRMSValue(1) * POWER_SCALING; 
-    drawGlowPath(g, zigzag, t, getColourNormal(), getColourAmber(), isHighlighted());
-    drawGlowPath(g, arrow, 0.0f, getColourNormal(), getColourAmber(), isHighlighted());
-
-    // Labels
+    const float labelOff = 40.0f;
+    const juce::Point<float> m = (p0 + p1) * 0.5f;
+    labelCenter = m + labelOff * -sign* v;
+}
+void PotElement::draw (juce::Graphics& g) const
+{
     drawLabel(g, labelCenter, label);
+}
 
+void PotElement::drawPower (juce::Graphics& g) const
+{
+    if (getNumMonitors() > 0){
+        float pPlus = getRMSValue(0, MONITOR_PORT_I)*getRMSValue(0, MONITOR_PORT_V) * POWER_SCALING; 
+        float pMinus = getRMSValue(1, MONITOR_PORT_I)*getRMSValue(1, MONITOR_PORT_V) * POWER_SCALING; 
+        float pOut = std::abs((getRMSValue(0, MONITOR_PORT_I)-getRMSValue(1, MONITOR_PORT_I)) * getRMSValue(1, MONITOR_PORT_V)) * POWER_SCALING; 
+        drawPowerGlowPath(g, zigzagPlus, pPlus);
+        drawPowerGlowPath(g, zigzagMinus, pMinus);
+        drawPowerGlowPath(g, arrow,pOut);
+    }
 }
 
 
-void PotElement::updateSignalPath () {
-    float t=0.0f;
-    if (getNumMonitors()> 1)
-        t = getRMSValue(1) * POWER_SCALING; 
+void PotElement::createSignalPaths () 
+{
+    signalPaths[0].addPath(zigzagPlus, 0.0f, 0.5f);
+    signalPaths[0].addPath(zigzagMinus, 0.5f, 1.0f);
+    signalPaths[0].addPath(arrow, 0.5f, 0.5f);
+}
 
-    for (auto& cachedPath : signalPaths)
-    {
-        updateCachedPath(t, SchematicElement::getClock(), cachedPath);
+void PotElement::updateSignalPaths () {
+    if (getNumMonitors()> 0){
+        signalPaths[0].updateSignalPath(
+            getSmoothedValue(0, MONITOR_PORT_I) * POWER_SCALING,
+            getSmoothedValue(0, MONITOR_PORT_V)
+        );
     }
-
 };
 
 float PotElement::labelToValue (const juce::String s)
@@ -137,37 +225,28 @@ juce::String PotElement::valueToLabel (float v)
     return juce::String (v);
 }
 
-void PotElement::createSignalPath (const int signalPathMode) 
+
+void VarResElement::updateArrow()
 {
-    const auto& p0 = terminals[0];
-    const auto& p1 = terminals[1];
     const auto& p2 = terminals[2];
-    
-    setSignalPath(true);
+    // Arrow
+    float ratio = (100.0f-controlValue)/100.0f ;
+    arrow.clear();
+    arrow.startNewSubPath(p2);
+    arrow.lineTo(pp2.x, p2.y);
+    arrow.lineTo(pp2);
+    arrow.addArrow(juce::Line(pp2, pp0 + (pp1-pp0)*ratio -arrowDir*RESISTOR_ZIGZAG_AMPLITUDE*1.3f), 1.0f, 10.0f, 10.0f);
 
-    juce::Path sigpath;
-    if (signalPathMode == 0){
-        sigpath.startNewSubPath(p0);
-        sigpath.lineTo(pp0);
-        sigpath.lineTo(pp2);
-        sigpath.lineTo(p2);
+    if (signalPaths.size()>0){
+        auto& p = signalPaths[0].getSignalPaths()[2];
+        p.path = arrow;
+        p.rebuildCache();
     }
-    CachedPath cachedPath;
-    cachedPath.path = sigpath;
-    cachedPath.rebuildCache();
-    signalPaths.push_back (cachedPath);
+    
 }
-
-
 
 void TransformerElement::prepareToDraw () 
 {
-}
-void TransformerElement::draw (juce::Graphics& g) const
-{
-    g.setColour (isHighlighted() ? getColourHighlight() : getColourNormal());
-    float thickness = isHighlighted() ? STROKE_HIGHLIGHT : STROKE_NORMAL;
-
     const auto& p0 = terminals[0];
     const auto& p1 = terminals[1];
     const auto& p2 = terminals[2];
@@ -175,7 +254,7 @@ void TransformerElement::draw (juce::Graphics& g) const
 
     const juce::Point<float> d1 = p1-p0;
     const float length1 = p1.getDistanceFrom(p0);
-    const juce::Point<float> d2 = p1-p0;
+    const juce::Point<float> d2 = p3-p2;
     const float length2 = p3.getDistanceFrom(p2);
     if (length1 < TRANSFORMER_COIL_LENGTH) return;
     if (length2 < TRANSFORMER_COIL_LENGTH) return;
@@ -191,14 +270,14 @@ void TransformerElement::draw (juce::Graphics& g) const
     // Build cached bounds
     cachedBounds = juce::Rectangle<float> (p0, p3);
     // cachedBounds.expand(1.0f + std::abs(v.x*plateWidth/2.0f), 1.0f + std::abs(v.y*plateWidth/2.0f));
-    juce::Path primary, secondary;
+
 
     juce::Rectangle<float> bounds (50.0f, 50.0f, 200.0f, 200.0f);
 
     primary.startNewSubPath(p0);
     primary.lineTo(a);
-    primary.startNewSubPath(p2);
-    primary.lineTo(c);
+    secondary.startNewSubPath(p2);
+    secondary.lineTo(c);
 
     int ncoil = (int) TRANSFORMER_COIL_LENGTH/TRANSFORMER_COIL_WIDTH;
     for (int i =0; i<ncoil; i++){
@@ -216,18 +295,112 @@ void TransformerElement::draw (juce::Graphics& g) const
     }
     primary.lineTo(p1);
     secondary.lineTo(p3);
-    g.strokePath (primary,  juce::PathStrokeType (thickness));
-    g.strokePath (secondary,  juce::PathStrokeType (thickness));
+    
 
     float coilGap = p3.x - p1.x;
+    gapPath.startNewSubPath( a+v*coilGap*0.4f);
+    gapPath.lineTo(b+v*coilGap*0.4f);
+    gapPath.startNewSubPath( a+v*coilGap*0.6f);
+    gapPath.lineTo(b+v*coilGap*0.6f);
 
-    g.drawLine(juce::Line(a+v*coilGap*0.4f, b+v*coilGap*0.4f), thickness);
-    g.drawLine(juce::Line(a+v*coilGap*0.6f, b+v*coilGap*0.6f), thickness);
+
+    path.addPath(primary);
+    path.addPath(secondary);
+    path.addPath(gapPath);
 
     // Labels
     const float labelOff = -42.0f;
     const juce::Point<float> m = (p0 + p1) * 0.5f;
-    const juce::Point<float> l = m + labelOff * v;
-    drawLabel(g, l, label);
+    labelCenter = m + labelOff * v;
+}
+void TransformerElement::draw (juce::Graphics& g) const
+{
+    drawLabel(g, labelCenter, label);
 
+}
+
+juce::String TransformerElement::valueToLabel (float v)
+{
+    return "TR="+ juce::String ((int) v);
+}
+
+
+float TransformerElement::labelToValue (const juce::String s)
+{
+    auto str = s.trim().toLowerCase();
+    if (str.isEmpty()) return getValue(); // fallback to original
+
+    // parse numeric part
+    float value = str.getFloatValue();
+
+    if (value == 0.0)
+        return getValue();
+
+    return (float) (value );
+}
+
+
+
+void TransformerElement::createSignalPaths () 
+{
+    signalPaths[0].addPath(primary);
+    signalPaths[1].addPath(secondary);
+}
+
+void TransformerElement::updateSignalPaths () {
+    if (getNumMonitors()> 1){
+        signalPaths[0].updateSignalPath(
+            getSmoothedValue(0, MONITOR_PORT_I) * POWER_SCALING,
+            getSmoothedValue(0, MONITOR_PORT_V)
+        );
+        signalPaths[1].updateSignalPath(
+            getSmoothedValue(1, MONITOR_PORT_I) * POWER_SCALING,
+            getSmoothedValue(1, MONITOR_PORT_V)
+        );
+    }
+};
+
+void TransformerElement::drawPower (juce::Graphics& g) const
+{
+    if (getNumMonitors() > 1){
+        float pprim = getRMSValue(0, MONITOR_PORT_I)*getRMSValue(0, MONITOR_PORT_V) * POWER_SCALING; 
+        float psec = getRMSValue(1, MONITOR_PORT_I)*getRMSValue(1, MONITOR_PORT_V) * POWER_SCALING; 
+        drawPowerGlowPath(g, primary, pprim);
+        drawPowerGlowPath(g, secondary, psec);
+    }
+}
+
+
+juce::String TransformerElement::getInspectValue () 
+{
+    return label;
+}
+
+juce::AttributedString TransformerElement::getInspectContent () 
+{
+    juce::AttributedString textContent;
+    auto font = juce::Font (juce::FontOptions(FONT_SUB1));
+    if (getNumMonitors() > 1){
+        float vp = getSmoothedValue(0, MONITOR_PORT_V);
+        float cp = getSmoothedValue(0, MONITOR_PORT_I);
+        float vs = getSmoothedValue(1, MONITOR_PORT_V);
+        float cs = getSmoothedValue(1, MONITOR_PORT_I);
+        float vp_rms = getRMSValue(0, MONITOR_PORT_V);
+        float vs_rms = getRMSValue(1, MONITOR_PORT_V);
+        textContent.append ("Primary : ", font, getColourNormal());
+        textContent.append ("\n\t");
+        textContent.append (formatVDCAC(vp, vp_rms), font, getColourElectrical());
+        textContent.append ("\n\t");
+        textContent.append (formatCurrent(cp), font, getColourAmber());
+        textContent.append ("\n");
+        textContent.append ("Secondary : ", font, getColourNormal());
+        textContent.append ("\n\t");
+        textContent.append (formatVDCAC(vs, vs_rms), font, getColourElectrical());
+        textContent.append ("\n\t");
+        textContent.append (formatCurrent(cs), font, getColourAmber());
+        textContent.append ("\n\t");
+        
+
+    }
+    return textContent;
 }

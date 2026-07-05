@@ -7,7 +7,8 @@
 class TwoTermElement : public SchematicElement,
                         public SettableElement,
                         public MonitoringElement,
-                        public InspectableElement
+                        public InspectableElement,
+                        public SignalElement
 {
 public:
     TwoTermElement (const juce::String& name,
@@ -25,24 +26,28 @@ public:
                      Terminal termA,
                      Terminal termB,
                      const int paramIndex,
-                     const int voltageMonitorIndex,
-                     const int currentMonitorIndex,
-                    juce::AttributedString descr)
+                     const int monitorIndex,
+                    const int signalPathMode = SIGNALPATH_MODE_NORMAL_FORWARD,
+                    SignalPath* signalPathRef = nullptr,
+                    juce::AttributedString descr=juce::AttributedString {})
         : SchematicElement (name, std::vector<Terminal> { termA, termB }),
           SettableElement (paramIndex),
-          MonitoringElement (std::vector<int> {voltageMonitorIndex,  currentMonitorIndex }),
-          InspectableElement(std::move(descr))
+          MonitoringElement (std::vector<int> {monitorIndex }),
+          InspectableElement(std::move(descr)),
+          SignalElement(signalPathRef, signalPathMode)
     {
     }
     void draw (juce::Graphics& g) const override;
-    void updateSignalPath () override;
+    void updateSignalPaths () override;
+    void drawPower (juce::Graphics& g) const override;
 
     juce::AttributedString getInspectContent () override;
     juce::String getInspectValue () override;
 
+    void addPointToTerminal(Terminal t, const int termIndex=0, const bool direction=false) override;
+
 
 protected:
-    juce::Path path;
     juce::Point<float> labelCenter;
 };
 
@@ -55,7 +60,7 @@ public:
     juce::String valueToLabel (float v) override;
     float labelToValue (const juce::String s) override;
     void prepareToDraw() override;
-    void createSignalPath (const int signalPathMode) override;
+    void createSignalPaths () override;
 };
 
 class CapacitorElement : public TwoTermElement
@@ -63,8 +68,44 @@ class CapacitorElement : public TwoTermElement
 public:
     using TwoTermElement::TwoTermElement;
 
+    juce::Path posPath, negPath, posPlate, negPlate;
+
     juce::String valueToLabel (float v) override;
     float labelToValue (const juce::String s) override;
     void prepareToDraw() override;
-    void createSignalPath (const int signalPathMode) override;
+    void createSignalPaths () override;
+
+    void addPointToTerminal(Terminal t, const int termIndex=0, const bool direction=false) override;
+
+};
+
+
+
+// ==============================================================================
+// ReverbTankElement
+class ReverbTankElement : public SchematicElement,
+                        public MonitoringElement,
+                        public SignalElement
+{
+public:
+    ReverbTankElement (const juce::String& name,
+                     Terminal termA,
+                     Terminal termB,
+                     const int monitorIndex,
+                    const int signalPathMode = SIGNALPATH_MODE_NORMAL_FORWARD,
+                    SignalPath* signalPathRef = nullptr)
+        : SchematicElement (name, std::vector<Terminal> { termA, termB }),
+          MonitoringElement (std::vector<int> {monitorIndex }),
+          SignalElement(signalPathRef, signalPathMode)
+    {
+    }
+    void draw (juce::Graphics& g) const override;
+    void updateSignalPaths () override;
+    void drawPower (juce::Graphics& g) const override;
+    void prepareToDraw() override;
+    void createSignalPaths () override;
+protected:
+    juce::Point<float> labelCenter;
+    juce::Path springPath;
+
 };

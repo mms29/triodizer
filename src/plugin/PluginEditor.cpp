@@ -6,6 +6,7 @@ TubeLabEditor::TubeLabEditor (TubeLabProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p),
       waveformTimer ([this] { waveformTimerCallback(); }, 20),
       schematicTimer ([this] { circuitTimerCallback(); }, 20),
+      inspectTimer ([this] { inspectTimerCallback(); }, 1),
       waveformDisplay (p)
 {
     audioProcessor.addChangeListener (this);
@@ -47,8 +48,26 @@ TubeLabEditor::TubeLabEditor (TubeLabProcessor& p)
     signalButton->setClickingTogglesState (true);
     signalButton->onClick = [this] 
     {
+        schematic->setSignalPathActivated(signalButton->getToggleState());
     };
     addAndMakeVisible (*signalButton);
+
+
+    //==========================================================================
+    // Power 
+    //==========================================================================
+    juce::Path powerPath;
+    powerPath.addEllipse (25, 25, 10, 10);
+    powerPath.addEllipse (20, 20, 20, 20);
+    powerPath.addRoundedRectangle (0, 0, 60, 60, 10.0f);
+
+    powerButton = std::make_unique<PathToggleButton> (powerPath, "POWER", juce::Colours::darkgrey,  getColourHotRed());
+    powerButton->setClickingTogglesState (true);
+    powerButton->onClick = [this] 
+    {
+        schematic->setPowerActivated(powerButton->getToggleState());
+    };
+    addAndMakeVisible (*powerButton);
 
     //==========================================================================
     // INSPECT DISPLAY
@@ -148,13 +167,9 @@ TubeLabEditor::TubeLabEditor (TubeLabProcessor& p)
     // PRESET
     //==========================================================================
     presetSelector.addItem ("Default", PRESET_DEFAULT);
-    presetSelector.addItem ("Common Cathode Stage", PRESET_COMMONCATHODE);
-    presetSelector.addItem ("Fender Bassman Tone Stack", PRESET_BASSMAN_TS);
-    presetSelector.addItem ("Fender Bassman Preamp Small", PRESET_BASSMAN_PREAMP_SMALL);
     presetSelector.addItem ("Fender Bassman Preamp", PRESET_BASSMAN_PREAMP);
     presetSelector.addItem ("Mesa/Boogie Dual Rectifier", PRESET_DUAL_RECTIFIER_PREAMP);
-    presetSelector.addItem ("LC Ladder", PRESET_LCLADDER);
-    presetSelector.addItem ("Twin reverb", PRESET_TWIN_REVERB);
+    presetSelector.addItem ("Fender Twin reverb", PRESET_TWIN_REVERB);
     presetSelector.setLookAndFeel(&glowComboBoxLF);
     addAndMakeVisible (presetSelector);
 
@@ -190,18 +205,6 @@ void TubeLabEditor::updateSchematic()
 
     switch (audioProcessor.getCurrentPreset())
     {
-    case PRESET_COMMONCATHODE:
-        // buildCommonCathodeStage(*schematic);
-        break;
-
-    case PRESET_BASSMAN_TS:
-        schematicBuilder.buildBassmanToneStack (*schematic);
-        break;
-
-    case PRESET_BASSMAN_PREAMP_SMALL:
-        schematicBuilder.buildBassmanPreampSmall (*schematic);
-        break;
-
     case PRESET_BASSMAN_PREAMP:
         schematicBuilder.buildBassmanPreamp (*schematic);
         break;
@@ -214,7 +217,6 @@ void TubeLabEditor::updateSchematic()
         schematicBuilder.buildTwinReverb (*schematic);
         break;
 
-    case PRESET_LCLADDER:
     default:
         schematicBuilder.buildDefault (*schematic);
         break;
@@ -230,6 +232,11 @@ void TubeLabEditor::updateSchematic()
 void TubeLabEditor::circuitTimerCallback()
 {
     schematic->updateMonitoring();
+}
+
+void TubeLabEditor::inspectTimerCallback()
+{
+    schematic->updateInspect();
 }
 
 void TubeLabEditor::waveformTimerCallback()
@@ -248,7 +255,7 @@ void TubeLabEditor::paint (juce::Graphics& g)
     juce::Path topLine;
     topLine.startNewSubPath(0.0f, WINDOW_TOP_PANEL+1.5f);
     topLine.lineTo((float) getWidth(), WINDOW_TOP_PANEL+1.5f);
-    drawGlowPath(g, topLine, 0.1f, getColourNormal(), getColourAmber(), false);
+    drawGlowAndCorePath(g, topLine, 0.1f, getColourNormal(), getColourAmber(), false);
     g.setColour (getColourBackground());
     g.fillRect(botRect);
 
@@ -262,14 +269,14 @@ void TubeLabEditor::paint (juce::Graphics& g)
     juce::Path titleWavePath;
     juce::Font font  = juce::FontOptions (FONT_MAINTITLE);
     juce::GlyphArrangement glyphWave;
-    glyphWave.addLineOfText (font, "WAVE", 0.0f, 0.0f);
+    glyphWave.addLineOfText (font, "NEON", 0.0f, 0.0f);
     glyphWave.createPath (titleWavePath);
     titleWavePath.applyTransform (
         juce::AffineTransform::translation (
             titleRect.getCentreX() - titleWavePath.getBounds().getWidth(),
             titleRect.getCentreY() - titleWavePath.getBounds().getCentreY() ));
     
-    drawGlowPath (g, titleWavePath, 0.2f, getColourNormal(), getColourAmber(), false);
+    drawGlowAndCorePath (g, titleWavePath, 0.2f, getColourNormal(), getColourAmber(), false);
 
     g.setFont (font);
     g.setColour (getColourNormal()); 
@@ -318,6 +325,7 @@ void TubeLabEditor::resized()
 
     scopeButton->setBounds (leftPanel.removeFromTop (TOGGLE_BUTTON_SIZE).reduced (10, 10));
     signalButton->setBounds (leftPanel.removeFromTop (TOGGLE_BUTTON_SIZE).reduced (10, 10));
+    powerButton->setBounds (leftPanel.removeFromTop (TOGGLE_BUTTON_SIZE).reduced (10, 10));
     inspectButton->setBounds (leftPanel.removeFromTop (TOGGLE_BUTTON_SIZE).reduced (10, 10));
     // // Oversample
     // // oversampleLabel.setBounds (topPanel.removeFromRight (80).reduced (0, 30));
@@ -360,7 +368,7 @@ void TubeLabEditor::setCircuitControl (const int index, float newValue)
     audioProcessor.setCircuitControl (index, newValue);
 }
 
-float TubeLabEditor::getCircuitMonitoring (const int index)
+const MonitorValuef& TubeLabEditor::getCircuitMonitoring (const int index)
 {
     return audioProcessor.getCircuitMonitoring (index);
 }

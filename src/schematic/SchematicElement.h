@@ -8,70 +8,94 @@
 #include "utils/Glow.h"
 #include "schematic/SchematicPanelListener.h"
 #include "utils/Format.h"
+#include "dsp/Circuit.h"
 
 
 using Terminal = juce::Point<float> ;
+
+
+/* 
+------------------------------------------------------------------------------------------------------------------------
+    Signl Path Element 
+------------------------------------------------------------------------------------------------------------------------
+*/
+class SignalElement 
+{
+public:
+    SignalElement (std::vector<SignalPath*> signalPathRefs, const std::vector<int> signalPathModes){
+        jassert(signalPathRefs.size() == signalPathModes.size());
+        for (size_t i=0; i<signalPathRefs.size(); i++){
+            SignalPath signalPath;
+            signalPath.setRef(signalPathRefs[i]);
+            signalPath.setMode(signalPathModes[i]);
+            signalPaths.push_back(signalPath);
+        }
+    };
+    SignalElement (SignalPath* signalPathRef = nullptr, const int signalPathMode= SIGNALPATH_MODE_NORMAL_FORWARD){
+        SignalPath signalPath;
+        signalPath.setRef(signalPathRef);
+        signalPath.setMode(signalPathMode);
+        signalPaths.push_back(signalPath);
+    };
+    ~SignalElement() = default;
+
+    virtual void updateSignalPaths (){}
+    virtual void createSignalPaths (){}
+
+    // Sig path
+    SignalPath* getSignalPathPtr (const int index =0 ) noexcept {return &signalPaths[index];}
+    int getNumSignals () const noexcept {return signalPaths.size();}
+
+protected:
+    std::vector<SignalPath> signalPaths;
+};
 
 /* 
 ------------------------------------------------------------------------------------------------------------------------
     Base class for Elements in the schematic
 ------------------------------------------------------------------------------------------------------------------------
 */
-class BaseElement 
+class SchematicElement 
 {
 public:
-    BaseElement (std::vector<Terminal> terminals)
-                 : terminals (std::move (terminals)){};
+    SchematicElement (const juce::String& name,
+                        std::vector<Terminal> terminals)
+                 : name (name), terminals (std::move (terminals))
+                {};
 
-    virtual ~BaseElement() = default;
+    virtual ~SchematicElement() = default;
 
     // Accessors
     const std::vector<Terminal>& getTerminals() const noexcept;
+    const juce::Path& getPath() const noexcept { return path;}
     bool isHighlighted() const noexcept;
     virtual void setHighlighted (bool shouldBeHighlighted) noexcept;
-    bool isSignalPath() const noexcept {return isSigPath;};
-    virtual void setSignalPath (bool value) noexcept {isSigPath = value;};
+    const juce::String& getName() const noexcept;
+
+    // Helper function to display param label
+    void drawLabel(juce::Graphics& g, Terminal center, juce::String labelValue) const;
 
     // Templates
     virtual void draw (juce::Graphics& g) const = 0;
     virtual void prepareToDraw () {}
     virtual bool hitTest (juce::Point<float> point) const;
 
-    // clock helpers
-    static int getClock() {return clock;}
-    static void incrementClock (){clock++;}
+    SignalPath* getSignalPath(const int index =0) noexcept
+    {
+        if (auto* s = dynamic_cast<SignalElement*>(this))
+            return s->getSignalPathPtr(index);
 
-    // Sig path
-    virtual void createSignalPath (const int signalPathMode) { setSignalPath(true);}
-    virtual void updateSignalPath () {}
-    virtual std::vector<CachedPath> getSignalPaths () noexcept {return signalPaths;};
+        return nullptr;
+    }
+    virtual void addPointToTerminal(Terminal t, const int termIndex=0, const bool direction=false);
 
-protected:
-    bool                               highlighted      = false;
-    mutable juce::Rectangle<float>     cachedBounds;
-    std::vector<Terminal>              terminals;
-    static inline int                  clock=0;
-    bool isSigPath = false;
-    std::vector<CachedPath> signalPaths;
-
-};
-class SchematicElement : public BaseElement
-{
-public:
-    SchematicElement (const juce::String& name,
-                      std::vector<Terminal> terminals)
-                      : name (name), BaseElement(terminals){};
-
-    virtual ~SchematicElement() = default;
-
-    // Accessors
-    const juce::String& getName() const noexcept;
-
-    // Helper function to display param label
-    void drawLabel(juce::Graphics& g, Terminal center, juce::String labelValue) const;
 
 protected:
     juce::String                       name;
+    bool                               highlighted      = false;
+    mutable juce::Rectangle<float>     cachedBounds;
+    std::vector<Terminal>              terminals;
+    juce::Path path;
 
 };
 
@@ -206,9 +230,9 @@ public:
     explicit MonitoringElement(std::vector<int> indices)
         : circuitIndices(std::move(indices))
     {
-        monitorValues.resize(circuitIndices.size(), 0.0f);
-        smoothedValues.resize(circuitIndices.size(), 0.0f);
-        rmsValues.resize(circuitIndices.size(), 0.0f);
+        monitorValues.resize(circuitIndices.size());
+        smoothedValues.resize(circuitIndices.size());
+        rmsValues.resize(circuitIndices.size());
     }
 
     int getNumMonitors() const noexcept
@@ -216,12 +240,14 @@ public:
         return (int) circuitIndices.size();
     }
 
-    void setMonitorValue(int monitorIndex, float v) noexcept
+    void setMonitorValue(int monitorIndex, MonitorValuef v) noexcept
     {
         monitorValues[(size_t) monitorIndex] = v;
-        auto s = getSmoothedValue(monitorIndex);
-        smoothedValues[(size_t) monitorIndex] = smooth(v, s);
-        rmsValues[(size_t) monitorIndex] = rms(v, s, getRMSValue(monitorIndex));
+        for (int i=0; i<v.size; i++){
+            auto s = getSmoothedValue(monitorIndex, i);
+            smoothedValues[(size_t) monitorIndex].values[i] = smooth(v.values[i], s);
+            rmsValues[(size_t) monitorIndex].values[i] = rms(v.values[i], s, getRMSValue(monitorIndex, i));
+        }
     }
 
     int getCircuitIndex(int monitorIndex) const noexcept
@@ -229,32 +255,31 @@ public:
         return circuitIndices[(size_t) monitorIndex];
     }
 
-    float getMonitorValue(int monitorIndex) const noexcept
+    float getMonitorValue(int monitorIndex, int valueIndex) const noexcept
     {
-        return monitorValues[(size_t) monitorIndex];
+        return monitorValues[(size_t) monitorIndex].values[valueIndex];
     }
-    float getSmoothedValue(int monitorIndex) const noexcept
+    float getSmoothedValue(int monitorIndex, int valueIndex) const noexcept
     {
-        return smoothedValues[(size_t) monitorIndex];
+        return smoothedValues[(size_t) monitorIndex].values[valueIndex];
     }
-    float getRMSValue(int monitorIndex) const noexcept
+    float getRMSValue(int monitorIndex, int valueIndex) const noexcept
     {
-        return rmsValues[(size_t) monitorIndex];
+        return rmsValues[(size_t) monitorIndex].values[valueIndex];
     }
+    virtual void drawPower (juce::Graphics& g) const {};
 
 private:
-    static constexpr float alpha=.05f;
-
     static float smooth(float x, float mean) noexcept{
-        return mean + alpha * (x - mean);
+        return mean + MONITORING_SMOOTHING_ALPHA * (x - mean);
     }
     static float rms(float x, float mean, float var) noexcept{
-        return var + alpha * (std::sqrt((x - mean)*(x - mean)) - var);
+        return var + MONITORING_SMOOTHING_ALPHA * (std::sqrt((x - mean)*(x - mean)) - var);
     }
 
-    std::vector<float> monitorValues;
-    std::vector<float> smoothedValues;
-    std::vector<float> rmsValues;
+    std::vector<MonitorValuef> monitorValues;
+    std::vector<MonitorValuef> smoothedValues;
+    std::vector<MonitorValuef> rmsValues;
     std::vector<int> circuitIndices;
 };
 
@@ -264,28 +289,30 @@ private:
     Wire element
 ------------------------------------------------------------------------------------------------------------------------
 */
-class WireElement : public BaseElement, public MonitoringElement
+class WireElement : public SchematicElement, 
+                    public MonitoringElement,
+                    public SignalElement
 {
 public:
+    WireElement(std::vector<Terminal> terminals)
+            : SchematicElement("WIRE", terminals),
+            MonitoringElement(std::vector<int>{}){}
+
     WireElement(std::vector<Terminal> terminals,
-                    bool isSignalPath = false,
-                    int monitoringIndex = -1)
-            : BaseElement(terminals),
-            MonitoringElement(
-                monitoringIndex >= 0
-                    ? std::vector<int>{monitoringIndex}
-                    : std::vector<int>{})
-                    
+                     const int monitorIndex,
+                    const int signalPathMode = SIGNALPATH_MODE_NORMAL_FORWARD,
+                    SignalPath* signalPathRef = nullptr)
+            : SchematicElement("WIRE", terminals),
+            MonitoringElement(std::vector<int>{monitorIndex}),
+            SignalElement(signalPathRef, signalPathMode)
     {
-        setSignalPath(isSignalPath);
     };
-    void createSignalPath (const int ) override;
+    void createSignalPaths () override;
+    void updateSignalPaths () override;
     void prepareToDraw () override;
     void draw (juce::Graphics& g) const override;
-    void updateSignalPath () override;
+    void drawPower (juce::Graphics& g) const override;
 
-private:
-    juce::Path wirePath;
 };
 
 /* 

@@ -1,5 +1,25 @@
 #include "schematic/TriodeElement.h"
 
+std::vector<Terminal>& getTriodeTerminals (Terminal center) {
+    static std::vector<Terminal> terminals;
+    terminals = std::vector<Terminal>{
+                        juce::Point<float>{center.x - TUBE_WIDTH/2, center.y},
+                        juce::Point<float>{center.x, center.y - TUBE_HEIGHT/2},
+                        juce::Point<float>{center.x - TUBE_WIDTH/4, center.y + TUBE_HEIGHT/2}
+                    };
+    return terminals;
+}
+std::vector<Terminal>& getParallelTriodeTerminals (Terminal center) {
+    static std::vector<Terminal> terminals;
+    terminals = std::vector<Terminal>{
+                        juce::Point<float>{center.x - TUBE_WIDTH, center.y},
+                        juce::Point<float>{center.x, center.y - TUBE_HEIGHT/2},
+                        juce::Point<float>{center.x, center.y + TUBE_HEIGHT/2}
+                    };
+    return terminals;
+}
+
+
 void TriodeElement::prepareToDraw () 
 {
     const auto& p0 = terminals[0];
@@ -10,8 +30,8 @@ void TriodeElement::prepareToDraw ()
 
     //PLATE
     float tubePlatesHeight =  TUBE_HEIGHT/3.2f;
-    plateHolder.startNewSubPath (p1 + Terminal {0.0f, tubePlatesHeight});
-    plateHolder.lineTo (p1);
+    plateHolder.startNewSubPath (p1);
+    plateHolder.lineTo (p1 + Terminal {0.0f, tubePlatesHeight});
     plate.startNewSubPath (p1 + Terminal {0.0f, tubePlatesHeight});
     plate.lineTo (p1 + Terminal {-TUBE_WIDTH/4, tubePlatesHeight});
     plate.lineTo (p1 + Terminal {+TUBE_WIDTH/4, tubePlatesHeight});
@@ -24,13 +44,13 @@ void TriodeElement::prepareToDraw ()
     float cathodeBend =  TUBE_HEIGHT/16.0f;
     cathodeHolder.startNewSubPath (p2 - Terminal {0.0f, cathodeHeight-2*cathodeBend});
     cathodeHolder.lineTo (p2);
-    cathode.startNewSubPath (p2 - Terminal {0.0f, cathodeHeight-2*cathodeBend});
-    cathode.lineTo (p2 - Terminal {0.0f, cathodeHeight-cathodeBend});
-    cathode.lineTo (p2 - Terminal {-TUBE_WIDTH/8, cathodeHeight});
-    cathode.lineTo (p2 - Terminal {-TUBE_WIDTH/4, cathodeHeight});
-    cathode.lineTo (p2 - Terminal {-TUBE_WIDTH*2/4+TUBE_WIDTH/8, cathodeHeight});
+    cathode.startNewSubPath (p2 - Terminal {-TUBE_WIDTH*2/4, cathodeHeight-2*cathodeBend});
     cathode.lineTo (p2 - Terminal {-TUBE_WIDTH*2/4, cathodeHeight-cathodeBend});
-    cathode.lineTo (p2 - Terminal {-TUBE_WIDTH*2/4, cathodeHeight-2*cathodeBend});
+    cathode.lineTo (p2 - Terminal {-TUBE_WIDTH*2/4+TUBE_WIDTH/8, cathodeHeight});
+    cathode.lineTo (p2 - Terminal {-TUBE_WIDTH/4, cathodeHeight});
+    cathode.lineTo (p2 - Terminal {-TUBE_WIDTH/8, cathodeHeight});
+    cathode.lineTo (p2 - Terminal {0.0f, cathodeHeight-cathodeBend});
+    cathode.lineTo (p2 - Terminal {0.0f, cathodeHeight-2*cathodeBend});
 
     // grid
     float start = TUBE_WIDTH/4.0f;
@@ -79,19 +99,20 @@ void TriodeElement::prepareToDraw ()
     float flowGrid = TUBE_WIDTH/4.0f;
 
     for (int i = 0; i<4; i++){
-        float flowX = flowDist*(i*2 +1);
-        juce::Path _flow, _rflow;
-        _flow.startNewSubPath(p0.x +flowGrid, p0.y);
-        _rflow.startNewSubPath(p0.x +flowGrid, p0.y);
-        _flow.addArc(p0.x +flowGrid - flowX, p0.y,flowX*2, flowMin*2, 0.0f, juce::MathConstants<float>::pi/2);
-        _rflow.addArc(p0.x +flowGrid - flowX, p0.y-2*flowMax,flowX*2, flowMax*2,  -juce::MathConstants<float>::pi, -juce::MathConstants<float>::pi*3/2);
-        // _flow.startNewSubPath(center + juce::Point<float>{flowX, flowMin+i});
-        // _flow.lineTo(center + juce::Point<float>{flowX, flowMax+i});
-        // _rflow.startNewSubPath(center + juce::Point<float>{flowX, flowMax+i});
-        // _rflow.lineTo(center + juce::Point<float>{flowX, flowMin+i});
+        float flowX = p0.x + flowGrid+flowDist*(i*2 +1);
+        juce::Path _flow;
+        _flow.startNewSubPath(flowX, p0.y -flowMax);
+        _flow.lineTo(flowX,  p0.y +flowMin);
         flow.push_back(_flow);
-        reverseflow.push_back(_rflow);
     }
+
+    path.addPath(plateHolder);
+    path.addPath(plate);
+    path.addPath(gridHolder);
+    path.addPath(grid);
+    path.addPath(cathodeHolder);
+    path.addPath(cathode);
+    path.addPath(bulb);
 
     // Update cached bounds
     cachedBounds = juce::Rectangle<float> (center.x - TUBE_WIDTH*0.5f, center.y - TUBE_HEIGHT*0.5f, TUBE_WIDTH, TUBE_HEIGHT);
@@ -100,58 +121,68 @@ void TriodeElement::prepareToDraw ()
     labelCenter = center - Terminal {50.0f, 100.0f};
     
 }
-void TriodeElement::createSignalPath (const int signalPathMode)
+void TriodeElement::createSignalPaths ()
 {
-    setSignalPath(true);
+    signalPaths[0].addPath(plateHolder, 0.0f, 0.0f);
+    signalPaths[0].addPath(cathodeHolder, 1.0f, 1.0f);
+    signalPaths[0].addPath(plate, 0.0f, 0.0f);
+    signalPaths[0].addPath(cathode, 1.0f, 1.0f);
+    for (auto& p : flow)
+        signalPaths[0].addPath(p);
+    signalPaths[0].shufflePhase();
 
-    if (signalPathMode == 0){
-        signalPaths.push_back(CachedPath{plateHolder});
-        signalPaths.push_back(CachedPath{gridHolder});
-        for (auto& p : reverseflow)
-            signalPaths.push_back(CachedPath{p});
+    if (signalPaths.size()>1){
+        signalPaths[1].addPath(gridHolder, 0.0f, 0.0f);
+        // signalPaths[1].addPath(grid, 0.0f, 0.0f);
+
     }
-    else{
-        signalPaths.push_back(CachedPath{cathodeHolder});
-        signalPaths.push_back(CachedPath{gridHolder});
-        for (auto& p : flow)
-            signalPaths.push_back(CachedPath{p});
-    }
-    for (auto& p : signalPaths)
-        p.rebuildCache();
+
 }
 
 
-void TriodeElement::updateSignalPath () {
-    float t=0.0f;
-    if (getNumMonitors()> 0)
-        t = getRMSValue(0) * POWER_SCALING; 
 
-    for (auto& cachedPath : signalPaths)
-    {
-        updateCachedPath(t, SchematicElement::getClock(), cachedPath);
+void TriodeElement::addPointToTerminal(Terminal t, const int termIndex, const bool ) {
+
+    if (termIndex> 0) return;
+
+    auto& tt = terminals[termIndex];
+    juce::Path newPath;
+    juce::Path tmp = gridHolder;
+    newPath.startNewSubPath(t);
+    newPath.lineTo(tt);
+    gridHolder.clear();
+    gridHolder.addPath(newPath);
+    gridHolder.addPath(tmp);
+    
+    tt = t;
+    path.addPath(newPath);
+
+    if (signalPaths.size()>1){
+        auto& p = signalPaths[1].getSignalPaths()[0];
+        p.path = gridHolder;
+        p.rebuildCache(); 
     }
+}
 
+void TriodeElement::updateSignalPaths () {
+    if (getNumMonitors()> 0){
+        signalPaths[0].updateSignalPath(
+            getSmoothedValue(0, MONITOR_TUBE_IK) * POWER_SCALING,
+            getSmoothedValue(0, MONITOR_TUBE_VP) -getSmoothedValue(0, MONITOR_TUBE_VK) 
+        );
+    }
 };
 void TriodeElement::draw (juce::Graphics& g) const
 {
-    float intensity = 0.0f;
-    float var=0.0f;
-    if (getNumMonitors()>0){
-        intensity = getSmoothedValue(0) *.2e3f;
-        var = getRMSValue(0) * POWER_SCALING; 
+    if (getNumMonitors() > 0){
+        // drawGlowPath(g, plate, getColourElectrical(),  getSmoothedValue(0, MONITOR_TUBE_SP));
+        // drawGlowPath(g, grid,getColourPurple(), intensity);
+        // drawGlowAndCorePath(g, bulb,  getSmoothedValue(0, MONITOR_TUBE_SC),getColourNormal(),getColourNormal(), isHighlighted());
+        // float intensity = getSmoothedValue(0, MONITOR_TUBE_IP) *.2e3f;
+        // drawGlowPath(g, cathode, getColourHotRed(), intensity);
+    
     }
-
-    drawGlowPath(g, plateHolder, var,getColourNormal(),getColourAmber(), isHighlighted());
-    drawGlowPath(g, plate, intensity,getColourNormal(),getColourElectrical(), isHighlighted());
-
-    drawGlowPath(g, gridHolder, 0.1f,getColourNormal(),getColourAmber(), isHighlighted());
-    drawGlowPath(g, grid, 0.1f,getColourPurple(),getColourPurple(), isHighlighted());
-
-    drawGlowPath(g, cathodeHolder, var, getColourNormal(),getColourAmber(), isHighlighted());
-    drawGlowPath(g, cathode, intensity, getColourNormal(),getColourHotRed(), isHighlighted());
-
-    drawGlowPath(g, filament, 0.0f,getColourHotRed(),getColourHotRed(), isHighlighted());
-    drawGlowPath(g, bulb, 0.1f,getColourNormal(),getColourNormal(), isHighlighted());
+    drawGlowAndCorePath(g, filament, 0.1f,getColourHotRed(),getColourHotRed(), isHighlighted());
 
     juce::Font fontName = juce::FontOptions (FONT_TITLE);
     juce::Font fontValue = juce::FontOptions (FONT_SUB1);
@@ -177,26 +208,36 @@ void TriodeElement::draw (juce::Graphics& g) const
 
 }
 
+void TriodeElement::drawPower (juce::Graphics& g) const
+{
+    if (getNumMonitors() > 0){
+        auto power = getRMSValue(0, MONITOR_TUBE_IP)*std::abs(getRMSValue(0, MONITOR_TUBE_VP)-getRMSValue(0, MONITOR_TUBE_VK)) * POWER_SCALING; 
+        drawPowerGlowPath(g, plateHolder, power);
+        drawPowerGlowPath(g, cathodeHolder, power);
+        drawPowerGlowPath(g, bulb, power);
+    }
+}
 
 juce::AttributedString TriodeElement::getInspectContent () 
 {
     juce::AttributedString textContent;
     auto font = juce::Font (juce::FontOptions(FONT_SUB1));
-    if (getNumMonitors()>1){
-        textContent.append ("Plate voltage : \n", font, getColourNormal());
-        textContent.append ("\t"+ formatVoltage(getSmoothedValue(3))+" \t(DC)\n", font, getColourElectrical());
-        textContent.append ("\t"+ formatVoltage(getRMSValue(3))+" \t(AC RMS)\n", font, getColourElectrical());
-        textContent.append ("Grid voltage : \n", font, getColourNormal());
-        textContent.append ("\t"+ formatVoltage(getSmoothedValue(1))+" \t(DC)\n", font, getColourPurple());
-        textContent.append ("\t"+ formatVoltage(getRMSValue(1))+" \t(AC RMS)\n", font, getColourPurple());
-        textContent.append ("Cathode voltage : \n", font, getColourNormal());
-        textContent.append ("\t"+ formatVoltage(getSmoothedValue(2))+" \t(DC)\n", font, getColourHotRed());
-        textContent.append ("\t"+ formatVoltage(getRMSValue(2))+" \t(AC RMS)\n", font, getColourHotRed());
-
-    }
     if (getNumMonitors()>0){
-        textContent.append ("Current : \n", font, getColourNormal());
-        textContent.append ("\t"+ formatCurrent(getSmoothedValue(0))+" \n", font, getColourAmber());
+        textContent.append ("Plate voltage : \n\t ", font, getColourNormal());
+        textContent.append (formatVDCAC(getSmoothedValue(0, MONITOR_TUBE_VP),getRMSValue(0, MONITOR_TUBE_VP)), font, getColourElectrical());
+        textContent.append ("\nGrid voltage : \n\t ", font, getColourNormal());
+        textContent.append (formatVDCAC(getSmoothedValue(0, MONITOR_TUBE_VG),getRMSValue(0, MONITOR_TUBE_VG)), font, getColourPurple());
+        textContent.append ("\nCathode voltage : \n\t ", font, getColourNormal());
+        textContent.append (formatVDCAC(getSmoothedValue(0, MONITOR_TUBE_VK),getRMSValue(0, MONITOR_TUBE_VK)), font, getColourHotRed());
+        textContent.append ("\nCurrent : \n\t ", font, getColourNormal());
+        textContent.append (formatCurrent(getSmoothedValue(0, MONITOR_TUBE_IP)), font, getColourAmber());
+        textContent.append ("\nPlate dissipation : \n\t ", font, getColourNormal());
+        textContent.append (formatPower(getSmoothedValue(0, MONITOR_TUBE_IP)*(getSmoothedValue(0, MONITOR_TUBE_VP)-getSmoothedValue(0, MONITOR_TUBE_VK))), font, getColourAmber());
+    
+        textContent.append ("\nPlate saturation : \n\t ", font, getColourNormal());
+        textContent.append (juce::String(getSmoothedValue(0, MONITOR_TUBE_SC)*100.0F, 1) + " %", font, getColourLaserGreen());
+        textContent.append ("\nTube cutoff : \n\t", font, getColourNormal());
+        textContent.append (juce::String(getSmoothedValue(0, MONITOR_TUBE_SP)*100.0F, 1) + " %", font, getColourLaserGreen());
     }
     return textContent;
 }
@@ -204,4 +245,202 @@ juce::AttributedString TriodeElement::getInspectContent ()
 juce::String TriodeElement::getInspectValue () 
 {
     return getChoiceLabel();
+}
+
+
+
+void ParallelTriodeElement::prepareToDraw () 
+{
+    // Terminals are mutable which is convenient hre but is a hack. Should be refactored to have a better design.
+    terminals[0] = Terminal{terminals[0].x - TUBE_WIDTH/2, terminals[0].y};
+    terminals[2] = Terminal{terminals[2].x + TUBE_WIDTH/4, terminals[2].y};
+
+
+    const auto& p0 = terminals[0];
+    const auto& p1 = terminals[1];
+    const auto& p2 = terminals[2];
+    float tubeScaling = 0.7;
+    const juce::Point<float> center = Terminal{0.0f, (p2.y-p1.y)*0.5f} + p1;
+
+    //PLATE
+    float tubePlatesHeight =  TUBE_HEIGHT/3.2f;
+    plateHolder.startNewSubPath (p1);
+    plateHolder.lineTo (p1 + Terminal {0.0f, tubePlatesHeight*0.7f});
+
+    lplate.startNewSubPath (p1 + Terminal {0.0f, tubePlatesHeight*0.7f });
+    lplate.lineTo (p1 + Terminal {-TUBE_WIDTH/4, tubePlatesHeight*0.7f });
+    lplate.lineTo (p1 + Terminal {-TUBE_WIDTH/4, tubePlatesHeight});
+    lplate.lineTo (p1 + Terminal {-TUBE_WIDTH/4 - TUBE_WIDTH*3/8, tubePlatesHeight});
+    lplate.lineTo (p1 + Terminal {+TUBE_WIDTH/4 - TUBE_WIDTH*3/8, tubePlatesHeight});
+    lplate.lineTo (p1 + Terminal {+TUBE_WIDTH/4 - TUBE_WIDTH*3/8, tubePlatesHeight+2.0f});
+    lplate.lineTo (p1 + Terminal {-TUBE_WIDTH/4 - TUBE_WIDTH*3/8, tubePlatesHeight+2.0f});
+    lplate.lineTo (p1 + Terminal {-TUBE_WIDTH/4 - TUBE_WIDTH*3/8, tubePlatesHeight});
+
+
+    rplate.startNewSubPath (p1 + Terminal {0.0f, tubePlatesHeight*0.7f });
+    rplate.lineTo (p1 + Terminal {+TUBE_WIDTH/4, tubePlatesHeight*0.7f });
+    rplate.lineTo (p1 + Terminal {+TUBE_WIDTH/4, tubePlatesHeight});
+    rplate.lineTo (p1 + Terminal {-TUBE_WIDTH/4 + TUBE_WIDTH*3/8, tubePlatesHeight});
+    rplate.lineTo (p1 + Terminal {+TUBE_WIDTH/4 + TUBE_WIDTH*3/8, tubePlatesHeight});
+    rplate.lineTo (p1 + Terminal {+TUBE_WIDTH/4 + TUBE_WIDTH*3/8, tubePlatesHeight+2.0f});
+    rplate.lineTo (p1 + Terminal {-TUBE_WIDTH/4 + TUBE_WIDTH*3/8, tubePlatesHeight+2.0f});
+    rplate.lineTo (p1 + Terminal {-TUBE_WIDTH/4 + TUBE_WIDTH*3/8, tubePlatesHeight});
+    rplate.lineTo (p1 + Terminal {-TUBE_WIDTH/4 + TUBE_WIDTH*3/8, tubePlatesHeight});
+
+    plate.addPath(lplate);
+    plate.addPath(rplate);
+
+    // CATHODE
+    float cathodeHeight =  TUBE_HEIGHT/2.8f;
+    float cathodeBend =  TUBE_HEIGHT/16.0f;
+    cathodeHolder.startNewSubPath (p2 - Terminal {0.0f, cathodeHeight-2*cathodeBend});
+    cathodeHolder.lineTo (p2);
+
+    lcathode.startNewSubPath (p2 - Terminal {-TUBE_WIDTH*2/4 - TUBE_WIDTH/8, cathodeHeight-2*cathodeBend});
+    lcathode.lineTo (p2 - Terminal {-TUBE_WIDTH*2/4 - TUBE_WIDTH/8, cathodeHeight-cathodeBend});
+    lcathode.lineTo (p2 - Terminal {-TUBE_WIDTH*2/4, cathodeHeight});
+    lcathode.lineTo (p2 - Terminal {-TUBE_WIDTH/4- TUBE_WIDTH/8, cathodeHeight});
+    lcathode.lineTo (p2 - Terminal {-2*TUBE_WIDTH/8, cathodeHeight});
+    lcathode.lineTo (p2 - Terminal {- TUBE_WIDTH/8, cathodeHeight-cathodeBend});
+    lcathode.lineTo (p2 - Terminal {- TUBE_WIDTH/8, cathodeHeight-2*cathodeBend});
+    lcathode.lineTo (p2 - Terminal {0.0f, cathodeHeight-2*cathodeBend});
+
+    rcathode.startNewSubPath (p2 - Terminal {TUBE_WIDTH*2/4 + TUBE_WIDTH/8, cathodeHeight-2*cathodeBend});
+    rcathode.lineTo (p2 - Terminal {TUBE_WIDTH*2/4 + TUBE_WIDTH/8, cathodeHeight-cathodeBend});
+    rcathode.lineTo (p2 - Terminal {TUBE_WIDTH*2/4-TUBE_WIDTH/8 + TUBE_WIDTH/8, cathodeHeight});
+    rcathode.lineTo (p2 - Terminal {TUBE_WIDTH/4 + TUBE_WIDTH/8, cathodeHeight});
+    rcathode.lineTo (p2 - Terminal {TUBE_WIDTH/8 + TUBE_WIDTH/8, cathodeHeight});
+    rcathode.lineTo (p2 - Terminal {0.0f+ TUBE_WIDTH/8, cathodeHeight-cathodeBend});
+    rcathode.lineTo (p2 - Terminal {0.0f+ TUBE_WIDTH/8, cathodeHeight-2*cathodeBend});
+    rcathode.lineTo (p2 - Terminal {0.0f, cathodeHeight-2*cathodeBend});
+
+    cathode.addPath(lcathode);
+    cathode.addPath(rcathode);
+
+    // grid
+    float start = TUBE_WIDTH/4.0f;
+    float segment = TUBE_WIDTH/8.0f *0.6f;
+    float dash = TUBE_WIDTH/8.0f *0.2f;
+
+    auto m = p0 ;
+    gridHolder.startNewSubPath(m);
+    m+= Terminal { TUBE_WIDTH/8, 0.0f};
+    gridHolder.lineTo(m+Terminal {start-dash, 0.0f});
+    grid.startNewSubPath(m+Terminal {start+dash, 0.0f});
+    grid.lineTo(m+Terminal {start+dash+segment, 0.0f});
+    grid.startNewSubPath(m+Terminal {start+dash+segment+2*dash, 0.0f});
+    grid.lineTo(m+Terminal {start+dash+segment+2*dash +segment, 0.0f});
+    grid.startNewSubPath(m+Terminal {start+dash+segment+2*dash +segment +2*dash, 0.0f});
+    grid.lineTo(m+Terminal {start+dash+segment+2*dash +segment +2*dash +segment, 0.0f});
+    grid.startNewSubPath(m+Terminal {start+dash+segment+2*dash +segment +2*dash +segment +2*dash, 0.0f});
+    grid.lineTo(m+Terminal {start+dash+segment+2*dash +segment +2*dash +segment +2*dash + segment, 0.0f});
+
+    m = p0 + Terminal {TUBE_WIDTH - TUBE_WIDTH/8 +dash, 0.0f};
+    gridConnect.startNewSubPath(m);
+    gridConnect.lineTo(m+Terminal {start-dash, 0.0f});
+    grid.startNewSubPath(m+Terminal {start+dash, 0.0f});
+    grid.lineTo(m+Terminal {start+dash+segment, 0.0f});
+    grid.startNewSubPath(m+Terminal {start+dash+segment+2*dash, 0.0f});
+    grid.lineTo(m+Terminal {start+dash+segment+2*dash +segment, 0.0f});
+    grid.startNewSubPath(m+Terminal {start+dash+segment+2*dash +segment +2*dash, 0.0f});
+    grid.lineTo(m+Terminal {start+dash+segment+2*dash +segment +2*dash +segment, 0.0f});
+    grid.startNewSubPath(m+Terminal {start+dash+segment+2*dash +segment +2*dash +segment +2*dash, 0.0f});
+    grid.lineTo(m+Terminal {start+dash+segment+2*dash +segment +2*dash +segment +2*dash + segment, 0.0f});
+
+    //filament
+    float filamentHeight =  TUBE_HEIGHT/4.0f;
+    filament.startNewSubPath(p2- Terminal {-TUBE_WIDTH*1/8 - TUBE_WIDTH/8, filamentHeight*0.5f});
+    filament.lineTo(p2- Terminal {-TUBE_WIDTH*1/8 -TUBE_WIDTH/8, filamentHeight});
+    filament.lineTo(p2- Terminal {-TUBE_WIDTH/4 -TUBE_WIDTH/8, filamentHeight*1.2f});
+    filament.lineTo(p2- Terminal {-TUBE_WIDTH*3/8 -TUBE_WIDTH/8, filamentHeight});
+    filament.lineTo(p2- Terminal {-TUBE_WIDTH*3/8 -TUBE_WIDTH/8, filamentHeight*0.5f});
+    
+    filament.startNewSubPath(p2- Terminal {TUBE_WIDTH*1/8 + TUBE_WIDTH/8, filamentHeight*0.5f});
+    filament.lineTo(p2- Terminal {TUBE_WIDTH*1/8 +TUBE_WIDTH/8, filamentHeight});
+    filament.lineTo(p2- Terminal {TUBE_WIDTH/4 +TUBE_WIDTH/8, filamentHeight*1.2f});
+    filament.lineTo(p2- Terminal {TUBE_WIDTH*3/8 +TUBE_WIDTH/8, filamentHeight});
+    filament.lineTo(p2- Terminal {TUBE_WIDTH*3/8 +TUBE_WIDTH/8, filamentHeight*0.5f});
+
+    // BULB
+    float x = center.x - (TUBE_WIDTH + TUBE_WIDTH/16)  * tubeScaling;
+    float y = center.y - TUBE_HEIGHT * 0.5f * tubeScaling;
+    float w = (TUBE_WIDTH + TUBE_WIDTH/16) * tubeScaling*2;
+    float h = TUBE_HEIGHT * tubeScaling;
+    float r = h * 0.5f; // very round ends
+    bulb.startNewSubPath(x+w, y + h - r*0.5f);
+    bulb.lineTo(x+w, y +  r*0.5f);
+    bulb.addArc(x + w*.5f, y, w*.5f, r,
+             juce::MathConstants<float>::pi/2,
+             0.0,
+             true);
+    bulb.lineTo(x+ w*0.25f, y);
+    bulb.addArc(x, y, w*.5f, r,
+             0.0,
+             -juce::MathConstants<float>::pi/2,
+             true);
+    bulb.lineTo(x, y + h - r*0.5f);
+    bulb.addArc(x +  w*.5f, y + h - r,  w*.5f, r,
+             juce::MathConstants<float>::pi/2,
+             juce::MathConstants<float>::pi,
+             true);
+    bulb.lineTo(x+ w*0.25f, y +h);
+    bulb.addArc(x, y + h - r,  w*.5f, r,
+             juce::MathConstants<float>::pi,
+             juce::MathConstants<float>::pi*3/2,
+             true);
+
+    float flowDist = TUBE_WIDTH/16.0f;
+    float flowMin = TUBE_HEIGHT/8.0f;
+    float flowMax = TUBE_HEIGHT/6.0f;
+    float flowGrid = TUBE_WIDTH/4.0f + TUBE_WIDTH/8.0f;
+
+    for (int i = 0; i<4; i++){
+        float flowX = p0.x + flowGrid+flowDist*(i*2 +1);
+        juce::Path _flow;
+        _flow.startNewSubPath(flowX, p0.y -flowMax);
+        _flow.lineTo(flowX,  p0.y +flowMin);
+        flow.push_back(_flow);
+    }
+    m = p0 + Terminal {TUBE_WIDTH - TUBE_WIDTH/4 +dash, 0.0f};
+    for (int i = 0; i<4; i++){
+        float flowX = m.x + flowGrid+flowDist*(i*2 +1);
+        juce::Path _flow;
+        _flow.startNewSubPath(flowX, m.y -flowMax);
+        _flow.lineTo(flowX,  m.y +flowMin);
+        flow.push_back(_flow);
+    }
+
+    path.addPath(plateHolder);
+    path.addPath(plate);
+    path.addPath(gridHolder);
+    path.addPath(gridConnect);
+    path.addPath(grid);
+    path.addPath(cathodeHolder);
+    path.addPath(cathode);
+    path.addPath(bulb);
+
+    // Update cached bounds
+    cachedBounds = juce::Rectangle<float> (center.x - TUBE_WIDTH*0.5f, center.y - TUBE_HEIGHT*0.5f, TUBE_WIDTH, TUBE_HEIGHT);
+
+    // Labels
+    labelCenter = center - Terminal {50.0f, 100.0f};
+    
+}
+void ParallelTriodeElement::createSignalPaths ()
+{
+    signalPaths[0].addPath(plateHolder, 0.0f, 0.0f);
+    signalPaths[0].addPath(cathodeHolder, 1.0f, 1.0f);
+    signalPaths[0].addPath(lplate, 0.0f, 0.0f);
+    signalPaths[0].addPath(rplate, 0.0f, 0.0f);
+    signalPaths[0].addPath(lcathode, 1.0f, 1.0f);
+    signalPaths[0].addPath(rcathode, 1.0f, 1.0f);
+    for (auto& p : flow)
+        signalPaths[0].addPath(p);
+    signalPaths[0].shufflePhase();
+
+    if (signalPaths.size()>1){
+        signalPaths[1].addPath(gridHolder, 0.0f, 0.0f);
+        signalPaths[1].addPath(gridConnect, 0.0f, 0.0f);
+    }
+
 }

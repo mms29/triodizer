@@ -31,7 +31,7 @@ void GlowLookAndFeel::drawRotarySlider (juce::Graphics& g,
                         angle,
                         true);
 
-    drawGlowPath (g, arc, 0.1f, getColourAmber(), getColourAmber(), false);
+    drawGlowAndCorePath (g, arc, 0.1f, getColourAmber(), getColourAmber(), false);
 
 
     juce::Path arcend;
@@ -57,7 +57,7 @@ void GlowLookAndFeel::drawRotarySlider (juce::Graphics& g,
     pointer.lineTo (centre.x + std::cos (angle - juce::MathConstants<float>::halfPi) * radius,
                     centre.y + std::sin (angle - juce::MathConstants<float>::halfPi) * radius);
 
-    drawGlowPath (g, pointer, 0.f, getColourNormal(), getColourNormal(), false);
+    drawGlowAndCorePath (g, pointer, 0.f, getColourNormal(), getColourNormal(), false);
 }
 
 Knob::Knob (juce::AudioProcessorValueTreeState& apvts,

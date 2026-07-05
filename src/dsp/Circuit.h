@@ -1,6 +1,9 @@
 #pragma once
 
 #include <juce_gui_basics/juce_gui_basics.h>
+#include <chowdsp_wdf/chowdsp_wdf.h>
+
+using namespace chowdsp::wdft;
 
 template <typename T, typename WDFType>
 inline T power (const WDFType& wdf) noexcept
@@ -8,6 +11,27 @@ inline T power (const WDFType& wdf) noexcept
     return (wdf.wdf.a - wdf.wdf.b) * ((T) 0.5 * wdf.wdf.G) *1e-1;
 }
 
+
+inline const int MONITOR_TUBE_IP = 0;
+inline const int MONITOR_TUBE_IK = 1;
+inline const int MONITOR_TUBE_VG = 2;
+inline const int MONITOR_TUBE_VK = 3;
+inline const int MONITOR_TUBE_VP = 4;
+inline const int MONITOR_TUBE_SC = 5;
+inline const int MONITOR_TUBE_SP = 6;
+inline const int MONITOR_TUBE_COUNT = 7;
+
+inline const int MONITOR_PORT_I = 0;
+inline const int MONITOR_PORT_V = 1;
+inline const int MONITOR_PORT_COUNT = 2;
+
+template <typename T>
+struct MonitorValue{
+    std::array<T, MONITOR_TUBE_COUNT> values{}; 
+    uint8_t size = 0;  
+};
+
+using MonitorValuef = MonitorValue<float>;
 
 template <typename T>
 class Circuit
@@ -25,7 +49,17 @@ public:
 
     T getControl(const int index) const {return controls.at(index);}
     T getParam(const int index) const {return params.at(index);}
-    T getMonitoring(const int index ) {return monitors.at(index);};
+    const MonitorValue<T>& getMonitoring(const int monitorIndex) {return monitors.at(monitorIndex);}
+
+    void updateTubeMonitor(const int monitorIndex, const MonitorValue<T>& v){
+        monitors[monitorIndex] = v;
+    }
+    template <typename WDFType>
+    void updatePortMonitor(const int monitorIndex, const WDFType& wdf){
+        monitors[monitorIndex].size = MONITOR_PORT_COUNT;
+        monitors[monitorIndex].values[MONITOR_PORT_V] = voltage<T>(wdf);  
+        monitors[monitorIndex].values[MONITOR_PORT_I] = current<T>(wdf);  
+    }
 
     int getNumParam() const { return (int) params.size();}
     int getNumControl() const { return (int) controls.size();}
@@ -34,7 +68,7 @@ public:
 protected :
     std::vector<T> params;
     std::vector<T> controls;
-    std::vector<T> monitors;
+    std::vector<MonitorValue<T>> monitors;
 };
 
 template <typename T>

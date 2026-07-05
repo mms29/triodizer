@@ -38,7 +38,7 @@ public:
         // Border
         juce::Path borderPath;
         borderPath.addRoundedRectangle(bounds, 10.0f, 10.0f);
-        drawGlowPath(g, borderPath, .1f, getColourNormal(), getColourNormal(), false);
+        drawGlowAndCorePath(g, borderPath, .1f, getColourNormal(), getColourNormal(), false);
 
         // Background
         g.setColour (getColourBackground().withAlpha(0.9f));

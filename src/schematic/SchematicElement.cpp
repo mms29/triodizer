@@ -1,9 +1,9 @@
 #include "schematic/SchematicElement.h"
 
-bool                BaseElement::isHighlighted() const noexcept  { return highlighted; }
-void BaseElement::setHighlighted (bool should) noexcept { highlighted = should; }
+bool SchematicElement::isHighlighted() const noexcept  { return highlighted; }
+void SchematicElement::setHighlighted (bool should) noexcept { highlighted = should; }
 
-bool BaseElement::hitTest (juce::Point<float> point) const
+bool SchematicElement::hitTest (juce::Point<float> point) const
 {
     for (const auto& terminal : terminals)
         if (terminal.getDistanceFrom (point) < 12.0f)
@@ -13,7 +13,7 @@ bool BaseElement::hitTest (juce::Point<float> point) const
     return false;
 }
 
-const std::vector<Terminal>& BaseElement::getTerminals() const noexcept
+const std::vector<Terminal>& SchematicElement::getTerminals() const noexcept
 {
     return terminals;
 }
@@ -44,6 +44,26 @@ void SchematicElement::drawLabel(juce::Graphics& g, Terminal center, juce::Strin
     // cachedBounds = cachedBounds.getUnion (juce::Rectangle<float> (center.getX() - 30, center.getY() - 14, 60, 16));
 }
 
+void SchematicElement::addPointToTerminal(Terminal t, const int termIndex,  const bool direction)
+{
+    auto& tt = terminals[termIndex];
+    juce::Path newPath;
+    
+    if (direction){
+        juce::Path tmpPath = path;
+        newPath.startNewSubPath(t);
+        newPath.lineTo(tt);
+        path.clear();
+        path.addPath(newPath);
+        path.addPath(tmpPath);
+
+    }else{
+        newPath.startNewSubPath(tt);
+        newPath.lineTo(t);
+        path.addPath(newPath);
+    }
+    tt = t;
+}
 
 juce::String ParametrableElement::getChoiceLabel() const
 {
@@ -61,42 +81,38 @@ float ParametrableElement::getChoiceValue() const
     return 0.0f;
 }
 
-void WireElement::createSignalPath (const int ) { 
-    setSignalPath(true);
-    CachedPath cachedWirePath {wirePath};
-    cachedWirePath.rebuildCache();
-    signalPaths.push_back(cachedWirePath);
+void WireElement::createSignalPaths () { 
+    signalPaths[0].addPath(path, 0.0f, 0.0f);
+
 }
 void  WireElement::prepareToDraw ()
 {
-    jassert (terminals.size() == 2);
-    const auto& start = terminals[0];
-    const auto& end = terminals[1];
+    path.startNewSubPath(terminals[0]);
+    for (int i=1; i< terminals.size(); i++){
+        path.lineTo(terminals[i]);
+    }
 
-    wirePath.startNewSubPath(start);
-    wirePath.lineTo(end);
-
-    if (isSigPath)
-        createSignalPath(0);
 }
 
 void  WireElement::draw (juce::Graphics& g) const
 {
-
-    drawGlowPath(g, wirePath, 0.0f, getColourNormal(),getColourAmber(),false);
-
-    for (auto& sigpath : signalPaths)
-        drawSignalPath(g, sigpath);
 }
 
-void WireElement::updateSignalPath () {
-    float t=0.0f;
-    if (getNumMonitors()> 0)
-        t = getRMSValue(0) * POWER_SCALING; 
-
-    for (auto& cachedPath : signalPaths)
-    {
-        updateCachedPath(t, SchematicElement::getClock(), cachedPath);
+void  WireElement::drawPower (juce::Graphics& g) const
+{
+    if (getNumMonitors()> 0){
+        drawPowerGlowPath(g, path , 
+            getRMSValue(0, MONITOR_PORT_I)*getRMSValue(0, MONITOR_PORT_V) *POWER_SCALING
+        );
     }
+}
 
+
+void WireElement::updateSignalPaths () {
+    if (getNumMonitors()> 0){
+        signalPaths[0].updateSignalPath(
+            getSmoothedValue(0, MONITOR_PORT_I) * POWER_SCALING,
+            getSmoothedValue(0, MONITOR_PORT_V)
+        );
+    }
 };

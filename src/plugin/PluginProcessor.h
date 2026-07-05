@@ -6,11 +6,12 @@
 
 #include "constants/SchematicConstants.h"
 #include "dsp/Circuit.h"
-#include "dsp/BassmanPreamp.h"
+#include "dsp/TriodeQuadricWDF.h"
+// #include "dsp/BassmanPreamp.h"
 #include "dsp/FullBassmanPreamp.h"
 #include "dsp/DualRectifierPreamp.h"
-#include "dsp/LCLadder.h"
-#include "dsp/SpringModel.h"
+// #include "dsp/LCLadder.h"
+// #include "dsp/SpringModel.h"
 #include "dsp/TwinReverb.h"
 
 // ==============================================================================
@@ -96,7 +97,7 @@ public:
     void buildCircuit();
     bool circuitReady() const;
 
-    float getCircuitMonitoring (const int index, const int ch = 0) const;
+    const MonitorValuef& getCircuitMonitoring (const int index, const int ch = 0) const;
     float getCircuitParam (const int index, const int ch = 0) const;
     float getCircuitControl (const int index, const int ch = 0) const;
     void setCircuitParam (const int index, float value);

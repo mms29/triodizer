@@ -8,44 +8,153 @@ GroundElement::GroundElement (Terminal termPosition)
 }
 
 void GroundElement::prepareToDraw () {
-    float groundSize = 20.0f;
+    float groundSize = SCHEMATIC_GROUND_SIZE;
 
     const auto& p0 = terminals[0];
 
-    groundPath.startNewSubPath(p0);
-    groundPath.lineTo( p0.x, p0.y + groundSize);
-    groundPath.startNewSubPath(p0.x - groundSize, p0.y + groundSize);
-    groundPath.lineTo(p0.x + groundSize, p0.y + groundSize);
-    groundPath.startNewSubPath(p0.x - groundSize*0.66f, p0.y + groundSize*1.25f);
-    groundPath.lineTo(p0.x + groundSize*0.66f, p0.y + groundSize*1.25f);
-    groundPath.startNewSubPath(p0.x - groundSize*0.33f, p0.y + groundSize*1.5f);
-    groundPath.lineTo(p0.x + groundSize*0.33f, p0.y + groundSize*1.5f);
+    path.startNewSubPath(p0);
+    path.lineTo( p0.x, p0.y + groundSize);
+    path.startNewSubPath(p0.x - groundSize, p0.y + groundSize);
+    path.lineTo(p0.x + groundSize, p0.y + groundSize);
+    path.startNewSubPath(p0.x - groundSize*0.66f, p0.y + groundSize*1.25f);
+    path.lineTo(p0.x + groundSize*0.66f, p0.y + groundSize*1.25f);
+    path.startNewSubPath(p0.x - groundSize*0.33f, p0.y + groundSize*1.5f);
+    path.lineTo(p0.x + groundSize*0.33f, p0.y + groundSize*1.5f);
 
 
 }
 void GroundElement::draw (juce::Graphics& g) const
 {
-    drawGlowPath(g, groundPath, 0.0f, getColourNormal(),getColourAmber(), isHighlighted());
 }
 
 JunctionElement::JunctionElement (Terminal termPosition)
-    : SchematicElement ("",std::vector<Terminal> {termPosition})
+    : SchematicElement ("JUNCTION",std::vector<Terminal> {termPosition}),
+    MonitoringElement(std::vector<int>{}), 
+    InspectableElement()
+{}
+JunctionElement::JunctionElement (Terminal termPosition,
+                     const int voltageMonitorIndex)
+    : SchematicElement ("JUNCTION",std::vector<Terminal> {termPosition}),
+    MonitoringElement(std::vector<int>{voltageMonitorIndex}), 
+    InspectableElement()
+{}
+
+juce::AttributedString JunctionElement::getInspectContent () 
+{
+    juce::AttributedString textContent;
+    auto font = juce::Font (juce::FontOptions(FONT_SUB1));
+    if (getNumMonitors() == 1){
+        float v = getSmoothedValue(0, MONITOR_PORT_V);
+        textContent.append ("Voltage : \n", font, getColourNormal());
+        textContent.append ("\t"+ juce::String(v, 1)+" VDC\n", font, getColourElectrical());
+        textContent.append ("\t"+ juce::String(getRMSValue(0, MONITOR_PORT_V), 1)+" VAC\n", font, getColourElectrical());
+    }
+    return textContent;
+};
+
+
+void JunctionElement::prepareToDraw () {
+
+    const auto& p0 = terminals[0];
+
+    float radius = SCHEMATIC_JUNC_SIZE;
+
+    cachedBounds = juce::Rectangle<float> (p0, p0);
+    cachedBounds.expand(radius*2, radius*2);
+
+    path.addEllipse(p0.x - radius*0.5f, p0.y - radius*0.5f, radius, radius);
+    path.addEllipse(p0.x - radius*0.25f, p0.y - radius*0.25f, radius*0.5f, radius*0.5f);
+
+}
+
+void JunctionElement::draw (juce::Graphics& g) const
+{
+}
+JackElement::JackElement (juce::String name, Terminal termPosition, int justification)
+    : SchematicElement (name, std::vector<Terminal> {termPosition}),
+      justification (justification)
 {
     jassert (terminals.size() == 1);
 }
-void JunctionElement::draw (juce::Graphics& g) const
-{
-    g.setColour (getColourNormal());
+
+void JackElement::prepareToDraw () {
+
     const auto& p0 = terminals[0];
 
-    float radius = 10.0f;
+    float radius = SCHEMATIC_JACK_SIZE;
+    float radiusInner = radius*0.6;
 
-    g.fillEllipse(p0.x - radius*0.5f, p0.y - radius*0.5f, radius, radius);
-    g.setColour (getColourBackground());
-    g.fillEllipse(p0.x - radius*0.25f, p0.y - radius*0.25f, radius*0.5f, radius*0.5f);
+    auto center = p0;
+    Terminal lineStart ;
+    if (justification == JUSTIFY_LEFT){
+        center = p0 + Terminal {radius, 0.0f};
+        lineStart = center - Terminal {radius*0.5f, 0.0f};
+    }
+    else if (justification == JUSTIFY_RIGHT){
+        center = p0 - Terminal {radius, 0.0f};
+        lineStart = center + Terminal {radius*0.5f, 0.0f};
+    }
+    else if (justification == JUSTIFY_TOP){
+        center = p0 + Terminal {0.0f, radius};
+        lineStart = center - Terminal {0.0f, radius*0.5f};
+    }
+    else if (justification == JUSTIFY_BOTTOM){
+        center = p0 - Terminal {0.0f, radius};
+        lineStart = center + Terminal {0.0f, radius*0.5f};
+    }
+
+    path.addEllipse(center.x - radius*0.5f, center.y - radius*0.5f, radius, radius);
+    path.addEllipse(center.x - radiusInner*0.5f, center.y - radiusInner*0.5f, radiusInner, radiusInner);
+    path.startNewSubPath(lineStart);
+    path.lineTo(p0);
+
+    labelCenter = center;
+
+
+}
+void JackElement::draw (juce::Graphics& g) const
+{
+    float radius = SCHEMATIC_JACK_SIZE;
+    float radiusInner = radius*0.6;
+
+    g.setColour(getColourHighlight());
+    g.setFont(juce::FontOptions(FONT_TITLE));
+    g.drawText(getName(), juce::Rectangle<float>{labelCenter.x - radius*1.5f, labelCenter.y - radius*1.5f, radius*3, radius*3}, juce::Justification::centredTop);
 
 }
 
+void VoltageElement::drawPower (juce::Graphics& g) const
+{
+    if (getNumMonitors()> 0)
+        drawPowerGlowPath(g, path, getRMSValue(0, MONITOR_PORT_I)*getRMSValue(0, MONITOR_PORT_V) *POWER_SCALING);
+}
+juce::AttributedString VoltageElement::getInspectContent () 
+{
+    juce::AttributedString textContent;
+    auto font = juce::Font (juce::FontOptions(FONT_SUB1));
+    if (getNumMonitors() == 1){
+        float v = getSmoothedValue(0, MONITOR_PORT_V);
+        textContent.append ("Voltage : \n", font, getColourNormal());
+        textContent.append ("\t"+ juce::String(v, 1)+" VDC\n", font, getColourElectrical());
+        textContent.append ("\t"+ juce::String(getRMSValue(0, MONITOR_PORT_V), 1)+" VAC\n", font, getColourElectrical());
+    }
+    return textContent;
+};
+
+
+void VoltageElement::createSignalPaths () 
+{
+        signalPaths[0].addPath(path);
+}
+
+void VoltageElement::updateSignalPaths () {
+    if (getNumMonitors()> 0){
+        signalPaths[0].updateSignalPath(
+            getSmoothedValue(0, MONITOR_PORT_I) * POWER_SCALING,
+            getSmoothedValue(0, MONITOR_PORT_V)
+        );
+    }
+};
 float VoltageElement:: labelToValue (const juce::String s)
 {
     auto str = s.trim().toLowerCase();
@@ -84,33 +193,28 @@ juce::String VoltageElement::valueToLabel (float v)
 }
 void VoltageElement::prepareToDraw () {
 
-    float groundSize = 20.0f;
+    float groundSize =SCHEMATIC_GROUND_SIZE;
 
     const auto& p0 = terminals[0];
 
-    votlagePath.startNewSubPath(p0.x, p0.y);
-    votlagePath.lineTo(p0.x, p0.y - groundSize);
 
-    votlagePath.lineTo(p0.x + groundSize, p0.y - groundSize);
-    votlagePath.lineTo(p0.x , p0.y - groundSize*2);
-    votlagePath.lineTo(p0.x - groundSize, p0.y - groundSize);
-    votlagePath.lineTo(p0.x, p0.y - groundSize);
+    path.startNewSubPath(p0.x , p0.y - groundSize*2);
+    path.lineTo(p0.x + groundSize, p0.y - groundSize);
+    path.lineTo(p0.x, p0.y - groundSize);
+
+    path.startNewSubPath(p0.x , p0.y - groundSize*2);
+    path.lineTo(p0.x - groundSize, p0.y - groundSize);
+    path.lineTo(p0.x, p0.y - groundSize);
+
+    path.startNewSubPath(p0.x, p0.y - groundSize);
+    path.lineTo(p0.x, p0.y);
     cachedBounds = juce::Rectangle<float>(p0.x-groundSize, p0.y-groundSize*2 , groundSize*2, groundSize*2);
 
     labelCenter =  p0 - Terminal {0.0f, groundSize*3.4f};
 }
 void VoltageElement::draw (juce::Graphics& g) const
 {
-
-    float t=0.2f;
-    if (getNumMonitors()> 0)
-        t = getRMSValue(0) * POWER_SCALING; 
-    drawGlowPath(g, votlagePath, t, getColourNormal(),getColourHotRed(), isHighlighted());
-
-
     drawLabel(g,labelCenter, label);
-
-
 }
 
 void VoltmeterElement::draw (juce::Graphics& g) const
@@ -133,7 +237,7 @@ void VoltmeterElement::draw (juce::Graphics& g) const
     g.setFont (font);
     g.setColour (juce::Colours::greenyellow);
 
-    juce::String text = juce::String (getMonitorValue(0), 1) + " V";
+    juce::String text = juce::String (getMonitorValue(0, MONITOR_PORT_V), 1) + " V";
     g.drawText (text,
                 p0.x - VOLTMETER_RADIUS * 2.0f + 4,
                 p0.y - VOLTMETER_RADIUS + 4,

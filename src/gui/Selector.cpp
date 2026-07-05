@@ -36,7 +36,7 @@ void GlowComboBoxLookAndFeel::drawComboBox (juce::Graphics& g,
         arrow.lineTo (cx + 5.0f, cy - 3.0f);
         arrow.closeSubPath();
 
-        drawGlowPath (g,
+        drawGlowAndCorePath (g,
                       arrow,
                       0.05f,
                       getColourNormal(),

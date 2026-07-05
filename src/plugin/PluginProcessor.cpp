@@ -44,12 +44,8 @@ TubeLabProcessor::TubeLabProcessor()
                   juce::StringArray
                   {
                       "Default",
-                      "Common Cathode Stage",
-                      "Fender Bassman Tone Stack",
-                      "Fender Bassman Preamp Small",
                       "Fender Bassman Preamp",
                       "Mesa/Boogie Dual Rectifier",
-                      "LC Ladder",
                       "Twin Reverb"
                   },
                   0)
@@ -268,17 +264,6 @@ void TubeLabProcessor::buildCircuit()
     {
         switch (getCurrentPreset())
         {
-        case PRESET_COMMONCATHODE:
-            circuit[ch] = std::make_unique<TriodeGainStage>();
-            break;
-
-        case PRESET_BASSMAN_TS:
-            circuit[ch] = std::make_unique<BassmanToneStackCircuitT<float>>();
-            break;
-
-        case PRESET_BASSMAN_PREAMP_SMALL:
-            circuit[ch] = std::make_unique<BassmanPreampCircuitT<float>>();
-            break;
 
         case PRESET_BASSMAN_PREAMP:
             circuit[ch] = std::make_unique<FullBassmanPreampCircuitT<float>>();
@@ -286,10 +271,6 @@ void TubeLabProcessor::buildCircuit()
 
         case PRESET_DUAL_RECTIFIER_PREAMP:
             circuit[ch] = std::make_unique<DualRectifierPreampCircuit>();
-            break;
-
-        case PRESET_LCLADDER:
-            circuit[ch] = std::make_unique<SpringTank>();
             break;
 
         case PRESET_TWIN_REVERB:
@@ -379,7 +360,7 @@ void TubeLabProcessor::updateCircuitMonitoring ( const int ch)
 {
     circuit[ch]->updateMonitors();
 }
-float TubeLabProcessor::getCircuitMonitoring (const int index, const int ch) const
+const MonitorValuef& TubeLabProcessor::getCircuitMonitoring (const int index, const int ch) const
 {
 #ifdef XSIMD_HPP
     return circuit->getMonitoring (index).get (ch);

@@ -53,12 +53,13 @@ public:
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
 
     void circuitTimerCallback();
+    void inspectTimerCallback();
     void waveformTimerCallback();
 
     // SchematicPanel::Listener interface
     void setCircuitParam (const int index, float newValue) override;
     void setCircuitControl (const int index, float newValue) override;
-    float getCircuitMonitoring (const int index) override;
+    const MonitorValuef& getCircuitMonitoring (const int index) override;
     void updateCircuitMonitoring () override;
     float getCircuitParam (const int index) override;
     float getCircuitControl (const int index) override;
@@ -111,8 +112,12 @@ private:
     // Signal path
     std::unique_ptr<PathToggleButton> signalButton;
 
+    // Power path
+    std::unique_ptr<PathToggleButton> powerButton;
+
     // Inspect button
     std::unique_ptr<PathToggleButton> inspectButton;
+    CallbackTimer inspectTimer;
 
     // Mono/stereo mode toggle
     juce::ToggleButton monoStereoButton;

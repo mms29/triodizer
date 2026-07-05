@@ -4,6 +4,7 @@
 #include <chowdsp_wdf/chowdsp_wdf.h>
 #include <cmath>
 #include <array>
+#include <dsp/Circuit.h>
 
 using namespace chowdsp::wdft;
 
@@ -71,6 +72,8 @@ public:
         port_g.connectToParent (this);
         port_k.connectToParent (this);
         port_p.connectToParent (this);
+
+        monitor.size = MONITOR_TUBE_COUNT;
     }
 
     void setParams(const int index, T Rp_val, T Rk_val, T E_val, bool parallelTriode=false) noexcept{
@@ -139,7 +142,6 @@ public:
         ak = port_k.reflected();
         ap = port_p.reflected();
 
-        // std::cout <<"R0g="<<R0g<<"; R0k="<<R0p<<"; R0p="<<R0g<< std::endl;
 
         // Closed‑form triode solution
         triodeClosedForm();
@@ -154,9 +156,22 @@ public:
     T getVg() const { return Vg; }
     T getVk() const { return Vk; }
     T getVp() const { return Vp; }
-    T getR0g() const { return R0g; }
-    T getR0k() const { return R0k; }
-    T getR0p() const { return R0p; }
+    T getIk() const { return Ik; }
+    T getIp() const { return Ip; }
+    bool getPlateSaturation() const { return plateSaturation; }
+    bool getTubeCutoff() const { return tubeCutoff; }
+
+    const MonitorValue<T>& getMonitorValue(){ 
+        auto& v = monitor.values;
+        v[MONITOR_TUBE_IK] = Ik;
+        v[MONITOR_TUBE_IP] = Ip;
+        v[MONITOR_TUBE_VG] = Vg;
+        v[MONITOR_TUBE_VK] = Vk;
+        v[MONITOR_TUBE_VP] = Vp;
+        v[MONITOR_TUBE_SC] = tubeCutoff;
+        v[MONITOR_TUBE_SP] = plateSaturation;
+        return monitor;
+    }
 
 private:
 
@@ -229,10 +244,12 @@ private:
                 bp_local = ap;
                 bk_local = ak;
                 Vpk_local = ap - ak;
+                tubeCutoff = true;
             }
             else
             {
                 Vpk_local = half * Vpk2;
+                tubeCutoff = false;
             }
         }
         else
@@ -240,11 +257,16 @@ private:
             bp_local = ap;
             bk_local = ak;
             Vpk_local = ap - ak;
+            tubeCutoff = true;
         }
 
         if (Vpk_local < zero)
         {
             bp_local = bp_ap_0 * ap + bp_ak_0 * ak;
+            plateSaturation = true;
+        }
+        else {
+            plateSaturation = false;
         }
 #endif
         // Incident waves for the ports 
@@ -252,9 +274,12 @@ private:
         bk = bk_local;
         bp = bp_local;
 
-        Vg = ag; // grid voltage is reflected wave on grid port
-        Vk = ak; // cathode voltage is reflected wave on cathode port
-        Vp = ap; // plate voltage is reflected wave on plate port
+        Vg = (ag+bg)*half;
+        Vk = (ak+bk)*half;
+        Vp = (ap+bp)*half;
+
+        Ik = (ak-bk)*half/ R0k;
+        Ip = (ap-bp)*half/ R0p;
     }
 
 
@@ -295,7 +320,10 @@ private:
     // Incident waves to be written back
     T bg{}, bk{}, bp{};
 
-    // Node voltages for monitoring
+    // monitoring
     T Vg{}, Vk{}, Vp{};
-
+    T Ik{}, Ip{};
+    bool tubeCutoff = false;
+    bool plateSaturation = false;
+    MonitorValue<T> monitor;
 };

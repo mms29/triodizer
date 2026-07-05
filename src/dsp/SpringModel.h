@@ -134,11 +134,11 @@ public:
         float output = 0.5f * (w1 - w2);
 
         // Write excitation + feedback to both springs
-        float fbDrive = input + feedback * output;
+        float fbDrive = input * gain + feedback * output;
         line1.write(fbDrive);
         line2.write(fbDrive);
 
-        return output * gain;
+        return output ;
     }
 
 private:

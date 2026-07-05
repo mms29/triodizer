@@ -3,10 +3,13 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 
 #include <chowdsp_wdf/chowdsp_wdf.h>
-#include "dsp/TriodeWDF.h"
-#include "dsp/TriodeQuadricWDF.h"
 #include <dsp/Circuit.h>
-#include <dsp/BassmanToneStack.h>
+#include <dsp/TriodeQuadricWDF.h>
+#include <dsp/ToneStack.h>
+#include <dsp/PowerSupply.h>
+
+inline const float BASSMAN_PREAMP_POWER_SUPPLY_RSAG = 200.0f;
+inline const float BASSMAN_PREAMP_POWER_SUPPLY_CSAG = 47e-6f;
 
 using namespace chowdsp::wdft;
 
@@ -18,39 +21,28 @@ public:
     {
         params.resize((int)Param::Count, T(0.0f));
         controls.resize((int)Control::Count, T(0.0f));
-        monitors.resize((int)Monitoring::Count, T(0.0f));
+        monitors.resize((int)Monitoring::Count);
 
         setDefaultParam();
         setDefaultControl();
+
     };
 
     using Circuit<T>::params;
     using Circuit<T>::controls;
     using Circuit<T>::monitors;
     using Circuit<T>::getParam;
+    using Circuit<T>::updateTubeMonitor;
+    using Circuit<T>::updatePortMonitor;
 
     enum class Monitoring : int 
     {
-        Vk1, Vp1, Vg1, Ik1, 
-        Vk2, Vp2, Vg2, Ik2, 
-        Vk3, Vp3, Vg3, Ik3,
+        V1, Rg1, Ci1, Ri1, Rk1, Ck1, Rp1,Cp1,RVol_plus, RVol_minus, E1,
         
-        Rg1_V, Rg1_I, 
-        Ci1_V, Ci1_I, 
-        Ri1_V, Ri1_I, 
-        Rk1_V, Rk1_I, 
-        Ck1_V, Ck1_I, 
-        Rp1_V, Rp1_I,
-        Cp1_V, Cp1_I,
-        RVol_plus_V, RVol_plus_I, 
-        RVol_minus_V, RVol_minus_I, 
-        
-        Rg2_V, Rg2_I,
-        Rk2_V, Rk2_I,
-        Rp2_V, Rp2_I,
+        V2, Rg2, Rk2, Rp2, E2,
 
-        Rk3_V, Rk3_I,
-
+        V3, Rk3, RBass, RMid_plus, RMid_minus, RTreble_plus, RTreble_minus, C1, C2, C3, R4, Rout, E3,
+    
         Count 
     };
     enum class Param : int 
@@ -60,7 +52,7 @@ public:
         // V2
         V2, Rg2 ,Rk2, Rp2, E2,
         // V3
-        V3, Rg3 , Rk3, Rp3, E3, 
+        V3, Rg3 , Rk3, E3, 
         RBass, RMid, RTreble, C1, C2, C3, R4, // tone stack
         Count 
     };
@@ -90,7 +82,6 @@ public:
         setParam((int)Param::Rg3, T(1.0e3f  ));
         setParam((int)Param::Rk3, T(100.0e3f));
         setParam((int)Param::E3,  T(325.0f  ));
-        setParam((int)Param::Rp3, T(1.0f    ));
 
         setParam((int)Param::C1,      T(0.25e-9));      
         setParam((int)Param::C2,      T(22.0e-9));      
@@ -130,7 +121,7 @@ public:
                     getParam((int)Param::E2));break;
             case (int)Param::V3: 
                 w_V3.setParams((int) value, 
-                    getParam((int)Param::Rp3),
+                    T(1.0e3f),
                     getParam((int)Param::Rk3),
                     getParam((int)Param::E3)); break;
             
@@ -139,27 +130,26 @@ public:
             case (int)Param::Ci1: w_Vin.setCapacitanceValue(value); break;
             case (int)Param::Rk1: w_Rk1.setResistanceValue(value); break;
             case (int)Param::Ck1: w_Ck1.setCapacitanceValue(value); break;
-            case (int)Param::E1:  w_E1_Rp1.setVoltage(value);  break;
-            case (int)Param::Rp1: w_E1_Rp1.setResistanceValue(value); break;
+            case (int)Param::E1:  w_E1.setVoltage(value);  break;
+            case (int)Param::Rp1: w_Rp1.setResistanceValue(value); break;
             case (int)Param::Cp1: w_Cp1.setCapacitanceValue(value); break;
             case (int)Param::RVol: setControl((int)Control::Volume, T(50.0f)); break;
 
 
             case (int)Param::Rg2: w_V_Rg2.setResistanceValue(value); break;
             case (int)Param::Rk2: w_Rk2.setResistanceValue(value); break;
-            case (int)Param::E2:  w_E2_Rp2.setVoltage(value);  break;
-            case (int)Param::Rp2: w_E2_Rp2.setResistanceValue(value); break;
+            case (int)Param::E2:  w_E2.setVoltage(value);  break;
+            case (int)Param::Rp2: w_Rp2.setResistanceValue(value); break;
 
             case (int)Param::Rg3: w_V_Rg3.setResistanceValue(value); break;
             case (int)Param::Rk3: w_Rk3.setResistanceValue(value); break;
             case (int)Param::E3:  w_E3.setVoltage(value);  break;
-            case (int)Param::Rp3: w_E3.setResistanceValue(value); break;
 
 
-            case (int)Param::C1:       w_bts.setC1(value); break;
-            case (int)Param::C2:       w_bts.setC2(value); break;
-            case (int)Param::C3:       w_bts.setC3(value); break;
-            case (int)Param::R4:       w_bts.setR4(value); break;
+            case (int)Param::C1:       w_TS.setC1(value); break;
+            case (int)Param::C2:       w_TS.setC2(value); break;
+            case (int)Param::C3:       w_TS.setC3(value); break;
+            case (int)Param::R4:       w_TS.setR4(value); break;
             case (int)Param::RBass:     setControl((int)Control::Bass, T(50.0f)); break; 
             case (int)Param::RMid:      setControl((int)Control::Mid, T(50.0f)); break; 
             case (int)Param::RTreble:  setControl((int)Control::Treble, T(50.0f)); break; 
@@ -188,7 +178,7 @@ public:
             {
                 T controlVal = getParam((int)Param::RBass);
                 // auto ratio = std::pow((100.0f-value)/100.0f, 3.0f); // audio taper
-                w_bts.setR2(controlVal*(ratio));
+                w_TS.setR2(controlVal*(ratio));
                 break;
             }
             case (int)Control::Treble: 
@@ -196,75 +186,66 @@ public:
 
                 T controlVal = getParam((int)Param::RTreble);
                 // auto ratio = std::pow((100.0f-value)/100.0f, 3.0f); // audio taper
-                w_bts.setR1_plus( controlVal*(T(1.0f) - ratio));
-                w_bts.setR1_minus( controlVal*(ratio));
+                w_TS.setR1_plus( controlVal*(T(1.0f) - ratio));
+                w_TS.setR1_minus( controlVal*(ratio));
                 break;
             }
             case (int)Control::Mid: 
             {
                 T controlVal = getParam((int)Param::RMid);
-                w_bts.setR3_plus( controlVal*(T(1.0f) - ratio));
-                w_bts.setR3_minus( controlVal*(ratio));
+                w_TS.setR3_plus( controlVal*(T(1.0f) - ratio));
+                w_TS.setR3_minus( controlVal*(ratio));
                 break;
             }
             default: jassertfalse; break;
         }
     }
     void updateMonitors() override{
-        monitors[(int)Monitoring::Vk1] = voltage<T>(w_Rk1);
-        monitors[(int)Monitoring::Vp1] = voltage<T>(w_E1_Rp1);
-        monitors[(int)Monitoring::Vg1] = voltage<T>(w_Vin);
-        monitors[(int)Monitoring::Ik1] = current<T>(w_Rk1);
 
-        monitors[(int)Monitoring::Vk2] = voltage<T>(w_Rk2) ;
-        monitors[(int)Monitoring::Vp2] = voltage<T>(w_E2_Rp2);
-        monitors[(int)Monitoring::Vg2] = voltage<T>(w_V_Rg2);
-        monitors[(int)Monitoring::Ik2] = current<T>(w_Rk2);
+        updateTubeMonitor((int)Monitoring::V1, w_V1.getMonitorValue());
+        updateTubeMonitor((int)Monitoring::V2, w_V2.getMonitorValue());
+        updateTubeMonitor((int)Monitoring::V3, w_V3.getMonitorValue());
 
-        monitors[(int)Monitoring::Vk3] = voltage<T>(w_Rk3);        
-        monitors[(int)Monitoring::Vp3] = voltage<T>(w_E3);
-        monitors[(int)Monitoring::Vg3] = voltage<T>(w_V_Rg3);
-        monitors[(int)Monitoring::Ik3] = current<T>(w_Rk3);
+        updatePortMonitor((int)Monitoring::E1, w_E1);
+        updatePortMonitor((int)Monitoring::E2, w_E2);
+        updatePortMonitor((int)Monitoring::E3, w_E3);
 
-        monitors[(int)Monitoring::Rg1_V] = voltage<T>(w_Rg1);  
-        monitors[(int)Monitoring::Rg1_I] = current<T>(w_Rg1);  
-        monitors[(int)Monitoring::Ci1_V] = voltage<T>(w_Vin);  
-        monitors[(int)Monitoring::Ci1_I] = current<T>(w_Vin);  
-        monitors[(int)Monitoring::Ri1_V] = voltage<T>(w_Ri1);  
-        monitors[(int)Monitoring::Ri1_I] = current<T>(w_Ri1);  
-        monitors[(int)Monitoring::Rk1_V] = voltage<T>(w_Rk1);  
-        monitors[(int)Monitoring::Rk1_I] = current<T>(w_Rk1);  
-        monitors[(int)Monitoring::Ck1_V] = voltage<T>(w_Ck1);  
-        monitors[(int)Monitoring::Ck1_I] = current<T>(w_Ck1);  
-        monitors[(int)Monitoring::RVol_plus_V] = voltage<T>(w_Ro1_plus);  
-        monitors[(int)Monitoring::RVol_plus_I] = current<T>(w_Ro1_plus);  
-        monitors[(int)Monitoring::RVol_minus_V] = voltage<T>(w_Ro1_minus);  
-        monitors[(int)Monitoring::RVol_minus_I] = current<T>(w_Ro1_minus);  
+        updatePortMonitor((int)Monitoring::Rg1, w_Rg1);
+        updatePortMonitor((int)Monitoring::Ci1, w_Vin);
+        updatePortMonitor((int)Monitoring::Ri1, w_Ri1);
+        updatePortMonitor((int)Monitoring::Rk1, w_Rk1);
+        updatePortMonitor((int)Monitoring::Ck1, w_Ck1);
+        updatePortMonitor((int)Monitoring::RVol_plus, w_Ro1_plus);
+        updatePortMonitor((int)Monitoring::RVol_minus, w_Ro1_minus);
+        updatePortMonitor((int)Monitoring::Rp1, w_Rp1);
+        updatePortMonitor((int)Monitoring::Cp1, w_Cp1);
 
-        monitors[(int)Monitoring::Rp1_V] = voltage<T>(w_E1_Rp1);    
-        monitors[(int)Monitoring::Rp1_I] = current<T>(w_E1_Rp1);  
-        monitors[(int)Monitoring::Cp1_V] = voltage<T>(w_Cp1);    
-        monitors[(int)Monitoring::Cp1_I] = current<T>(w_Cp1);    
-        monitors[(int)Monitoring::Rg2_V] = voltage<T>(w_V_Rg2);    
-        monitors[(int)Monitoring::Rg2_I] = current<T>(w_V_Rg2);    
-        monitors[(int)Monitoring::Rk2_V] = voltage<T>(w_Rk2);    
-        monitors[(int)Monitoring::Rk2_I] = current<T>(w_Rk2);    
-        monitors[(int)Monitoring::Rp2_V] = voltage<T>(w_E2_Rp2);    
-        monitors[(int)Monitoring::Rp2_I] = current<T>(w_E2_Rp2);    
+        updatePortMonitor((int)Monitoring::Rk2, w_Rk2);
+        updatePortMonitor((int)Monitoring::Rg2, w_V_Rg2);
+        updatePortMonitor((int)Monitoring::Rp2, w_Rp2); 
 
-        monitors[(int)Monitoring::Rk3_V] = voltage<T>(w_Rk3);    
-        monitors[(int)Monitoring::Rk3_I] = current<T>(w_Rk3);    
+        updatePortMonitor((int)Monitoring::Rk3, w_Rk3); 
+        updatePortMonitor((int)Monitoring::RBass, w_TS.w_R2); 
+        updatePortMonitor((int)Monitoring::RMid_plus, w_TS.w_R3_plus); 
+        updatePortMonitor((int)Monitoring::RMid_minus, w_TS.w_R3_minus); 
+        updatePortMonitor((int)Monitoring::RTreble_plus, w_TS.w_R1_plus); 
+        updatePortMonitor((int)Monitoring::RTreble_minus, w_TS.w_R1_minus); 
+        updatePortMonitor((int)Monitoring::C1, w_TS.w_C1); 
+        updatePortMonitor((int)Monitoring::C2, w_TS.w_C2); 
+        updatePortMonitor((int)Monitoring::C3, w_TS.w_C3); 
+        updatePortMonitor((int)Monitoring::R4, w_TS.w_R4); 
+        updatePortMonitor((int)Monitoring::Rout, w_Rload); 
+
     }
-
 
     void prepare(T sr) override {
         w_Vin.prepare (sr);
         w_Ck1.prepare (sr);
         w_Cp1.prepare (sr);
-        w_bts.prepare(sr);
+        w_TS.prepare(sr);
     }
     void reset() override {
-        w_bts.reset();
+        w_TS.reset();
         w_Vin.reset();
         w_Ck1.reset();
         w_Cp1.reset();
@@ -273,28 +254,28 @@ public:
     T processSample(T x) override { 
         // V1
         w_Vin.setVoltage (x);
-        w_E1_Rp1.setVoltage(getParam((int)Param::E1));
+        w_E1.setVoltage(getParam((int)Param::E1));
         w_V1.compute();
         auto V1_out = voltage<T> (w_Ro1_minus);
 
         //V2
         w_V_Rg2.setVoltage (V1_out);
-        w_E2_Rp2.setVoltage(getParam((int)Param::E2));
+        w_E2.setVoltage(getParam((int)Param::E2));
         w_V2.compute();
-        auto V2_out = voltage<T> (w_E2_Rp2);
+        auto V2_out = w_V2.getVp();
 
         //V3
         w_V_Rg3.setVoltage (V2_out);
         w_E3.setVoltage(getParam((int)Param::E3));
         w_V3.compute();
 
-        return w_bts.getVoltage() * outputGain;
+        return voltage<T>(w_Rload) * outputGain;
     }
 
 
 private: 
 
-    T outputGain = T(2e-3);
+    T outputGain = T(4e-3);
     // ==================================================================================================== 
     // =  First stage 
     // ==================================================================================================== 
@@ -314,7 +295,11 @@ private:
     WDFParallelT<T, decltype (w_Rk1), decltype (w_Ck1)> w_PJ_k1 { w_Rk1, w_Ck1 };
 
     // Plate Circuit (connect V1 to w_PJ_p1)
-    ResistiveVoltageSourceT<T> w_E1_Rp1 { T(0.0f) };
+    PowerSupplyT<T> w_E1 { T(BASSMAN_PREAMP_POWER_SUPPLY_RSAG), T(BASSMAN_PREAMP_POWER_SUPPLY_CSAG) };
+    PolarityInverterT<T, decltype (w_E1)> w_PI_e1 { w_E1 };
+    ResistorT<T> w_Rp1 {T(0.0f)};
+    WDFSeriesT<T, decltype(w_PI_e1), decltype(w_Rp1)> w_E1_Rp1 {w_PI_e1, w_Rp1};
+
     CapacitorT<T> w_Cp1 { T(0.0f) };
     ResistorT<T> w_Ro1_plus { T(0.0f) };
     ResistorT<T> w_Ro1_minus { T(0.0f) };
@@ -338,7 +323,10 @@ private:
     ResistorT<T> w_Rk2 { T(0.0f) };
 
     // Plate Circuit (connect V2 to w_PJ_p2)
-    ResistiveVoltageSourceT<T> w_E2_Rp2 { T(0.0f) };
+    PowerSupplyT<T> w_E2 { T(BASSMAN_PREAMP_POWER_SUPPLY_RSAG), T(BASSMAN_PREAMP_POWER_SUPPLY_CSAG)  };
+    PolarityInverterT<T, decltype (w_E2)> w_PI_e2 { w_E2 };
+    ResistorT<T> w_Rp2 {T(0.0f)};
+    WDFSeriesT<T, decltype(w_PI_e2), decltype(w_Rp2)> w_E2_Rp2 {w_PI_e2, w_Rp2};
 
     TriodeQuadricWDF<T, decltype(w_V_Rg2), decltype(w_Rk2), decltype(w_E2_Rp2)> w_V2{
             w_V_Rg2, w_Rk2, w_E2_Rp2
@@ -353,11 +341,12 @@ private:
 
     // Cathode Circuit 
     ResistorT<T> w_Rk3 { T(0.0f) };
-    BassmanToneStack<T> w_bts {};
-    WDFParallelT<T, decltype (w_Rk3), decltype (w_bts)> w_PJ_k3 { w_Rk3, w_bts};
+    ResistorT<T> w_Rload { T(1e6f) };
+    ToneStack<T, decltype(w_Rload)> w_TS {w_Rload, 0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f };
+    WDFParallelT<T, decltype (w_Rk3), decltype (w_TS)> w_PJ_k3 { w_Rk3, w_TS};
 
     // Plate Circuit (connect V2 to w_PJ_p2)
-    ResistiveVoltageSourceT<T> w_E3 { T(0.0f) };
+    PowerSupplyT<T> w_E3 { T(BASSMAN_PREAMP_POWER_SUPPLY_RSAG), T(BASSMAN_PREAMP_POWER_SUPPLY_CSAG)  };
 
     TriodeQuadricWDF<T, decltype(w_V_Rg3), decltype(w_PJ_k3), decltype(w_E3)> w_V3{
             w_V_Rg3, w_PJ_k3, w_E3

@@ -9,6 +9,8 @@
 #include <dsp/ToneStack.h>
 
 
+inline const float MESA_PREAMP_POWER_SUPPLY_RSAG = 200.0f;
+inline const float MESA_PREAMP_POWER_SUPPLY_CSAG = 47e-6f;
 
 using namespace chowdsp::wdft;
 
@@ -20,7 +22,7 @@ public:
     {
         params.resize((int)Param::Count, 0.0f);
         controls.resize((int)Control::Count, 0.0f);
-        monitors.resize((int)Monitoring::Count, 0.0f);
+        monitors.resize((int)Monitoring::Count);
 
         // Init params
         setDefaultParam();
@@ -29,17 +31,35 @@ public:
         // Dummy resistances 
         w_Vin.setResistanceValue(1.0e3F);
         w_V_R3.setResistanceValue(1.0e3F);
-        w_E5.setResistanceValue(1.0e3F);
         w_V_R5.setResistanceValue(1.0e3F);
 
     };
 
     enum class Monitoring : int 
     {
+        V1, Rg1, Rk1,Ck1,E1,Rp1,Cp1, 
+        
+        // First tone shaping
+        Ra1, Rb1, Ca1, Cb1, Rc1, RVol_plus, RVol_minus, Cbright,
 
-        VDCk1, VDCk2, VDCk3, VDCk4, VDCk5, 
-        VDCp1, VDCp2, VDCp3, VDCp4, VDCp5, 
-        Ik1  , Ik2  , Ik3  , Ik4  , Ik5  , 
+        // V2
+        V2, Rg2, Cg2, Rk2, Ck2, Rp2, E2, Cp2, Ra2, Rb2,
+
+        //V3 cold clipper
+        V3, Rk3, Rp3, Cp3, E3, Ra3,
+
+        //V4
+        V4, Rg4, Rk4, Ck4, Rp4, E4,
+
+        // V5
+        V5, Rk5, E5,
+
+        // Tone Stack
+        C1, C2, C3, R4, RTreble_plus,RTreble_minus, RBass, RMid_plus,RMid_minus,
+
+        // Presence
+        C5, R5, RPres,
+        RMas_plus, RMas_minus,
         Count 
     };
     enum class Param : int 
@@ -149,6 +169,11 @@ public:
     void setDefaultControl () 
     { 
         setControl((int)Control::Volume, 50.0f);    
+        setControl((int)Control::Treble, 50.0f);    
+        setControl((int)Control::Mid, 50.0f);    
+        setControl((int)Control::Bass, 50.0f);    
+        setControl((int)Control::Master, 50.0f);    
+        setControl((int)Control::Presence, 50.0f);    
     }
     void setParam (const int index, float value) override
     {
@@ -179,8 +204,8 @@ public:
             case (int)Param::Rg1: w_Rg1.setResistanceValue(value); break;
             case (int)Param::Rk1: w_Rk1.setResistanceValue(value); break;
             case (int)Param::Ck1: w_Ck1.setCapacitanceValue(value); break;
-            case (int)Param::E1:  w_E1_Rp1.setVoltage(value);  break;
-            case (int)Param::Rp1: w_E1_Rp1.setResistanceValue(value); break;
+            case (int)Param::E1:  w_E1.setVoltage(value);  break;
+            case (int)Param::Rp1: w_Rp1.setResistanceValue(value); break;
             case (int)Param::Cp1: w_Cp1.setCapacitanceValue(value); break;
 
             case (int)Param::Ra1: w_Ra1.setResistanceValue(value); break;
@@ -196,23 +221,23 @@ public:
             case (int)Param::Cg2: w_Cg2.setCapacitanceValue(value); break;
             case (int)Param::Rk2: w_Rk2.setResistanceValue(value); break;
             case (int)Param::Ck2: w_Ck2.setCapacitanceValue(value); break;
-            case (int)Param::E2:  w_E2_Rp2.setVoltage(value);  break;
-            case (int)Param::Rp2: w_E2_Rp2.setResistanceValue(value); break;
+            case (int)Param::E2:  w_E2.setVoltage(value);  break;
+            case (int)Param::Rp2: w_Rp2.setResistanceValue(value); break;
             case (int)Param::Cp2: w_Cp2.setCapacitanceValue(value); break;
             case (int)Param::Ra2: w_Ra2.setResistanceValue(value); break;
             case (int)Param::Rb2: w_Rb2.setResistanceValue(value); break;
 
             case (int)Param::Rk3: w_Rk3.setResistanceValue(value); break;
             case (int)Param::Cp3: w_Cp3.setCapacitanceValue(value); break;
-            case (int)Param::E3:  w_E3_Rp3.setVoltage(value);  break;
-            case (int)Param::Rp3: w_E3_Rp3.setResistanceValue(value); break;
+            case (int)Param::E3:  w_E3.setVoltage(value);  break;
+            case (int)Param::Rp3: w_Rp3.setResistanceValue(value); break;
             case (int)Param::Ra3: w_Ra3.setResistanceValue(value); break;
 
             case (int)Param::Rg4: w_V_Rg4.setResistanceValue(value); break;
             case (int)Param::Rk4: w_Rk4.setResistanceValue(value); break;
             case (int)Param::Ck4: w_Ck4.setCapacitanceValue(value); break;
-            case (int)Param::E4:  w_E4_Rp4.setVoltage(value);  break;
-            case (int)Param::Rp4: w_E4_Rp4.setResistanceValue(value); break;
+            case (int)Param::E4:  w_E4.setVoltage(value);  break;
+            case (int)Param::Rp4: w_Rp4.setResistanceValue(value); break;
 
             case (int)Param::Rk5: w_Rk5.setResistanceValue(value); break;
             case (int)Param::E5:  w_E5.setVoltage(value);  break;
@@ -296,55 +321,75 @@ public:
         }
     }
     void updateMonitors() override{
-        // Voltages
-        float x;
 
-        // auto& VDCk1 = monitors[(int)Monitoring::VDCk1];
-        // x = getVk1();
-        // VDCk1 = lowPass(x, VDCk1);
-        // auto& VDCp1 = monitors[(int)Monitoring::VDCp1];
-        // x = getVp1();
-        // VDCp1 = lowPass(x, VDCp1);
 
-        // auto& VDCk2 = monitors[(int)Monitoring::VDCk2];
-        // x = getVk2();
-        // VDCk2 = lowPass(x, VDCk2);
-        // auto& VDCp2 = monitors[(int)Monitoring::VDCp2];
-        // x = getVp2();
-        // VDCp2 = lowPass(x, VDCp2);
+        updateTubeMonitor((int)Monitoring::V1, w_V1.getMonitorValue());
+        updatePortMonitor((int)Monitoring::Rg1, w_Rg1);
+        updatePortMonitor((int)Monitoring::Rk1, w_Ck1);
+        updatePortMonitor((int)Monitoring::Rp1, w_Rp1);
+        updatePortMonitor((int)Monitoring::E1, w_E1);
+        updatePortMonitor((int)Monitoring::Cp1, w_Cp1);
+        
+        // First tone shaping
+        updatePortMonitor((int)Monitoring::Ra1, w_Ra1);
+        updatePortMonitor((int)Monitoring::Rb1, w_Rb1);
+        updatePortMonitor((int)Monitoring::Ca1, w_Ca1);
+        updatePortMonitor((int)Monitoring::Cb1, w_Cb1);
+        updatePortMonitor((int)Monitoring::Rc1, w_Rc1);
+        updatePortMonitor((int)Monitoring::RVol_plus, w_RVol_plus);
+        updatePortMonitor((int)Monitoring::RVol_minus, w_RVol_minus);
+        updatePortMonitor((int)Monitoring::Cbright, w_Cbright);
 
-        // auto& VDCk3 = monitors[(int)Monitoring::VDCk3];
-        // x = getVk3();
-        // VDCk3 = lowPass(x, VDCk3);
-        // auto& VDCp3 = monitors[(int)Monitoring::VDCp3];
-        // x = getVp3();
-        // VDCp3 = lowPass(x, VDCp3);
+        // V2
+        updateTubeMonitor((int)Monitoring::V2, w_V2.getMonitorValue());
+        updatePortMonitor((int)Monitoring::Rg2, w_V_Rg2);
+        updatePortMonitor((int)Monitoring::Cg2, w_Cg2);
+        updatePortMonitor((int)Monitoring::Rk2, w_Rk2);
+        updatePortMonitor((int)Monitoring::Ck2, w_Ck2);
+        updatePortMonitor((int)Monitoring::Rp2, w_Rp2);
+        updatePortMonitor((int)Monitoring::E2, w_E2);
+        updatePortMonitor((int)Monitoring::Cp2, w_Cp2);
+        updatePortMonitor((int)Monitoring::Ra2, w_Ra2);
+        updatePortMonitor((int)Monitoring::Rb2, w_Rb2);
 
-        // auto& VDCk4 = monitors[(int)Monitoring::VDCk4];
-        // x = getVk4();
-        // VDCk4 = lowPass(x, VDCk4);
-        // auto& VDCp4 = monitors[(int)Monitoring::VDCp4];
-        // x = getVp4();
-        // VDCp4 = lowPass(x, VDCp4);
+        //V3 cold clipper
+        updateTubeMonitor((int)Monitoring::V3, w_V3.getMonitorValue());
+        updatePortMonitor((int)Monitoring::Rk3, w_Rk3);
+        updatePortMonitor((int)Monitoring::Rp3, w_Rp3);
+        updatePortMonitor((int)Monitoring::E3, w_E3);
+        updatePortMonitor((int)Monitoring::Cp3, w_Cp3);
+        updatePortMonitor((int)Monitoring::Ra3, w_Ra3);
 
-        // auto& VDCk5 = monitors[(int)Monitoring::VDCk5];
-        // x = getVk5();
-        // VDCk5 = lowPass(x, VDCk5);
-        // auto& VDCp5 = monitors[(int)Monitoring::VDCp5];
-        // x = getVp5();
-        // VDCp5 = lowPass(x, VDCp5);
+        //V4
+        updateTubeMonitor((int)Monitoring::V4, w_V4.getMonitorValue());
+        updatePortMonitor((int)Monitoring::Rg4, w_V_Rg4);
+        updatePortMonitor((int)Monitoring::Rk4, w_Rk4);
+        updatePortMonitor((int)Monitoring::Rp4, w_Rp4);
+        updatePortMonitor((int)Monitoring::E4, w_E4);
 
-        // // CURRENT 
-        // auto& ik1 = monitors[(int)Monitoring::Ik1];
-        // ik1 = lowPass(getIk1(), ik1);
-        // auto& ik2 = monitors[(int)Monitoring::Ik2];
-        // ik2 = lowPass(getIk2(), ik2);
-        // auto& ik3 = monitors[(int)Monitoring::Ik3];
-        // ik3 = lowPass(getIk3(), ik3);
-        // auto& ik4 = monitors[(int)Monitoring::Ik4];
-        // ik4 = lowPass(getIk4(), ik4);
-        // auto& ik5 = monitors[(int)Monitoring::Ik5];
-        // ik5 = lowPass(getIk5(), ik5);
+        // V5
+        updateTubeMonitor((int)Monitoring::V5, w_V5.getMonitorValue());
+        updatePortMonitor((int)Monitoring::Rk5, w_Rk5);
+        updatePortMonitor((int)Monitoring::E5, w_E5);
+
+        // Tone Stack
+        updatePortMonitor((int)Monitoring::RBass, w_TS.w_R2); 
+        updatePortMonitor((int)Monitoring::RMid_plus, w_TS.w_R3_plus); 
+        updatePortMonitor((int)Monitoring::RMid_minus, w_TS.w_R3_minus); 
+        updatePortMonitor((int)Monitoring::RTreble_plus, w_TS.w_R1_plus); 
+        updatePortMonitor((int)Monitoring::RTreble_minus, w_TS.w_R1_minus); 
+        updatePortMonitor((int)Monitoring::C1, w_TS.w_C1); 
+        updatePortMonitor((int)Monitoring::C2, w_TS.w_C2); 
+        updatePortMonitor((int)Monitoring::C3, w_TS.w_C3); 
+        updatePortMonitor((int)Monitoring::R4, w_TS.w_R4); 
+
+        // Presence
+        updatePortMonitor((int)Monitoring::C5, w_C5); 
+        updatePortMonitor((int)Monitoring::R5, w_R5); 
+        updatePortMonitor((int)Monitoring::RPres, w_RPres); 
+        updatePortMonitor((int)Monitoring::RMas_plus, w_RMas_plus); 
+        updatePortMonitor((int)Monitoring::RMas_minus, w_RMas_minus); 
+
     }
 
 
@@ -380,57 +425,36 @@ public:
     float processSample(float x) override { 
         // V1
         w_Vin.setVoltage (x);
-        w_E1_Rp1.setVoltage(getParam((int)Param::E1));
+        w_E1.setVoltage(getParam((int)Param::E1));
         w_V1.compute();
         auto V1_out = voltage<float> (w_RVol_minus);
 
         //V2
         w_V_Rg2.setVoltage (V1_out);
-        w_E2_Rp2.setVoltage(getParam((int)Param::E2));
+        w_E2.setVoltage(getParam((int)Param::E2));
         w_V2.compute();
         auto V2_out = voltage<float> (w_Rb2);
 
         //V3
         w_V_R3.setVoltage (V2_out);
-        w_E3_Rp3.setVoltage(getParam((int)Param::E3));
+        w_E3.setVoltage(getParam((int)Param::E3));
         w_V3.compute();
         auto V3_out = voltage<float> (w_Ra3);
 
         //V4
         w_V_Rg4.setVoltage (V3_out);
-        w_E4_Rp4.setVoltage(getParam((int)Param::E4));
+        w_E4.setVoltage(getParam((int)Param::E4));
         w_V4.compute();
-        auto V4_out = voltage<float> (w_E4_Rp4);
+        auto V4_out = w_V4.getVp();
 
         //V5
         w_V_R5.setVoltage (V4_out);
         w_E5.setVoltage(getParam((int)Param::E5));
         w_V5.compute();
-        auto V5_out = voltage<float> (w_Rk5);
 
-        updateMonitors();
         return voltage<float>(w_RMas_minus)* outputGain;
     }
 
-    // Accessor methods for monitoring internal WDF variables
-    // float getVk1() const { return -w_V1.getVgkAcc(); }
-    // float getVp1() const { return w_V1.getVpkAcc() - w_V1.getVgkAcc(); }
-    float getVk1() const { return voltage<float>(w_Rk1); }
-    float getVp1() const { return voltage<float>(w_E1_Rp1); }
-    float getVk2() const { return voltage<float>(w_Rk2); }
-    float getVp2() const { return voltage<float>(w_E2_Rp2); }
-    float getVk3() const { return voltage<float>(w_Rk3); }
-    float getVp3() const { return voltage<float>(w_E3_Rp3); }
-    float getVk4() const { return voltage<float>(w_Rk4); }
-    float getVp4() const { return voltage<float>(w_E4_Rp4); }
-    float getVk5() const { return voltage<float>(w_Rk5); }
-    float getVp5() const { return voltage<float>(w_E5); }
-
-    float getIk1() const { return current<float>(w_Rk1); }
-    float getIk2() const { return current<float>(w_Rk2); }
-    float getIk3() const { return current<float>(w_Rk3); }
-    float getIk4() const { return current<float>(w_Rk4); }
-    float getIk5() const { return current<float>(w_Rk5); }
 
 private: 
 
@@ -474,7 +498,11 @@ private:
 
     // Plate circuit
     CapacitorT<float> w_Cp1 { 0.0f };
-    ResistiveVoltageSourceT<float> w_E1_Rp1 { 0.0f };
+    PowerSupplyT<float> w_E1 {MESA_PREAMP_POWER_SUPPLY_RSAG, MESA_PREAMP_POWER_SUPPLY_CSAG};
+    PolarityInverterT<float, decltype (w_E1)> w_PI_e1 { w_E1 };
+    ResistorT<float> w_Rp1 {float(0.0f)};
+    WDFSeriesT<float, decltype(w_PI_e1), decltype(w_Rp1)> w_E1_Rp1 {w_PI_e1, w_Rp1};
+
     WDFSeriesT<float, decltype (w_Cp1), decltype (w_PJ_stack4)> w_SJ_stack2 { w_Cp1, w_PJ_stack4 };
     PolarityInverterT<float, decltype (w_SJ_stack2)> w_PI_p1 { w_SJ_stack2 };
     WDFParallelT<float, decltype (w_E1_Rp1), decltype (w_PI_p1)> w_PJ_p1 { w_E1_Rp1, w_PI_p1};
@@ -501,7 +529,11 @@ private:
     WDFParallelT<float, decltype (w_Rk2), decltype (w_Ck2)> w_PJ_k2 { w_Rk2, w_Ck2 };
 
     // Plate Circuit
-    ResistiveVoltageSourceT<float> w_E2_Rp2 { 0.0f };
+
+    PowerSupplyT<float> w_E2 { MESA_PREAMP_POWER_SUPPLY_RSAG, MESA_PREAMP_POWER_SUPPLY_CSAG };
+    PolarityInverterT<float, decltype (w_E2)> w_PI_e2 { w_E2 };
+    ResistorT<float> w_Rp2 {0.0f};
+    WDFSeriesT<float, decltype(w_PI_e2), decltype(w_Rp2)> w_E2_Rp2 {w_PI_e2, w_Rp2};
     CapacitorT<float> w_Cp2 { 0.0f };
     ResistorT<float> w_Ra2 { 0.0f };
     ResistorT<float> w_Rb2 { 0.0f };
@@ -522,8 +554,13 @@ private:
 
     // Cathode Circuit    
     ResistorT<float> w_Rk3 { 0.0f };
+
     // Plate Circuit
-    ResistiveVoltageSourceT<float> w_E3_Rp3 { 0.0f };
+    PowerSupplyT<float> w_E3 { MESA_PREAMP_POWER_SUPPLY_RSAG, MESA_PREAMP_POWER_SUPPLY_CSAG };
+    PolarityInverterT<float, decltype (w_E3)> w_PI_e3 { w_E3 };
+    ResistorT<float> w_Rp3 {0.0f};
+    WDFSeriesT<float, decltype(w_PI_e3), decltype(w_Rp3)> w_E3_Rp3 {w_PI_e3, w_Rp3};
+    
     CapacitorT<float> w_Cp3 { 0.0f };
     ResistorT<float> w_Ra3 { 0.0f };
     WDFSeriesT<float, decltype (w_Cp3), decltype (w_Ra3)> w_SJ_p3 { w_Cp3, w_Ra3 };
@@ -547,8 +584,11 @@ private:
     WDFParallelT<float, decltype (w_Rk4), decltype (w_Ck4)> w_PJ_k4 { w_Rk4, w_Ck4 };
 
     // Plate Circuit
-    ResistiveVoltageSourceT<float> w_E4_Rp4 { 0.0f };
-
+    PowerSupplyT<float> w_E4 { MESA_PREAMP_POWER_SUPPLY_RSAG, MESA_PREAMP_POWER_SUPPLY_CSAG };
+    PolarityInverterT<float, decltype (w_E4)> w_PI_e4 { w_E4 };
+    ResistorT<float> w_Rp4 {0.0f};
+    WDFSeriesT<float, decltype(w_PI_e4), decltype(w_Rp4)> w_E4_Rp4 {w_PI_e4, w_Rp4};
+    
     TriodeQuadricWDF<float, decltype(w_V_Rg4), decltype(w_PJ_k4), decltype(w_E4_Rp4)> w_V4{
             w_V_Rg4, w_PJ_k4, w_E4_Rp4
     }; 
@@ -574,7 +614,7 @@ private:
     WDFParallelT<float, decltype (w_Rk5), decltype (w_TS)> w_PJ_k5 { w_Rk5, w_TS};
 
     // Plate Circuit
-    ResistiveVoltageSourceT<float> w_E5 { 0.0f };
+    PowerSupplyT<float> w_E5 { MESA_PREAMP_POWER_SUPPLY_RSAG, MESA_PREAMP_POWER_SUPPLY_CSAG };
 
     TriodeQuadricWDF<float, decltype(w_V_R5), decltype(w_PJ_k5), decltype(w_E5)> w_V5{
             w_V_R5, w_PJ_k5, w_E5

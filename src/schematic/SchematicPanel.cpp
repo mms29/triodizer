@@ -15,6 +15,10 @@ void SchematicPanel::addElement (std::unique_ptr<SchematicElement> element)
     jassert (element != nullptr);
     element->prepareToDraw();
 
+    if (auto* sigElem = dynamic_cast<SignalElement*>(element.get()))
+        sigElem->createSignalPaths();
+
+
     if (auto* ctrlElem = dynamic_cast<ControllableElement*>(element.get()))
     {
         std::unique_ptr<Knob> controlKnob = std::make_unique<Knob>(
@@ -77,8 +81,7 @@ void SchematicPanel::addWire (juce::Point<float> start, juce::Point<float> end)
 void SchematicPanel::addWireElem (std::unique_ptr<WireElement> wire)
 {
     wire->prepareToDraw();
-
-    wires.push_back (std::move (wire));
+    elements.push_back (std::move (wire));
 }
 
 int SchematicPanel::getNumElements() const noexcept
@@ -99,24 +102,28 @@ void SchematicPanel::updateMonitoring ()
 {
     listener->updateCircuitMonitoring();
     
-    SchematicElement::incrementClock();
     for (const auto& element : elements){
         if (auto* monitor = dynamic_cast<MonitoringElement*>(element.get())){
 
             for (int i = 0; i < monitor->getNumMonitors(); ++i)
             {
-                monitor->setMonitorValue(
-                    i,
-                    listener->getCircuitMonitoring(monitor->getCircuitIndex(i))
-                );
+                auto index = monitor->getCircuitIndex(i);
+                if (index >= 0)
+                    monitor->setMonitorValue(
+                        i,
+                        listener->getCircuitMonitoring(index)
+                    );
             }
         }
-        if (element->isSignalPath()){
-            element->updateSignalPath();
-        }
-    }
+        if (signalPathActivated)
+            if (auto* sig = dynamic_cast<SignalElement*>(element.get()))
+                sig->updateSignalPaths();
 
-    // update inspector
+    }
+    repaint();
+}
+void SchematicPanel::updateInspect ()
+{
     if (hoveredElement != nullptr){
         if (auto* inspectElem = dynamic_cast<InspectableElement*>(hoveredElement) )
         {
@@ -129,7 +136,6 @@ void SchematicPanel::updateMonitoring ()
         }
     }
 
-    repaint();
 }
 //==============================================================================
 void SchematicPanel::paint (juce::Graphics& g)
@@ -141,27 +147,34 @@ void SchematicPanel::paint (juce::Graphics& g)
     g.addTransform(juce::AffineTransform::scale(zoomFactor).followedBy(
         juce::AffineTransform::translation(viewOffset.x, viewOffset.y)));
 
-    // Draw wires first (behind elements)
-    for (const auto& wire : wires)
-    {
-        jassert (wire != nullptr);
-        wire->draw (g);
 
-        if (wire->isSignalPath()){
-            for (auto& cachedPath : wire->getSignalPaths())
-                drawSignalPath(g, cachedPath);
-        }
-    }
+    // Render Power
+    if (powerActivated)
+        for (const auto& elem : elements)
+            if (auto* monitorElem = dynamic_cast<MonitoringElement*>(elem.get()) )
+                monitorElem->drawPower(g);
 
-    // Draw every element on top
+    // Render labels, glow etc
     for (const auto& elem : elements)
-    {
-        jassert (elem != nullptr);
         elem->draw (g);
 
-        if (elem->isSignalPath()){
-            for (auto& cachedPath : elem->getSignalPaths())
-                drawSignalPath(g, cachedPath);
+    // Render Main Path
+    juce::Path mainPath ; 
+    for (const auto& elem : elements)
+        mainPath.addPath(elem->getPath());
+    drawCorePath(g, mainPath, getColourNormal(), false);
+
+    // Render sig path and highlight on top
+    for (const auto& elem : elements)
+    {
+        if (elem->isHighlighted())
+            drawSolidCorePath(g, elem->getPath(), true);
+        if (signalPathActivated){
+            if (auto* sigElem = dynamic_cast<SignalElement*>(elem.get()) ){
+                for (int i = 0; i < sigElem->getNumSignals(); ++i)
+                    sigElem->getSignalPathPtr(i)->draw(g);
+            }
+
         }
     }
 }
@@ -459,11 +472,37 @@ void SchematicPanel::showPopupMenuForElement (SchematicElement* element,
     }
 }
 
+
+// void SchematicPanel::addTubeJunctions()
+// {
+//     for (const auto& element : elements){
+
+//         if (auto* triodeElem = dynamic_cast<TriodeElement*>(element.get()))
+//         {
+//             auto terms = triodeElem->getTerminals();
+
+//             if (triodeElem->getNumMonitors() == 4){
+//                 addElement (std::make_unique<JunctionElement>(
+//                     terms[0], triodeElem->getCircuitIndex((int) TriodeElement::Monitoring::Vg)
+//                 ) );
+
+//                 addElement (std::make_unique<JunctionElement>(
+//                     terms[2], triodeElem->getCircuitIndex((int) TriodeElement::Monitoring::Vk)
+//                 ) );
+
+//                 addElement (std::make_unique<JunctionElement>(
+//                     terms[1], triodeElem->getCircuitIndex((int) TriodeElement::Monitoring::Vp)
+//                 ) );
+//             }
+//         }
+//     }
+// }
+
+
 void SchematicPanel::clear()
 {
     elements.clear();
     controls.clear();
-    wires.clear();
 }
 
 

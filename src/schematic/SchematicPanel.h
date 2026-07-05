@@ -41,6 +41,7 @@ public:
 
     // Monitor / voltmeter interface
     void updateMonitoring ();
+    void updateInspect ();
     //==========================================================================
     void paint (juce::Graphics& g) override;
     void resized() override;
@@ -55,6 +56,9 @@ public:
 
     void setSignalPathActivated(bool v) {signalPathActivated = v; }
     void setInspectorhActivated(bool v) { inspector.setVisible(v); }
+    void setPowerActivated(bool v) {powerActivated = v;}
+    void addTubeJunctions();
+
 
 private:
     void showPopupMenuForElement (SchematicElement* element, juce::Point<int> pos);
@@ -62,7 +66,6 @@ private:
     //==========================================================================
     std::vector<std::unique_ptr<SchematicElement>> elements;
     std::vector<std::unique_ptr<Knob>>             controls;
-    std::vector<std::unique_ptr<WireElement>>      wires;
     SchematicPanelListener*                        listener;
     SchematicElement*                              hoveredElement = nullptr;
     Inspector                                      inspector;
@@ -75,4 +78,7 @@ private:
 
     // SigPath
     bool signalPathActivated = false;
+
+    //Power
+    bool powerActivated = false;
 };

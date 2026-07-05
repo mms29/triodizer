@@ -24,7 +24,7 @@ void PathToggleButton::paintButton (juce::Graphics& g,
 
     if (getToggleState())
     {
-        drawGlowPath (g,
+        drawGlowAndCorePath (g,
                         p,
                         0.2f,
                         c,
