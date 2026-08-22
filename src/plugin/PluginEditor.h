@@ -116,8 +116,9 @@ private:
     std::unique_ptr<PathToggleButton> powerButton;
 
     // Inspect button
-    std::unique_ptr<PathToggleButton> inspectButton;
+    // std::unique_ptr<PathToggleButton> inspectButton;
     CallbackTimer inspectTimer;
+    std::unique_ptr<juce::TextButton> inspectTogglebutton;
 
     // Mono/stereo mode toggle
     juce::ToggleButton monoStereoButton;

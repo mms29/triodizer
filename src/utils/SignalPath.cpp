@@ -87,7 +87,9 @@ void SignalPath::shufflePhase(){
     }
 }
 
-void SignalPath::updateSignalPath (float intensity, float voltage) {
+void SignalPath::updateSignalPath (float intensity, float voltage, float power) {
+    this->power = (power > 1.0f) ? 1.0f : power;
+
     if (refNode != nullptr){
         refVoltage = refNode->getRefVoltage() - (refNode->direction ? -1.0f : 1.0f) * refNode->getDeltaVoltage();
         deltaVoltage = voltage;
@@ -112,6 +114,7 @@ void SignalPath::draw (juce::Graphics& g)
     auto deltat = deltaVoltage/SIGNAL_PATH_MAX_VOLTAGE;
     auto reft = refVoltage/SIGNAL_PATH_MAX_VOLTAGE;
     float beadSize = SIGNALPATH_BEAD_SIZE ;
+    auto glow = 0.1f + power*0.4f;
 
     for (auto& sigPath : signalPaths){
         if (sigPath.samples.size() < 2)
@@ -142,8 +145,9 @@ void SignalPath::draw (juce::Graphics& g)
             colort = reft - (direction ? -1.0f : 1.0f) * deltat *( t *tRange + rangeMin);
 
             auto color = getVoltageColourGradient(colort);
-            drawGlowPath(g,bead,color, 0.2f);
-            drawSolidCorePath(g,bead, false, color);
+            drawGlowPath(g,bead,color, glow);
+            // drawSolidCorePath(g,bead, false, color);
+            drawCorePath(g,bead, color, false);
         }
 
     }

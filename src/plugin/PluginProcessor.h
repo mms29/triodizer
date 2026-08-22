@@ -13,6 +13,7 @@
 // #include "dsp/LCLadder.h"
 // #include "dsp/SpringModel.h"
 #include "dsp/TwinReverb.h"
+#include "dsp/DiodeClipper.h"
 
 // ==============================================================================
 // WaveformBuffer: Ring buffer for waveform display visualization

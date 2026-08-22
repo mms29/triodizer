@@ -79,6 +79,66 @@ public:
 
 };
 
+// ==============================================================================
+// GainElement
+class GainElement : public SchematicElement,
+                    public ControllableElement
+{
+public:
+    GainElement (const juce::String& name,
+                     Terminal termA,
+                     Terminal termB,
+                     const int controlIndex)
+        : SchematicElement (name, std::vector<Terminal> { termA, termB }),
+          ControllableElement (controlIndex)
+    {
+    }
+    void draw (juce::Graphics& g) const override;
+    void prepareToDraw() override;
+    void controlCallback(float value, SchematicPanelListener* l) override;
+
+protected:
+    juce::Point<float> labelCenter;
+    juce::Path leftPath, rightPath;
+
+};
+
+
+// ==============================================================================
+// DiodeElement
+class DiodeElement : public SchematicElement,
+                        public ParametrableElement,
+                        public MonitoringElement,
+                        public SignalElement
+{
+public:
+    DiodeElement (const juce::String& name,
+                     Terminal termA,
+                     Terminal termB,
+                     const int paramIndex,
+                    int choiceIndex,
+                    std::vector<ValueChoice> choices,
+                     const int monitorIndex,
+                    const int signalPathMode = SIGNALPATH_MODE_NORMAL_FORWARD,
+                    SignalPath* signalPathRef = nullptr
+                )
+        : SchematicElement (name, std::vector<Terminal> { termA, termB }),
+        ParametrableElement(paramIndex ,choiceIndex ,std::move(choices)) ,
+          MonitoringElement (std::vector<int> {monitorIndex }),
+          SignalElement(signalPathRef, signalPathMode)
+    {
+    }
+
+    void draw (juce::Graphics& g) const override;
+    void prepareToDraw() override;
+    void updateSignalPaths ()  override;
+    void createSignalPaths () override;
+protected:
+    juce::Point<float> labelCenter;
+    juce::Path leftPath, rightPath, barPath;
+
+};
+
 
 
 // ==============================================================================

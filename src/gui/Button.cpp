@@ -4,20 +4,32 @@ void PathToggleButton::paintButton (juce::Graphics& g,
                     bool,
                     bool) 
 {
-    auto bounds = getLocalBounds().reduced(0,20).toFloat();
+    auto bounds = getLocalBounds().reduced(0,0).toFloat();
+    std::cout << "bounds: " << bounds.toString() << std::endl;
 
     // split area: icon + text
-    auto iconArea = bounds.removeFromTop (bounds.getHeight() * 0.75f);
     auto textArea = bounds;
+    textArea.removeFromRight (bounds.getHeight()*0.75f);
+    auto iconArea = bounds.removeFromRight (bounds.getHeight());
+
+    std::cout << "iconArea: " << iconArea.toString() << std::endl;
+    std::cout << "textArea: " << textArea.toString() << std::endl;
 
     // ===== PATH =====
     juce::Path p = shape;
 
     auto b = p.getBounds();
 
-    p.applyTransform (juce::AffineTransform::translation (
-        iconArea.getCentreX() - b.getCentreX(),
-        iconArea.getCentreY() - b.getCentreY()));
+    auto scale = std::min (iconArea.getWidth()  / b.getWidth(),
+                        iconArea.getHeight() / b.getHeight()) * 0.25f;
+
+    p.applyTransform (
+        juce::AffineTransform::scale (scale, scale,
+                                    b.getCentreX(),
+                                    b.getCentreY())
+        .translated (
+            iconArea.getCentreX() - b.getCentreX(),
+            iconArea.getCentreY() - b.getCentreY()));
 
     // ===== COLOR =====
     juce::Colour c = getToggleState() ? on : off;
@@ -40,11 +52,11 @@ void PathToggleButton::paintButton (juce::Graphics& g,
     // ===== LABEL =====
     g.setColour (c.withAlpha (getToggleState() ? 1.0f : 0.6f));
 
-    g.setFont (juce::FontOptions (FONT_SUB1, juce::Font::plain));
+    g.setFont (juce::FontOptions (FONT_SUB2));
 
     g.drawText (text,
                 textArea,
-                juce::Justification::centred);
+                juce::Justification::right);
 }
 
 

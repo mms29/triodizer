@@ -349,13 +349,17 @@ void TransformerElement::createSignalPaths ()
 
 void TransformerElement::updateSignalPaths () {
     if (getNumMonitors()> 1){
+        float pprim = getRMSValue(0, MONITOR_PORT_I)*getRMSValue(0, MONITOR_PORT_V) * POWER_SCALING; 
+        float psec = getRMSValue(1, MONITOR_PORT_I)*getRMSValue(1, MONITOR_PORT_V) * POWER_SCALING; 
         signalPaths[0].updateSignalPath(
             getSmoothedValue(0, MONITOR_PORT_I) * POWER_SCALING,
-            getSmoothedValue(0, MONITOR_PORT_V)
+            getSmoothedValue(0, MONITOR_PORT_V),
+            pprim
         );
         signalPaths[1].updateSignalPath(
             getSmoothedValue(1, MONITOR_PORT_I) * POWER_SCALING,
-            getSmoothedValue(1, MONITOR_PORT_V)
+            getSmoothedValue(1, MONITOR_PORT_V),
+            psec
         );
     }
 };

@@ -24,9 +24,9 @@ TubeLabEditor::TubeLabEditor (TubeLabProcessor& p)
     //==========================================================================
     addAndMakeVisible (waveformDisplay);
     juce::Path sinepath = createSineWavePath(juce::Rectangle<float>(10, 10, 40, 40), 2.0f, 0.35f);
-    sinepath.addRoundedRectangle (0, 0, 60, 60, 10.0f);
+    // sinepath.addRoundedRectangle (0, 0, 60, 60, 10.0f);
 
-    scopeButton = std::make_unique<PathToggleButton> (sinepath, "SCOPE", juce::Colours::darkgrey,  getColourHotRed());
+    scopeButton = std::make_unique<PathToggleButton> (sinepath, "Scope", juce::Colours::darkgrey,  getColourHotRed());
     scopeButton->setClickingTogglesState (true);
     scopeButton->onClick = [this] 
     {
@@ -42,9 +42,9 @@ TubeLabEditor::TubeLabEditor (TubeLabProcessor& p)
     juce::Path sigPath;
     sigPath.addEllipse (25, 25, 10, 10);
     sigPath.addEllipse (20, 20, 20, 20);
-    sigPath.addRoundedRectangle (0, 0, 60, 60, 10.0f);
+    // sigPath.addRoundedRectangle (0, 0, 60, 60, 10.0f);
 
-    signalButton = std::make_unique<PathToggleButton> (sigPath, "SIGNAL", juce::Colours::darkgrey,  getColourLaserGreen());
+    signalButton = std::make_unique<PathToggleButton> (sigPath, "Signal", juce::Colours::darkgrey,  getColourLaserGreen());
     signalButton->setClickingTogglesState (true);
     signalButton->onClick = [this] 
     {
@@ -72,24 +72,39 @@ TubeLabEditor::TubeLabEditor (TubeLabProcessor& p)
     //==========================================================================
     // INSPECT DISPLAY
     //==========================================================================
-    juce::Path inspectPath;
-    inspectPath.addEllipse (10, 10, 25, 25);
-    float x = 22.5f + 12.5f * std::sqrt(0.5f);
-    float y = 22.5f + 12.5f * std::sqrt(0.5f);
-    inspectPath.startNewSubPath(x,y);
-    inspectPath.lineTo(50, 50);
-    schematic->setInspectorhActivated(false);
 
-    // inspectPath.addEllipse (20, 20, 20, 20);
-    inspectPath.addRoundedRectangle (0, 0, 60, 60, 10.0f);
 
-    inspectButton = std::make_unique<PathToggleButton> (inspectPath, "INSPECT", juce::Colours::darkgrey,  getColourAmber());
-    inspectButton->setClickingTogglesState (true);
-    inspectButton->onClick = [this] 
+    // juce::Path inspectPath;
+    // inspectPath.addEllipse (10, 10, 25, 25);
+    // float x = 22.5f + 12.5f * std::sqrt(0.5f);
+    // float y = 22.5f + 12.5f * std::sqrt(0.5f);
+    // inspectPath.startNewSubPath(x,y);
+    // inspectPath.lineTo(50, 50);
+    // schematic->setInspectorhActivated(true);
+
+    // // inspectPath.addEllipse (20, 20, 20, 20);
+    // inspectPath.addRoundedRectangle (0, 0, 60, 60, 10.0f);
+
+    // inspectButton = std::make_unique<PathToggleButton> (inspectPath, "INSPECT", juce::Colours::darkgrey,  getColourAmber());
+    // inspectButton->setClickingTogglesState (true);
+    // inspectButton->onClick = [this] 
+    // {
+    //     schematic->setInspectorhActivated(inspectButton->getToggleState());
+    // };
+    // addAndMakeVisible (*inspectButton);
+
+    schematic->setInspectorhActivated(true);
+    inspectTogglebutton = std::make_unique<juce::TextButton>();
+    inspectTogglebutton->setButtonText (">>");
+    inspectTogglebutton->setClickingTogglesState (true);
+    inspectTogglebutton->setLookAndFeel(&glowComboBoxLF);
+    inspectTogglebutton->onClick = [this]
     {
-        schematic->setInspectorhActivated(inspectButton->getToggleState());
+        inspectTogglebutton->setButtonText (!inspectTogglebutton->getToggleState() ? ">>" : "<<");
+        schematic->setInspectorhActivated(!inspectTogglebutton->getToggleState());
+        resized();
     };
-    addAndMakeVisible (*inspectButton);
+    addAndMakeVisible (*inspectTogglebutton);
 
     // //==========================================================================
     // // DRIVE
@@ -170,6 +185,7 @@ TubeLabEditor::TubeLabEditor (TubeLabProcessor& p)
     presetSelector.addItem ("Fender Bassman Preamp", PRESET_BASSMAN_PREAMP);
     presetSelector.addItem ("Mesa/Boogie Dual Rectifier", PRESET_DUAL_RECTIFIER_PREAMP);
     presetSelector.addItem ("Fender Twin reverb", PRESET_TWIN_REVERB);
+    presetSelector.addItem ("Diode Clipper", PRESET_DIODE_CLIPPER);
     presetSelector.setLookAndFeel(&glowComboBoxLF);
     addAndMakeVisible (presetSelector);
 
@@ -217,6 +233,10 @@ void TubeLabEditor::updateSchematic()
         schematicBuilder.buildTwinReverb (*schematic);
         break;
 
+    case PRESET_DIODE_CLIPPER:
+        schematicBuilder.buildDiodeClipper (*schematic);
+        break;
+
     default:
         schematicBuilder.buildDefault (*schematic);
         break;
@@ -259,28 +279,24 @@ void TubeLabEditor::paint (juce::Graphics& g)
     g.setColour (getColourBackground());
     g.fillRect(botRect);
 
-    // Left panel separator
-    g.setColour(getColourGrey().withAlpha(0.5f));
-    g.drawLine(WINDOW_LEFT_PANEL,WINDOW_TOP_PANEL, WINDOW_LEFT_PANEL, (float) getHeight(), 1.0f);
-    
 
 
     // Title
     juce::Path titleWavePath;
     juce::Font font  = juce::FontOptions (FONT_MAINTITLE);
     juce::GlyphArrangement glyphWave;
-    glyphWave.addLineOfText (font, "NEON", 0.0f, 0.0f);
+    glyphWave.addLineOfText (font, "WAVE", 0.0f, 0.0f);
     glyphWave.createPath (titleWavePath);
     titleWavePath.applyTransform (
         juce::AffineTransform::translation (
             titleRect.getCentreX() - titleWavePath.getBounds().getWidth(),
             titleRect.getCentreY() - titleWavePath.getBounds().getCentreY() ));
     
-    drawGlowAndCorePath (g, titleWavePath, 0.2f, getColourNormal(), getColourAmber(), false);
+    drawGlowAndCorePath (g, titleWavePath, 0.1f, getColourNormal(), getColourAmber(), false);
 
     g.setFont (font);
     g.setColour (getColourNormal()); 
-    g.drawText ("AMP",
+    g.drawText ("Lab",
                 juce::Rectangle<float> (
                     titleRect.getX() + titleWavePath.getBounds().getRight() + FONT_MAINTITLE*0.5f, 
                     titleRect.getY(), 
@@ -317,16 +333,23 @@ void TubeLabEditor::resized()
     auto presetArea =topPanel.removeFromLeft(WINDOW_PRESET_SIZE).reduced (50, 10);
     presetSelector.setBounds (presetArea);
 
+    scopeButton->setBounds (topPanel.removeFromLeft (TOGGLE_BUTTON_SIZE));
+    signalButton->setBounds (topPanel.removeFromLeft (TOGGLE_BUTTON_SIZE));
     oversampleSelector.setBounds (topPanel.removeFromRight(120).reduced (10));
 
 
+    auto togglebuttArea = area;
+    // togglebuttArea.removeFromTop(10);
+    if (!inspectTogglebutton->getToggleState())
+        togglebuttArea.removeFromRight(SCHEMATIC_INSPECTOR_SIZE);
+    togglebuttArea = togglebuttArea.removeFromRight(INSPECTOR_BUTTON_SIZE).removeFromTop(INSPECTOR_BUTTON_SIZE).reduced (10);
+    // togglebuttArea.removeFromTop(50);
+    inspectTogglebutton->setBounds (togglebuttArea);
 
-    auto leftPanel = area.removeFromLeft (WINDOW_LEFT_PANEL);
+    // auto leftPanel = area.removeFromLeft (WINDOW_LEFT_PANEL);
 
-    scopeButton->setBounds (leftPanel.removeFromTop (TOGGLE_BUTTON_SIZE).reduced (10, 10));
-    signalButton->setBounds (leftPanel.removeFromTop (TOGGLE_BUTTON_SIZE).reduced (10, 10));
-    powerButton->setBounds (leftPanel.removeFromTop (TOGGLE_BUTTON_SIZE).reduced (10, 10));
-    inspectButton->setBounds (leftPanel.removeFromTop (TOGGLE_BUTTON_SIZE).reduced (10, 10));
+    // powerButton->setBounds (leftPanel.removeFromTop (TOGGLE_BUTTON_SIZE).reduced (10, 10));
+    // inspectButton->setBounds (leftPanel.removeFromTop (TOGGLE_BUTTON_SIZE).reduced (10, 10));
     // // Oversample
     // // oversampleLabel.setBounds (topPanel.removeFromRight (80).reduced (0, 30));
     // oversampleSelector.setBounds (topPanel.removeFromRight (100));

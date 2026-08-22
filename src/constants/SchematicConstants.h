@@ -17,8 +17,8 @@ inline juce::Colour getColourHotRed() { return juce::Colour (255, 110, 60); }
 inline juce::Colour getColourLaserGreen() { return juce::Colour (51, 255, 102); }
 inline juce::Colour getColourGrey() { return juce::Colours::grey; }
 inline juce::Colour getVoltageColourGradient(float alpha) { 
-    // if (alpha <0.002f)
-    //     return getColourGrey().interpolatedWith(getColourPurple(), alpha*50.0f); 
+    auto k = 10.0f;
+    alpha = std::log(1 + k*alpha) / std::log(1 + k);
     if (alpha <0.25f)
         return getColourPurple().interpolatedWith(getColourElectrical(), alpha*4.0f); 
     if (alpha <0.5f)
@@ -38,7 +38,7 @@ inline juce::Colour getVoltageColourGradient(float alpha) {
 inline juce::Colour getPowerColourGradient(float alpha) { return juce::Colours::black.interpolatedWith(juce::Colours::white, alpha); }
 
 // Fonts
-inline constexpr int FONT_MAINTITLE = 28;
+inline constexpr int FONT_MAINTITLE = 24;
 inline constexpr int FONT_TITLE = 22;
 inline constexpr int FONT_SUB1 = 18;
 inline constexpr int FONT_SUB2 = 14;
@@ -61,7 +61,9 @@ inline constexpr int CAPACITOR_PLATE_WIDTH = 35;
 inline constexpr float CAPACITOR_PLATE_GAP = 10.0f;
 
 //One term
+inline constexpr float SCHEMATIC_GAIN_SIZE = 50.0f;
 inline constexpr float SCHEMATIC_GROUND_SIZE = 20.0f;
+inline constexpr float SCHEMATIC_DIODE_SIZE = 20.0f;
 inline constexpr float SCHEMATIC_JUNC_SIZE = 5.0f;
 inline constexpr float SCHEMATIC_JACK_SIZE = 35.0f;
 
@@ -88,7 +90,7 @@ inline constexpr float SIGNALPATH_SPEED = 4.0f;
 inline constexpr float SIGNALPATH_BEAD_SPACING = 16;
 inline constexpr float SIGNALPATH_BEAD_SIZE = 2;
 inline constexpr float SIGNALPATH_SAMPLE_SPACING = 4.0f; // pixels
-inline constexpr float MONITORING_SMOOTHING_ALPHA=.5f;
+inline constexpr float MONITORING_SMOOTHING_ALPHA=.1f;
 
 // Drive control parameters
 inline constexpr float DRIVE_MIN = -60.0f;
@@ -111,13 +113,15 @@ inline constexpr int WINDOW_TITLE_SIZE = 250;
 inline constexpr int WINDOW_SUBTITLE_SIZE = 300;
 inline constexpr int WINDOW_PRESET_SIZE = 500;
 
-inline constexpr int TOGGLE_BUTTON_SIZE = 150;
+inline constexpr int TOGGLE_BUTTON_SIZE = 100;
+inline constexpr int INSPECTOR_BUTTON_SIZE = 76;
 
 // Preset selection indices
 inline constexpr int PRESET_DEFAULT = 1;
 inline constexpr int PRESET_BASSMAN_PREAMP = 2;
 inline constexpr int PRESET_DUAL_RECTIFIER_PREAMP = 3;
 inline constexpr int PRESET_TWIN_REVERB = 4;
+inline constexpr int PRESET_DIODE_CLIPPER = 5;
 
 
 // Signal path modes

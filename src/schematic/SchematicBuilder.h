@@ -6,6 +6,7 @@
 #include "dsp/BassmanPreamp.h"
 #include "dsp/FullBassmanPreamp.h"
 #include "dsp/DualRectifierPreamp.h"
+#include "dsp/DiodeClipper.h"
 #include "dsp/TwinReverb.h"
 #include "constants/StringConstants.h"
 
@@ -22,6 +23,7 @@ public:
     void buildBassmanPreamp(SchematicPanel& schematic);
     void buildDualRectifierPreamp(SchematicPanel& schematic);
     void buildTwinReverb(SchematicPanel& schematic);
+    void buildDiodeClipper(SchematicPanel& schematic);
 
 private:
 

@@ -187,7 +187,8 @@ void SchematicPanel::resized()
     float offset = area.getWidth()*.5f -  (SCHEMATIC_BUTTON_SIZE * controls.size())*0.5f - SCHEMATIC_BUTTON_SIZE*0.5f +10 ;
 
 
-    auto bot = area.removeFromBottom(SCHEMATIC_BUTTON_SIZE);
+    auto bot = area;
+    bot= bot.removeFromBottom(SCHEMATIC_BUTTON_SIZE);
     bot.removeFromLeft(offset);
     for (const auto& control : controls){
         bot.removeFromLeft(10);
@@ -412,6 +413,7 @@ void SchematicPanel::showPopupMenuForElement (SchematicElement* element,
                         static_cast<int> (i) == paramElem->getChoiceIndex());
         }
 
+        menu.setLookAndFeel (&glowLookAndFeel);
         menu.showMenuAsync (juce::PopupMenu::Options(),
             [paramElem, this] (int result) mutable
             {
@@ -440,6 +442,7 @@ void SchematicPanel::showPopupMenuForElement (SchematicElement* element,
                                       "Enter value:",
                                       juce::AlertWindow::NoIcon);
 
+        window->setLookAndFeel(&glowLookAndFeel);
         window->addTextEditor ("text", setElem->getLabel());
         auto* editor = window->getTextEditor("text");
         if (editor != nullptr)

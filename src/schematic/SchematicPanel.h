@@ -8,6 +8,7 @@
 #include "schematic/MultiTermElement.h"
 #include "schematic/Inspector.h"
 #include "gui/Knob.h"
+#include "gui/Selector.h"
 
 
 //==============================================================================
@@ -69,6 +70,8 @@ private:
     SchematicPanelListener*                        listener;
     SchematicElement*                              hoveredElement = nullptr;
     Inspector                                      inspector;
+    GlowComboBoxLookAndFeel                         glowLookAndFeel;
+
 
     // Viewport state for pan/zoom
     juce::Point<float>                             viewOffset     = {0.0f, 0.0f};

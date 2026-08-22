@@ -76,6 +76,7 @@ public:
 
 private:
     Terminal labelCenter;
+    juce::Path leftpath, rightpath;
 };
 
 class VoltmeterElement : public SchematicElement,

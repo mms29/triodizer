@@ -144,14 +144,17 @@ juce::AttributedString VoltageElement::getInspectContent ()
 
 void VoltageElement::createSignalPaths () 
 {
-        signalPaths[0].addPath(path);
+        signalPaths[0].addPath(leftpath);
+        signalPaths[0].addPath(rightpath);
 }
 
 void VoltageElement::updateSignalPaths () {
     if (getNumMonitors()> 0){
+        auto power= getRMSValue(0, MONITOR_PORT_I)*getRMSValue(0, MONITOR_PORT_V) *POWER_SCALING;
         signalPaths[0].updateSignalPath(
             getSmoothedValue(0, MONITOR_PORT_I) * POWER_SCALING,
-            getSmoothedValue(0, MONITOR_PORT_V)
+            getSmoothedValue(0, MONITOR_PORT_V),
+            power
         );
     }
 };
@@ -198,16 +201,19 @@ void VoltageElement::prepareToDraw () {
     const auto& p0 = terminals[0];
 
 
-    path.startNewSubPath(p0.x , p0.y - groundSize*2);
-    path.lineTo(p0.x + groundSize, p0.y - groundSize);
-    path.lineTo(p0.x, p0.y - groundSize);
+    leftpath.startNewSubPath(p0.x , p0.y - groundSize*2);
+    leftpath.lineTo(p0.x + groundSize, p0.y - groundSize);
+    leftpath.lineTo(p0.x, p0.y - groundSize);
 
-    path.startNewSubPath(p0.x , p0.y - groundSize*2);
-    path.lineTo(p0.x - groundSize, p0.y - groundSize);
-    path.lineTo(p0.x, p0.y - groundSize);
+    rightpath.startNewSubPath(p0.x , p0.y - groundSize*2);
+    rightpath.lineTo(p0.x - groundSize, p0.y - groundSize);
+    rightpath.lineTo(p0.x, p0.y - groundSize);
 
-    path.startNewSubPath(p0.x, p0.y - groundSize);
-    path.lineTo(p0.x, p0.y);
+    rightpath.startNewSubPath(p0.x, p0.y - groundSize);
+    rightpath.lineTo(p0.x, p0.y);
+
+    path.addPath(leftpath);
+    path.addPath(rightpath);
     cachedBounds = juce::Rectangle<float>(p0.x-groundSize, p0.y-groundSize*2 , groundSize*2, groundSize*2);
 
     labelCenter =  p0 - Terminal {0.0f, groundSize*3.4f};

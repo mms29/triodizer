@@ -43,7 +43,7 @@ public:
     void setMode( const int mode );
     void setDirection( bool direction );
     void addPath(juce::Path& path, float rangeMin = 0.0f, float rangeMax = 1.0f);
-    void updateSignalPath (float intensity, float voltage) ;
+    void updateSignalPath (float intensity, float voltage, float power = 0.0f) ;
     void draw(juce::Graphics& g);
     void shufflePhase();
 
@@ -51,6 +51,7 @@ private:
     std::vector<CachedPath> signalPaths;
     float refVoltage = 0.0f;
     float deltaVoltage = 0.0f;
+    float power =0.0f;
     bool polarity = POLARITY_FORWARD; 
     bool direction = DIRECTION_FORWARD; 
     SignalPath* refNode;

@@ -46,7 +46,9 @@ TubeLabProcessor::TubeLabProcessor()
                       "Default",
                       "Fender Bassman Preamp",
                       "Mesa/Boogie Dual Rectifier",
-                      "Twin Reverb"
+                      "Twin Reverb",
+                    "Diode Clipper"
+
                   },
                   0)
           })
@@ -275,6 +277,10 @@ void TubeLabProcessor::buildCircuit()
 
         case PRESET_TWIN_REVERB:
             circuit[ch] = std::make_unique<TwinReverbCircuit>();
+            break;
+
+        case PRESET_DIODE_CLIPPER:
+            circuit[ch] = std::make_unique<DiodeClipperCircuit>();
             break;
 
         default:

@@ -11,6 +11,52 @@ void SchematicBuilder::buildDefault(SchematicPanel& schematic)
     schematic.addElement (std::make_unique<JunctionElement>(t2));
     schematic.addWire (t1, t2);
 }
+// ===================================================================================================================
+// DEFAULT
+// ===================================================================================================================
+void SchematicBuilder::buildDiodeClipper(SchematicPanel& schematic)
+{
+    using Param         =  DiodeClipperCircuit::Param;
+    using Control       =  DiodeClipperCircuit::Control;
+    using Monitoring    =  DiodeClipperCircuit::Monitoring;
+
+    auto t1 = Terminal {0, 0};
+    auto t2 = t1 + rightL;
+
+    schematic.addElement (std::make_unique<JackElement>("OUTPUT",t2 + rightL));
+    schematic.addElement (std::make_unique<JackElement>("INPUT",t1, JUSTIFY_RIGHT));
+    
+    schematic.addElement (std::make_unique<GainElement>("Gain",
+        t1, t2,         (int) Control::Gain
+
+    ));
+    
+    schematic.addElement (std::make_unique<DiodeElement>(
+        "D1",
+        t2+bottomL,
+        t2,
+        (int) Param::D1,
+        0,
+        std::vector<ValueChoice> {{"GZ34", 0.0f}},
+        (int) Monitoring::D1
+    ));
+    
+    schematic.addElement (std::make_unique<DiodeElement>(
+        "D2",
+        t2 + rightXS,
+        t2+bottomL+ rightXS,
+        (int) Param::D1,
+        0,
+        std::vector<ValueChoice> {{"GZ34", 0.0f}},
+        (int) Monitoring::D1
+    ));
+    
+    schematic.addWire (t2, t2 +rightL);
+
+    schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("D2")->getTerminals()[1]) );
+    schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("D1")->getTerminals()[0]) );
+
+}
 
 
 // // ===================================================================================================================

@@ -15,9 +15,11 @@ void TwoTermElement::drawPower (juce::Graphics& g) const
 
 void TwoTermElement::updateSignalPaths () {
     if (getNumMonitors()> 0){
+        auto power = getRMSValue(0, MONITOR_PORT_I)*getRMSValue(0, MONITOR_PORT_V) *POWER_SCALING;
         signalPaths[0].updateSignalPath(
             getSmoothedValue(0, MONITOR_PORT_I) * POWER_SCALING,
-            getSmoothedValue(0, MONITOR_PORT_V)
+            getSmoothedValue(0, MONITOR_PORT_V), 
+            power
         );
     }
 };
@@ -368,3 +370,122 @@ void ReverbTankElement::updateSignalPaths () {
     }
 };
 
+
+
+
+void GainElement::draw (juce::Graphics& g) const
+{
+    drawLabel(g, labelCenter, juce::String(controlValue, 1) + " dB");
+
+}
+void GainElement::prepareToDraw ()
+{
+    const auto& p0 = terminals[0];
+    const auto& p1 = terminals[1];
+
+    const juce::Point<float> d = p1-p0;
+    const float length = p1.getDistanceFrom(p0);
+    if (length < SCHEMATIC_GAIN_SIZE) return;
+
+    const juce::Point<float> u = d/length;
+    const juce::Point<float> v {- u.getY(), u.getX()};
+
+    const juce::Point<float> a = p0 + d*(length-SCHEMATIC_GAIN_SIZE)/(2*length);
+    const juce::Point<float> b = p1 - d*(length-SCHEMATIC_GAIN_SIZE)/(2*length);
+
+    // Build cached bounds
+    cachedBounds = juce::Rectangle<float> (p0, p1);
+    cachedBounds.expand(1.0f + std::abs(v.x*SCHEMATIC_GAIN_SIZE/2.0f), 1.0f + std::abs(v.y*SCHEMATIC_GAIN_SIZE/2.0f));
+
+    // Draw two parallel plates
+    leftPath.startNewSubPath (p0);
+    leftPath.lineTo   (a);
+    leftPath.lineTo (a - SCHEMATIC_GAIN_SIZE/2.0f * v);
+    leftPath.lineTo   (b);
+    rightPath.startNewSubPath   (a);
+    rightPath.lineTo (a +SCHEMATIC_GAIN_SIZE/2.0f * v);
+    rightPath.lineTo(b);
+    rightPath.lineTo(p1);
+    path.addPath(leftPath);
+    path.addPath(rightPath);
+
+    // Labels
+    const float labelOff = -42.0f;
+    const juce::Point<float> m = (p0 + p1) * 0.5f;
+    labelCenter = m + labelOff * v;
+}
+
+
+void GainElement::controlCallback(float value, SchematicPanelListener* listener)
+{
+    if (value <=0.1f) value = 0.1f;
+    if (value >=99.9f) value = 99.9f;
+    listener->setCircuitControl(getControlIndex(), value);
+    controlValue = value;
+    return;
+}
+
+
+
+void DiodeElement::draw (juce::Graphics& g) const
+{
+    // Labels
+    drawLabel(g, labelCenter, getChoiceLabel());
+
+}
+void DiodeElement::prepareToDraw ()
+{
+    const auto& p0 = terminals[0];
+    const auto& p1 = terminals[1];
+
+    const juce::Point<float> d = p1-p0;
+    const float length = p1.getDistanceFrom(p0);
+    if (length < SCHEMATIC_DIODE_SIZE*3) return;
+
+    const juce::Point<float> u = d/length;
+    const juce::Point<float> v {- u.getY(), u.getX()};
+
+    const juce::Point<float> a = p0 + d*(length-SCHEMATIC_DIODE_SIZE)/(2*length);
+    const juce::Point<float> b = p1 - d*(length-SCHEMATIC_DIODE_SIZE)/(2*length);
+
+    // Build cached bounds
+    cachedBounds = juce::Rectangle<float> (p0, p1);
+    cachedBounds.expand(1.0f + std::abs(v.x*SCHEMATIC_DIODE_SIZE/2.0f), 1.0f + std::abs(v.y*SCHEMATIC_DIODE_SIZE/2.0f));
+
+    leftPath.startNewSubPath (p0);
+    leftPath.lineTo   (a);
+    leftPath.lineTo (a - SCHEMATIC_DIODE_SIZE/2.0f * v);
+    leftPath.lineTo   (b);
+    rightPath.startNewSubPath   (a);
+    rightPath.lineTo (a +SCHEMATIC_DIODE_SIZE/2.0f * v);
+    rightPath.lineTo(b);
+    rightPath.lineTo(p1);
+    barPath.startNewSubPath(b +SCHEMATIC_DIODE_SIZE/2.0f * v);
+    barPath.lineTo(b -SCHEMATIC_DIODE_SIZE/2.0f * v);
+
+    path.addPath(leftPath);
+    path.addPath(rightPath);
+    path.addPath(barPath);
+
+    // Labels
+    const float labelOff = -42.0f;
+    const juce::Point<float> m = (p0 + p1) * 0.5f;
+    labelCenter = m + labelOff * v;
+}
+
+void DiodeElement::updateSignalPaths () {
+    if (getNumMonitors()> 0){
+        auto power = getRMSValue(0, MONITOR_PORT_I)*getRMSValue(0, MONITOR_PORT_V) *POWER_SCALING;
+        signalPaths[0].updateSignalPath(
+            getSmoothedValue(0, MONITOR_PORT_I) * POWER_SCALING,
+            getSmoothedValue(0, MONITOR_PORT_V), 
+            power
+        );
+    }
+};
+
+void DiodeElement::createSignalPaths () 
+{
+    signalPaths[0].addPath(leftPath);
+    signalPaths[0].addPath(rightPath);
+}

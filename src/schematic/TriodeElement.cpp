@@ -166,9 +166,12 @@ void TriodeElement::addPointToTerminal(Terminal t, const int termIndex, const bo
 
 void TriodeElement::updateSignalPaths () {
     if (getNumMonitors()> 0){
+        auto power = getRMSValue(0, MONITOR_TUBE_IP)*std::abs(getRMSValue(0, MONITOR_TUBE_VP)-getRMSValue(0, MONITOR_TUBE_VK)) * POWER_SCALING; 
+
         signalPaths[0].updateSignalPath(
             getSmoothedValue(0, MONITOR_TUBE_IK) * POWER_SCALING,
-            getSmoothedValue(0, MONITOR_TUBE_VP) -getSmoothedValue(0, MONITOR_TUBE_VK) 
+            getSmoothedValue(0, MONITOR_TUBE_VP) -getSmoothedValue(0, MONITOR_TUBE_VK) ,
+            power
         );
     }
 };

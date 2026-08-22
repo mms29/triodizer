@@ -61,13 +61,27 @@ public:
         bounds.removeFromTop(30);
         g.drawLine (juce::Line(bounds.getTopLeft(), bounds.getTopRight()), 1.0f);
 
-        // Content    
-        bounds.removeFromTop(10);
-        content.draw (g, bounds);
+        // // Content    
+        // bounds.removeFromTop(10);
+        // content.draw (g, bounds);
 
-        // Description    
-        description.setJustification(juce::Justification::bottomLeft);
-        description.draw(g, bounds);
+
+        // // Description    
+        // description.setJustification(juce::Justification::bottomLeft);
+        // description.draw(g, bounds);
+
+        juce::TextLayout contentLayout;
+        contentLayout.createLayout (content, bounds.getWidth());
+
+        auto contentHeight = contentLayout.getHeight();
+        auto descriptionBounds = bounds;
+
+        descriptionBounds.removeFromTop (10);
+        descriptionBounds.removeFromTop (contentHeight);
+
+        contentLayout.draw (g, bounds);
+        description.draw (g, descriptionBounds);
+
     }
 
 private:
