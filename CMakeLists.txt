@@ -28,6 +28,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(xsimd)
 
+set(EIGEN_BUILD_TESTING OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(
   eigen
   GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
