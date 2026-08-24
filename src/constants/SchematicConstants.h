@@ -128,7 +128,7 @@ inline constexpr int INSPECTOR_BUTTON_SIZE = 76;
 // inline constexpr int PRESET_DIODE_CLIPPER = 5;
 // inline constexpr int PRESET_TRIODE_GAIN_STAGE = 6;
 
-const enum PresetId
+enum PresetId
 {
     PRESET_DEFAULT = 0,
 

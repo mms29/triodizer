@@ -28,14 +28,23 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(xsimd)
 
-# set(EIGEN_BUILD_TESTING OFF CACHE BOOL "" FORCE)
-# FetchContent_Declare(
-#   eigen
-#   GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
-#   GIT_TAG        3.4.0
-# )
+FetchContent_Declare(
+    eigen
+    GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
+    GIT_TAG 3.4.0
+)
 
-# FetchContent_MakeAvailable(eigen)
+FetchContent_GetProperties(eigen)
+
+if (NOT eigen_POPULATED)
+    FetchContent_Populate(eigen)
+endif()
+
+add_library(Eigen3::Eigen INTERFACE IMPORTED GLOBAL)
+
+set_target_properties(Eigen3::Eigen PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES "${eigen_SOURCE_DIR}"
+)
 
 FetchContent_Declare(
     chowdsp_wdf
@@ -86,6 +95,7 @@ target_link_libraries(Cathodyne PRIVATE
     juce::juce_dsp
     juce::juce_gui_basics
     xsimd
+    Eigen3::Eigen
 )
 
 # target_include_directories(Cathodyne PRIVATE
