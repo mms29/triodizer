@@ -29,6 +29,14 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(xsimd)
 
 FetchContent_Declare(
+  eigen
+  GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
+  GIT_TAG        3.4.0
+)
+
+FetchContent_MakeAvailable(eigen)
+
+FetchContent_Declare(
     chowdsp_wdf
     GIT_REPOSITORY     https://github.com/mms29/chowdsp_wdf.git #  https://github.com/Chowdhury-DSP/chowdsp_wdf.git
     GIT_TAG patch-1 
@@ -36,13 +44,6 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(chowdsp_wdf)
 
-FetchContent_Declare(
-  eigen
-  GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
-  GIT_TAG        3.4.0
-)
-
-FetchContent_MakeAvailable(eigen)
 
 # Create the plugin target
 juce_add_plugin(Cathodyne
