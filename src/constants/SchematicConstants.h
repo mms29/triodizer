@@ -19,6 +19,8 @@ inline juce::Colour getColourGrey() { return juce::Colours::grey; }
 inline juce::Colour getVoltageColourGradient(float alpha) { 
     auto k = 10.0f;
     alpha = std::log(1 + k*alpha) / std::log(1 + k);
+    if (alpha <0.001f)
+        return getColourGrey(); 
     if (alpha <0.25f)
         return getColourPurple().interpolatedWith(getColourElectrical(), alpha*4.0f); 
     if (alpha <0.5f)
@@ -44,7 +46,8 @@ inline constexpr int FONT_SUB1 = 18;
 inline constexpr int FONT_SUB2 = 14;
 
 // Power scaling for display
-inline constexpr float POWER_SCALING = .5e3f;
+inline constexpr float POWER_SCALING = 5e3f;
+inline constexpr float INTENSITY_SCALING = .5e3f;
 
 
 // Tube dimensions
@@ -86,6 +89,7 @@ inline constexpr float SCHEMATIC_INSPECTOR_SIZE = 400.0f;
 
 
 // Signal Path
+inline constexpr float SIGNAL_PATH_MAX_VOLTAGE = 450.0f;
 inline constexpr float SIGNALPATH_SPEED = 4.0f;
 inline constexpr float SIGNALPATH_BEAD_SPACING = 16;
 inline constexpr float SIGNALPATH_BEAD_SIZE = 2;
@@ -117,12 +121,28 @@ inline constexpr int TOGGLE_BUTTON_SIZE = 100;
 inline constexpr int INSPECTOR_BUTTON_SIZE = 76;
 
 // Preset selection indices
-inline constexpr int PRESET_DEFAULT = 1;
-inline constexpr int PRESET_BASSMAN_PREAMP = 2;
-inline constexpr int PRESET_DUAL_RECTIFIER_PREAMP = 3;
-inline constexpr int PRESET_TWIN_REVERB = 4;
-inline constexpr int PRESET_DIODE_CLIPPER = 5;
+// inline constexpr int PRESET_DEFAULT = 1;
+// inline constexpr int PRESET_BASSMAN_PREAMP = 2;
+// inline constexpr int PRESET_DUAL_RECTIFIER_PREAMP = 3;
+// inline constexpr int PRESET_TWIN_REVERB = 4;
+// inline constexpr int PRESET_DIODE_CLIPPER = 5;
+// inline constexpr int PRESET_TRIODE_GAIN_STAGE = 6;
 
+const enum PresetId
+{
+    PRESET_DEFAULT = 0,
+
+    // Preamps
+    PRESET_BASSMAN_PREAMP,
+    PRESET_DUAL_RECTIFIER_PREAMP,
+    PRESET_TWIN_REVERB,
+
+    // Distortion / Coloring
+    PRESET_DIODE_CLIPPER,
+    PRESET_TRIODE_GAIN_STAGE,
+
+    PRESET_COUNT
+};
 
 // Signal path modes
 inline constexpr int SIGNALPATH_MODE_NORMAL_FORWARD = 0;

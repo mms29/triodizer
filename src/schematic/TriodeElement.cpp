@@ -166,13 +166,17 @@ void TriodeElement::addPointToTerminal(Terminal t, const int termIndex, const bo
 
 void TriodeElement::updateSignalPaths () {
     if (getNumMonitors()> 0){
-        auto power = getRMSValue(0, MONITOR_TUBE_IP)*std::abs(getRMSValue(0, MONITOR_TUBE_VP)-getRMSValue(0, MONITOR_TUBE_VK)) * POWER_SCALING; 
 
         signalPaths[0].updateSignalPath(
-            getSmoothedValue(0, MONITOR_TUBE_IK) * POWER_SCALING,
+            getSmoothedValue(0, MONITOR_TUBE_IK) * INTENSITY_SCALING,
             getSmoothedValue(0, MONITOR_TUBE_VP) -getSmoothedValue(0, MONITOR_TUBE_VK) ,
-            power
+            getRMSValue(0, MONITOR_TUBE_IP)*std::abs(getRMSValue(0, MONITOR_TUBE_VP)-getRMSValue(0, MONITOR_TUBE_VK)) * POWER_SCALING
         );
+        if (signalPaths.size()>1)
+            signalPaths[1].updateSignalPath(
+                0.0f,
+                getSmoothedValue(0, MONITOR_TUBE_VG)
+            );
     }
 };
 void TriodeElement::draw (juce::Graphics& g) const
@@ -211,16 +215,6 @@ void TriodeElement::draw (juce::Graphics& g) const
 
 }
 
-void TriodeElement::drawPower (juce::Graphics& g) const
-{
-    if (getNumMonitors() > 0){
-        auto power = getRMSValue(0, MONITOR_TUBE_IP)*std::abs(getRMSValue(0, MONITOR_TUBE_VP)-getRMSValue(0, MONITOR_TUBE_VK)) * POWER_SCALING; 
-        drawPowerGlowPath(g, plateHolder, power);
-        drawPowerGlowPath(g, cathodeHolder, power);
-        drawPowerGlowPath(g, bulb, power);
-    }
-}
-
 juce::AttributedString TriodeElement::getInspectContent () 
 {
     juce::AttributedString textContent;
@@ -229,11 +223,11 @@ juce::AttributedString TriodeElement::getInspectContent ()
         textContent.append ("Plate voltage : \n\t ", font, getColourNormal());
         textContent.append (formatVDCAC(getSmoothedValue(0, MONITOR_TUBE_VP),getRMSValue(0, MONITOR_TUBE_VP)), font, getColourElectrical());
         textContent.append ("\nGrid voltage : \n\t ", font, getColourNormal());
-        textContent.append (formatVDCAC(getSmoothedValue(0, MONITOR_TUBE_VG),getRMSValue(0, MONITOR_TUBE_VG)), font, getColourPurple());
+        textContent.append (formatVDCAC(getSmoothedValue(0, MONITOR_TUBE_VG),getRMSValue(0, MONITOR_TUBE_VG)), font, getColourElectrical());
         textContent.append ("\nCathode voltage : \n\t ", font, getColourNormal());
-        textContent.append (formatVDCAC(getSmoothedValue(0, MONITOR_TUBE_VK),getRMSValue(0, MONITOR_TUBE_VK)), font, getColourHotRed());
+        textContent.append (formatVDCAC(getSmoothedValue(0, MONITOR_TUBE_VK),getRMSValue(0, MONITOR_TUBE_VK)), font, getColourElectrical());
         textContent.append ("\nCurrent : \n\t ", font, getColourNormal());
-        textContent.append (formatCurrent(getSmoothedValue(0, MONITOR_TUBE_IP)), font, getColourAmber());
+        textContent.append (formatCurrent(getSmoothedValue(0, MONITOR_TUBE_IP)), font, getColourHotRed());
         textContent.append ("\nPlate dissipation : \n\t ", font, getColourNormal());
         textContent.append (formatPower(getSmoothedValue(0, MONITOR_TUBE_IP)*(getSmoothedValue(0, MONITOR_TUBE_VP)-getSmoothedValue(0, MONITOR_TUBE_VK))), font, getColourAmber());
     

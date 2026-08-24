@@ -50,14 +50,13 @@ public:
         {};
     void draw (juce::Graphics& g) const override;
     void controlCallback(float value, SchematicPanelListener* l) override;
-    juce::String valueToLabel (float v) override;
-    float labelToValue (const juce::String s) override;
+    juce::String valueToLabel (float v) const override;
+    float labelToValue (const juce::String s) const override;
     void prepareToDraw () override;
     void createSignalPaths () override;
     void updateSignalPaths () override;
     juce::AttributedString getInspectContent () override; 
     juce::String getInspectValue () override;
-    void drawPower (juce::Graphics& g) const override;
 
     virtual void updateArrow ();
 
@@ -127,11 +126,10 @@ public:
 
     void draw (juce::Graphics& g) const override;
     void prepareToDraw () override;
-    juce::String valueToLabel (float v) override;
-    float labelToValue (const juce::String s) override;
+    juce::String valueToLabel (float v) const override;
+    float labelToValue (const juce::String s) const override;
     void createSignalPaths () override;
     void updateSignalPaths () override;
-    void drawPower (juce::Graphics& g) const override;
     juce::AttributedString getInspectContent () override; 
     juce::String getInspectValue () override;
 

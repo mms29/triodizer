@@ -19,7 +19,7 @@ public:
     void buildDefault(SchematicPanel& schematic);
     // void buildCommonCathodeStage(SchematicPanel& schematic);
     void buildBassmanToneStack(SchematicPanel& schematic);
-    void buildBassmanPreampSmall(SchematicPanel& schematic);
+    void buildTriodeGainStage(SchematicPanel& schematic);
     void buildBassmanPreamp(SchematicPanel& schematic);
     void buildDualRectifierPreamp(SchematicPanel& schematic);
     void buildTwinReverb(SchematicPanel& schematic);
@@ -74,4 +74,13 @@ static const std::vector<ValueChoice> triodeChoices =
     { "SV6N1P",   11.0f},
     { "ECC83",    12.0f},
     { "ECC81",    13.0f}
+};
+static const std::vector<ValueChoice> diodeChoices =
+{
+    { "1N4148",  0.0f},
+    { "1N914",   1.0f},
+    { "1N4007",  2.0f},
+    { "1N34A",   3.0f},
+    { "1N5819",  4.0f},
+    { "GZ34",  5.0f}
 };

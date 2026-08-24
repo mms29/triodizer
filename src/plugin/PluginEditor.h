@@ -36,15 +36,15 @@ private:
 };
 
 // ==============================================================================
-// TubeLabEditor: Main editor component for the TubeLab plugin
+// CathodyneEditor: Main editor component for the plugin
 // Manages the schematic panel, controls, and waveform display
-class TubeLabEditor : public juce::AudioProcessorEditor,
+class CathodyneEditor : public juce::AudioProcessorEditor,
                      public SchematicPanelListener,
                      public juce::ChangeListener
 {
 public:
-    TubeLabEditor (TubeLabProcessor&);
-    ~TubeLabEditor() override;
+    CathodyneEditor (CathodyneProcessor&);
+    ~CathodyneEditor() override;
 
     void paint (juce::Graphics&) override;
     void resized() override;
@@ -72,8 +72,10 @@ public:
         oversampleSelector.changeItemText (4, juce::String(8*sampleRate/1e3, 1) + "kHz");
     }
 
+    juce::PopupMenu createPresetMenu();
+
 private:
-    TubeLabProcessor& audioProcessor;
+    CathodyneProcessor& audioProcessor;
     int timerCount = 0;
 
 
@@ -102,7 +104,7 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> oversampleAttachment;
 
     // Preset selection
-    juce::ComboBox presetSelector;
+    juce::TextButton presetSelector;
     // juce::Label presetLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> presetAttachment;
 
@@ -111,9 +113,6 @@ private:
 
     // Signal path
     std::unique_ptr<PathToggleButton> signalButton;
-
-    // Power path
-    std::unique_ptr<PathToggleButton> powerButton;
 
     // Inspect button
     // std::unique_ptr<PathToggleButton> inspectButton;
@@ -124,5 +123,5 @@ private:
     juce::ToggleButton monoStereoButton;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> monoStereoAttachment;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TubeLabEditor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (CathodyneEditor)
 };

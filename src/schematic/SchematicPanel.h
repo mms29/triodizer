@@ -57,7 +57,6 @@ public:
 
     void setSignalPathActivated(bool v) {signalPathActivated = v; }
     void setInspectorhActivated(bool v) { inspector.setVisible(v); }
-    void setPowerActivated(bool v) {powerActivated = v;}
     void addTubeJunctions();
 
 
@@ -82,6 +81,4 @@ private:
     // SigPath
     bool signalPathActivated = false;
 
-    //Power
-    bool powerActivated = false;
 };

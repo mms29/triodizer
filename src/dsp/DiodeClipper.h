@@ -6,6 +6,21 @@
 
 using namespace chowdsp::wdft;
 
+struct diodeParam
+{
+    const char* name;
+    float Is;
+};
+
+static const diodeParam diodeTable[] =
+{
+    { "1N4148",  4.0e-9f},
+    { "1N914",   4.0e-9f},
+    { "1N4007",  1.0e-6f},
+    { "1N34A",   1.0e-6f},
+    { "1N5819",  1.0e-6f},
+    { "GZ34",  2.52e-9f}
+};
 
 class DiodeClipperCircuit : public Circuit<float>
 {
@@ -24,13 +39,17 @@ public:
     using Circuit<float>::monitors;
     using Circuit<float>::getParam;
 
-    enum class Monitoring : int { D1,  Count };
-    enum class Param : int {D1, Count };
+    enum class Monitoring : int { R1, D1, C1, Count };
+    enum class Param : int {Gain, R1, D1, C1, Count };
     enum class Control : int {Gain, Count };
 
     void setDefaultParam () 
     {
-        Vs.setResistanceValue(1e3f);
+        setParam((int)Param::Gain, 100.0f);
+        setParam((int)Param::R1, 4.7e3f);
+        setParam((int)Param::C1, 4.7e-9f);
+        setParam((int)Param::D1, 0.0f);
+
     }
     void setDefaultControl () 
     { 
@@ -43,7 +62,10 @@ public:
 
         switch (index)
         {
-            case (int)Param::D1: break;
+            case (int)Param::D1: w_dp.setDiodeParameters( diodeTable[(int)value].Is, 25.85e-3, 1); break;
+            case (int)Param::C1: w_C1.setCapacitanceValue(value); break;
+            case (int)Param::R1: w_Vs.setResistanceValue(value); break;
+            case (int)Param::Gain: setControl((int)Control::Gain, 100.0f); break;
 
             case (int)Param::Count:
             default:
@@ -60,7 +82,7 @@ public:
         {
             case (int)Control::Gain: 
             {
-                gain = ratio * MAX_GAIN;
+                inputGain = ratio * getParam((int)Param::Gain);
                 break;
             }
             default: jassertfalse; break;
@@ -68,29 +90,39 @@ public:
     }
 
     void prepare(float sr) override {
+        w_C1.prepare(sr);
     }
     void reset() override {
+        w_C1.reset();
     }
 
     float processSample(float x) override {
-        auto y = x*gain;
+        auto y = x*inputGain;
 
-        Vs.setVoltage (y);
-        dp.incident (Vs.reflected());
-        auto out = voltage<float> (dp);
-        Vs.incident (dp.reflected());
-        return out;
+        w_Vs.setVoltage (y);
+        w_dp.incident (w_P1.reflected());
+        auto out = voltage<float> (w_dp);
+        w_P1.incident (w_dp.reflected());
+
+        return out * outputGain;
 
     }
-    void updateMonitors() override{ }
+    void updateMonitors() override{ 
+        updatePortMonitor((int)Monitoring::D1, w_P1);
+        updatePortMonitor((int)Monitoring::C1, w_C1);
+        updatePortMonitor((int)Monitoring::R1, w_Vs);
+    }
     
 private: 
-    float gain = 1.0f;
-    const float MAX_GAIN = 100.0f;
+    float inputGain = 1.0f;
+    float outputGain = 1e-1f;
 
-    ResistiveVoltageSourceT<float> Vs;
+    ResistiveVoltageSourceT<float> w_Vs;
+
+    CapacitorT<float> w_C1 { 0.0f };
+    WDFParallelT<float, decltype (w_Vs), decltype (w_C1)> w_P1 { w_Vs, w_C1 };
 
     // GZ34 diode pair
-    DiodePairT<float, decltype (Vs)> dp { Vs, 2.52e-9f };
+    DiodePairT<float, decltype (w_P1)> w_dp { w_P1, 0.0f };
 };
 

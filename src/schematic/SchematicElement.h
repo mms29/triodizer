@@ -211,8 +211,8 @@ public:
     juce::String getLabel() const {return label;}
     float getValue() const {return value;}
 
-    virtual float labelToValue(const juce::String s) { return s.getFloatValue();}
-    virtual juce::String valueToLabel(const float v) {return juce::String(v);}
+    virtual float labelToValue(const juce::String s) const { return s.getFloatValue();}
+    virtual juce::String valueToLabel(const float v) const {return juce::String(v);}
 
 protected:
     const int paramIndex;
@@ -267,7 +267,6 @@ public:
     {
         return rmsValues[(size_t) monitorIndex].values[valueIndex];
     }
-    virtual void drawPower (juce::Graphics& g) const {};
 
 private:
     static float smooth(float x, float mean) noexcept{
@@ -311,7 +310,6 @@ public:
     void updateSignalPaths () override;
     void prepareToDraw () override;
     void draw (juce::Graphics& g) const override;
-    void drawPower (juce::Graphics& g) const override;
 
 };
 

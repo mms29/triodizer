@@ -7,25 +7,18 @@ void TwoTermElement::draw (juce::Graphics& g) const
     drawLabel(g, labelCenter, label);
 
 }
-void TwoTermElement::drawPower (juce::Graphics& g) const
-{
-    if (getNumMonitors()> 0)
-        drawPowerGlowPath(g, path, getRMSValue(0, MONITOR_PORT_I)*getRMSValue(0, MONITOR_PORT_V) *POWER_SCALING);
-}
-
 void TwoTermElement::updateSignalPaths () {
     if (getNumMonitors()> 0){
-        auto power = getRMSValue(0, MONITOR_PORT_I)*getRMSValue(0, MONITOR_PORT_V) *POWER_SCALING;
         signalPaths[0].updateSignalPath(
-            getSmoothedValue(0, MONITOR_PORT_I) * POWER_SCALING,
+            getSmoothedValue(0, MONITOR_PORT_I) * INTENSITY_SCALING,
             getSmoothedValue(0, MONITOR_PORT_V), 
-            power
+            getRMSValue(0, MONITOR_PORT_I)*getRMSValue(0, MONITOR_PORT_V) *POWER_SCALING
         );
     }
 };
 
 void TwoTermElement::addPointToTerminal(Terminal t, const int termIndex, const bool direction) {
-    SchematicElement::addPointToTerminal(t, termIndex, termIndex==1);
+    SchematicElement::addPointToTerminal(t, termIndex, termIndex==0);
     if (signalPaths.size()>0){
         auto& p = signalPaths.front().getSignalPaths().front();
         p.path = path;
@@ -44,15 +37,16 @@ juce::AttributedString TwoTermElement::getInspectContent ()
         float vac = getRMSValue(0, MONITOR_PORT_V);
 
         textContent.append ("Voltage : \n\t ", font, getColourNormal());
-        textContent.append (formatVDCAC(v,vac), font, getColourHotRed());
+        textContent.append (formatVDCAC(v,vac), font, getColourElectrical());
         textContent.append ("\nCurrent : \n\t ", font, getColourNormal());
-        textContent.append (formatCurrent(c), font, getColourAmber());
+        textContent.append (formatCurrent(c), font, getColourHotRed());
         textContent.append ("\nPower : \n\t ", font, getColourNormal());
-        textContent.append (formatPower(v * c), font, getColourPurple());
+        textContent.append (formatPower(v * c), font, getColourAmber());
     
     }
     return textContent;
 }
+
 
 juce::String TwoTermElement::getInspectValue () 
 {
@@ -65,7 +59,7 @@ void ResistorElement::createSignalPaths ()
     signalPaths[0].addPath(path);
 }
 
-float ResistorElement::labelToValue (const juce::String s)
+float ResistorElement::labelToValue (const juce::String s) const
 {
     auto str = s.trim().toLowerCase();
     if (str.isEmpty()) return getValue(); // fallback to original
@@ -73,25 +67,18 @@ float ResistorElement::labelToValue (const juce::String s)
     float multiplier = 1.0;
 
     // handle suffixes
-    if (str.endsWith ("k"))
+    if (str.endsWith ("kΩ") || str.endsWith ("k"))
     {
         multiplier = 1e3;
-        str = str.dropLastCharacters (1);
     }
-    else if (str.endsWith ("m") ){
+    else if (str.endsWith ("mΩ") || str.endsWith ("meg")|| str.endsWith ("m")){
         multiplier = 1e6;
-        str = str.dropLastCharacters (1);
     }
-    else if (str.endsWith ("meg") ){
-        multiplier = 1e6;
-        str = str.dropLastCharacters (3);
-    }
-    else if (str.endsWith ("r"))
+    else if (str.endsWith ("r") || str.endsWith ("Ω"))
     {
         multiplier = 1.0;
-        str = str.dropLastCharacters (1);
     }
-
+    
     // parse numeric part
     float value = str.getFloatValue();
 
@@ -100,12 +87,12 @@ float ResistorElement::labelToValue (const juce::String s)
 
     return (float) (value * multiplier);
 }
-juce::String ResistorElement::valueToLabel (float v)
+juce::String ResistorElement::valueToLabel (float v) const
 {
-    if (v >= 1e6) return juce::String (v / 1e6, 0) + "M";
-    if (v >= 1e3) return juce::String (v / 1e3, 0) + "k";
-    if (v >= 1) return juce::String (v, 0) + "R";
-    if (v < 1 ) return juce::String (v * 1e3, 2) + "m";
+    if (v >= 1e6) return juce::String (v / 1e6, 0) + "MΩ";
+    if (v >= 1e3) return juce::String (v / 1e3, 0) + "kΩ";
+    if (v >= 1) return juce::String (v, 0) + "Ω";
+    if (v < 1 ) return juce::String (v * 1e3, 2) + "mΩ";
     return juce::String (v);
 }
 
@@ -153,7 +140,7 @@ void ResistorElement::prepareToDraw (){
 
 
 
-float CapacitorElement:: labelToValue (const juce::String s)
+float CapacitorElement:: labelToValue (const juce::String s) const
 {
     auto str = s.trim().toLowerCase();
 
@@ -161,33 +148,23 @@ float CapacitorElement:: labelToValue (const juce::String s)
         return getValue(); // fallback
 
     double multiplier = 1.0;
-    if (str.endsWith ("f")) str = str.dropLastCharacters (1);
 
     // suffix handling
-    if (str.endsWith ("p"))
+    if (str.endsWith ("pf") || str.endsWith ("p") )
     {
         multiplier = 1e-12;
-        str = str.dropLastCharacters (1);
     }
-    else if (str.endsWith ("n"))
+    else if (str.endsWith ("n")  || str.endsWith ("nf"))
     {
         multiplier = 1e-9;
-        str = str.dropLastCharacters (1);
     }
-    else if (str.endsWith ("u") || str.endsWith ("µ"))
+    else if (str.endsWith ("u") || str.endsWith ("µ")  || str.endsWith ("uf") || str.endsWith ("µf"))
     {
         multiplier = 1e-6;
-        str = str.dropLastCharacters (1);
     }
-    else if (str.endsWith ("m"))
+    else if (str.endsWith ("m")|| str.endsWith ("mf"))
     {
         multiplier = 1e-3;
-        str = str.dropLastCharacters (1);
-    }
-    else if (str.endsWith ("f"))
-    {
-        multiplier = 1.0;
-        str = str.dropLastCharacters (1);
     }
 
     auto numeric = str.getFloatValue();
@@ -196,12 +173,12 @@ float CapacitorElement:: labelToValue (const juce::String s)
     return (float) (numeric * multiplier);
 }
 
-juce::String CapacitorElement::valueToLabel (float v)
+juce::String CapacitorElement::valueToLabel (float v) const
 {
-    if (v > 1e-3) return juce::String (v * 1e3, 0) + "m";   // mF
-    if (v > 1e-6) return juce::String (v * 1e6, 0) + "u";   // µF
-    if (v > 1e-9) return juce::String (v * 1e9, 0) + "n";   // nF
-    if (v > 1e-12) return juce::String (v * 1e12, 0) + "p";  // pF
+    if (v >= 1e-3) return juce::String (v * 1e3, 0) + "mF";   // mF
+    if (v >= 1e-6) return juce::String (v * 1e6, 0) + "µF";   // µF
+    if (v >= 1e-9) return juce::String (v * 1e9, 0) + "nF";   // nF
+    if (v >= 1e-12) return juce::String (v * 1e12, 0) + "pF";  // pF
 
     return juce::String (v);
 }
@@ -355,27 +332,41 @@ void ReverbTankElement::draw (juce::Graphics& g) const
     drawLabel(g, labelCenter, "");
 
 }
-void ReverbTankElement::drawPower (juce::Graphics& g) const
-{
-    if (getNumMonitors()> 0)
-        drawPowerGlowPath(g, springPath, getRMSValue(0, MONITOR_PORT_I)*getRMSValue(0, MONITOR_PORT_V) *POWER_SCALING);
-}
 
 void ReverbTankElement::updateSignalPaths () {
     if (getNumMonitors()> 0){
         signalPaths[0].updateSignalPath(
-            getSmoothedValue(0, MONITOR_PORT_I) * POWER_SCALING,
-            getSmoothedValue(0, MONITOR_PORT_V)
+            getSmoothedValue(0, MONITOR_PORT_I) * INTENSITY_SCALING,
+            getSmoothedValue(0, MONITOR_PORT_V),
+            getRMSValue(0, MONITOR_PORT_I)*getRMSValue(0, MONITOR_PORT_V) *POWER_SCALING
         );
     }
 };
 
 
+float GainElement::labelToValue (const juce::String s) const {
+    auto str = s.trim().toLowerCase();
+    if (str.isEmpty()) return getValue();
+
+    float value_db = str.getFloatValue();
+    float value_gain = std::pow (10.0f, value_db / 20.0f);
+
+    return value_gain;
+
+}
+
+
+juce::String GainElement::valueToLabel (float v) const
+{
+    return juce::String (20.0f * std::log10 (v), 1) + " dB";
+}
+
 
 
 void GainElement::draw (juce::Graphics& g) const
 {
-    drawLabel(g, labelCenter, juce::String(controlValue, 1) + " dB");
+    const auto v= value * controlValue /100.0f;
+    drawLabel(g, labelCenter, valueToLabel(v));
 
 }
 void GainElement::prepareToDraw ()
@@ -426,6 +417,31 @@ void GainElement::controlCallback(float value, SchematicPanelListener* listener)
 }
 
 
+juce::AttributedString DiodeElement::getInspectContent () 
+{
+    juce::AttributedString textContent;
+    auto font = juce::Font (juce::FontOptions(FONT_SUB1));
+    if (getNumMonitors() >0){
+        float v = getSmoothedValue(0, MONITOR_PORT_V);
+        float c = getSmoothedValue(0, MONITOR_PORT_I);
+        float vac = getRMSValue(0, MONITOR_PORT_V);
+
+        textContent.append ("Voltage : \n\t ", font, getColourNormal());
+        textContent.append (formatVDCAC(v,vac), font, getColourElectrical());
+        textContent.append ("\nCurrent : \n\t ", font, getColourNormal());
+        textContent.append (formatCurrent(c), font, getColourHotRed());
+        textContent.append ("\nPower : \n\t ", font, getColourNormal());
+        textContent.append (formatPower(v * c), font, getColourAmber());
+    
+    }
+    return textContent;
+}
+
+juce::String DiodeElement::getInspectValue () 
+{
+    return getChoiceLabel();
+}
+
 
 void DiodeElement::draw (juce::Graphics& g) const
 {
@@ -475,11 +491,10 @@ void DiodeElement::prepareToDraw ()
 
 void DiodeElement::updateSignalPaths () {
     if (getNumMonitors()> 0){
-        auto power = getRMSValue(0, MONITOR_PORT_I)*getRMSValue(0, MONITOR_PORT_V) *POWER_SCALING;
         signalPaths[0].updateSignalPath(
-            getSmoothedValue(0, MONITOR_PORT_I) * POWER_SCALING,
+            getSmoothedValue(0, MONITOR_PORT_I) * INTENSITY_SCALING,
             getSmoothedValue(0, MONITOR_PORT_V), 
-            power
+            getRMSValue(0, MONITOR_PORT_I)*getRMSValue(0, MONITOR_PORT_V) *POWER_SCALING
         );
     }
 };

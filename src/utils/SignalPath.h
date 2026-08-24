@@ -5,7 +5,6 @@
 #include "utils/Glow.h"
 
 
-inline const float SIGNAL_PATH_MAX_VOLTAGE = 450.0f;
 inline const float POLARITY_FORWARD = false;
 inline const float POLARITY_BACKWARD = true;
 inline const float DIRECTION_FORWARD = false;

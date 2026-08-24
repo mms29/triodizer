@@ -98,21 +98,14 @@ void  WireElement::draw (juce::Graphics& g) const
 {
 }
 
-void  WireElement::drawPower (juce::Graphics& g) const
-{
-    if (getNumMonitors()> 0){
-        drawPowerGlowPath(g, path , 
-            getRMSValue(0, MONITOR_PORT_I)*getRMSValue(0, MONITOR_PORT_V) *POWER_SCALING
-        );
-    }
-}
 
 
 void WireElement::updateSignalPaths () {
     if (getNumMonitors()> 0){
         signalPaths[0].updateSignalPath(
-            getSmoothedValue(0, MONITOR_PORT_I) * POWER_SCALING,
-            getSmoothedValue(0, MONITOR_PORT_V)
+            getSmoothedValue(0, MONITOR_PORT_I) * INTENSITY_SCALING,
+            getSmoothedValue(0, MONITOR_PORT_V),
+            getRMSValue(0, MONITOR_PORT_I)*getRMSValue(0, MONITOR_PORT_V) *POWER_SCALING
         );
     }
 };

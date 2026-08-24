@@ -5,15 +5,11 @@ void PathToggleButton::paintButton (juce::Graphics& g,
                     bool) 
 {
     auto bounds = getLocalBounds().reduced(0,0).toFloat();
-    std::cout << "bounds: " << bounds.toString() << std::endl;
 
     // split area: icon + text
     auto textArea = bounds;
     textArea.removeFromRight (bounds.getHeight()*0.75f);
     auto iconArea = bounds.removeFromRight (bounds.getHeight());
-
-    std::cout << "iconArea: " << iconArea.toString() << std::endl;
-    std::cout << "textArea: " << textArea.toString() << std::endl;
 
     // ===== PATH =====
     juce::Path p = shape;

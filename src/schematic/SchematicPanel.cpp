@@ -148,12 +148,6 @@ void SchematicPanel::paint (juce::Graphics& g)
         juce::AffineTransform::translation(viewOffset.x, viewOffset.y)));
 
 
-    // Render Power
-    if (powerActivated)
-        for (const auto& elem : elements)
-            if (auto* monitorElem = dynamic_cast<MonitoringElement*>(elem.get()) )
-                monitorElem->drawPower(g);
-
     // Render labels, glow etc
     for (const auto& elem : elements)
         elem->draw (g);

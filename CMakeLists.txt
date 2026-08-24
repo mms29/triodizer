@@ -1,18 +1,18 @@
 cmake_minimum_required(VERSION 3.22)
 
+project(Cathodyne VERSION 1.0.0 LANGUAGES C CXX)
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
 if (MSVC)
     add_compile_options(/EHsc)
 endif()
 
-set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0" CACHE STRING "" FORCE)
-
-
-project(TubeLab VERSION 1.0.0)
-
 include(FetchContent)
+
+set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0" CACHE STRING "" FORCE)
 
 FetchContent_Declare(
     juce
@@ -45,12 +45,12 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(eigen)
 
 # Create the plugin target
-juce_add_plugin(TubeLabPlugin
-    COMPANY_NAME "VuilzAudio"
-    PLUGIN_MANUFACTURER_CODE "VzAu"
+juce_add_plugin(Cathodyne
+    COMPANY_NAME "RemAudio"
+    PLUGIN_MANUFACTURER_CODE "RA"
     PLUGIN_CODE "TRDZ"
     FORMATS VST3 AU Standalone
-    ProductName "TubeLab"
+    ProductName "Cathodyne"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
@@ -59,7 +59,7 @@ juce_add_plugin(TubeLabPlugin
 )
 
 # Add source files
-target_sources(TubeLabPlugin PRIVATE
+target_sources(Cathodyne PRIVATE
     src/plugin/PluginProcessor.cpp
     src/plugin/PluginEditor.cpp
     src/gui/WaveformDisplay.cpp
@@ -78,7 +78,7 @@ target_sources(TubeLabPlugin PRIVATE
 )
 
 # Link JUCE modules
-target_link_libraries(TubeLabPlugin PRIVATE
+target_link_libraries(Cathodyne PRIVATE
     juce::juce_audio_processors
     juce::juce_audio_utils
     juce::juce_dsp
@@ -87,19 +87,17 @@ target_link_libraries(TubeLabPlugin PRIVATE
     Eigen3::Eigen
 )
 
-# target_include_directories(TubeLabPlugin PRIVATE
+# target_include_directories(Cathodyne PRIVATE
 #     ${CMAKE_SOURCE_DIR}/chowdsp_wdf/include
 #     src
 #     )
-target_include_directories(TubeLabPlugin PRIVATE
+target_include_directories(Cathodyne PRIVATE
     ${chowdsp_wdf_SOURCE_DIR}/include
     src
 )
-# C++ standard
-target_compile_features(TubeLabPlugin PRIVATE cxx_std_17)
 
 # Enable useful warnings
-target_compile_definitions(TubeLabPlugin PRIVATE
+target_compile_definitions(Cathodyne PRIVATE
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
     JUCE_VST2_ENABLED=0

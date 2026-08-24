@@ -3,11 +3,11 @@
 
 //==============================================================================
 
-TubeLabProcessor::TubeLabProcessor()
+CathodyneProcessor::CathodyneProcessor()
     : AudioProcessor (BusesProperties().withInput ("Input", juce::AudioChannelSet::stereo())
                            .withOutput ("Output", juce::AudioChannelSet::stereo())),
       parameters (*this, nullptr,
-          juce::Identifier ("TubeLabParameters"),
+          juce::Identifier ("CathodyneParameters"),
           {
             //   std::make_unique<juce::AudioParameterFloat> (
             //       "drive",
@@ -47,7 +47,8 @@ TubeLabProcessor::TubeLabProcessor()
                       "Fender Bassman Preamp",
                       "Mesa/Boogie Dual Rectifier",
                       "Twin Reverb",
-                    "Diode Clipper"
+                    "Diode Clipper",
+                    "Triode Gain Stage"
 
                   },
                   0)
@@ -59,11 +60,11 @@ TubeLabProcessor::TubeLabProcessor()
     sendChangeMessage();
 }
 
-TubeLabProcessor::~TubeLabProcessor() = default;
+CathodyneProcessor::~CathodyneProcessor() = default;
 
 //==============================================================================
 
-void TubeLabProcessor::prepareToPlay (double sr, int samplesPerBlock)
+void CathodyneProcessor::prepareToPlay (double sr, int samplesPerBlock)
 {
     sampleRate = sr;
     blockSize = samplesPerBlock;
@@ -72,12 +73,12 @@ void TubeLabProcessor::prepareToPlay (double sr, int samplesPerBlock)
     prepareCircuit (oversampleRate);
 }
 
-void TubeLabProcessor::releaseResources()
+void CathodyneProcessor::releaseResources()
 {
     resetCircuit();
 }
 
-void TubeLabProcessor::processBlock (juce::AudioBuffer<float>& buffer,
+void CathodyneProcessor::processBlock (juce::AudioBuffer<float>& buffer,
                                     juce::MidiBuffer&)
 {
     juce::ScopedNoDenormals noDenormals;
@@ -166,7 +167,7 @@ void TubeLabProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 
 //==============================================================================
 
-void TubeLabProcessor::updateOversampler()
+void CathodyneProcessor::updateOversampler()
 {
     int stages = (int) parameters.getRawParameterValue ("oversample")->load();
 
@@ -181,7 +182,7 @@ void TubeLabProcessor::updateOversampler()
     prepareCircuit (oversampleRate);
 }
 
-void TubeLabProcessor::updatePreset()
+void CathodyneProcessor::updatePreset()
 {
     int presetChoice = (int) parameters.getRawParameterValue ("preset")->load() + 1;
 
@@ -200,7 +201,7 @@ void TubeLabProcessor::updatePreset()
 
 //==============================================================================
 
-void TubeLabProcessor::buildOversampler()
+void CathodyneProcessor::buildOversampler()
 {
     oversampleRate = sampleRate * (1 << oversamplingStages);
     oversampler = std::make_unique<juce::dsp::Oversampling<float>> (
@@ -213,7 +214,7 @@ void TubeLabProcessor::buildOversampler()
 
 //==============================================================================
 
-void TubeLabProcessor::prepareCircuit (double sr)
+void CathodyneProcessor::prepareCircuit (double sr)
 {
 #ifdef XSIMD_HPP
     circuit->prepare (xsimd::broadcast (float (sr)));
@@ -223,7 +224,7 @@ void TubeLabProcessor::prepareCircuit (double sr)
 #endif
 }
 
-void TubeLabProcessor::resetCircuit()
+void CathodyneProcessor::resetCircuit()
 {
 #ifdef XSIMD_HPP
     circuit->reset();
@@ -233,7 +234,7 @@ void TubeLabProcessor::resetCircuit()
 #endif
 }
 
-void TubeLabProcessor::buildCircuit()
+void CathodyneProcessor::buildCircuit()
 {
 #ifdef XSIMD_HPP
     using batch = xsimd::batch<float>;
@@ -283,6 +284,10 @@ void TubeLabProcessor::buildCircuit()
             circuit[ch] = std::make_unique<DiodeClipperCircuit>();
             break;
 
+        case PRESET_TRIODE_GAIN_STAGE:
+            circuit[ch] = std::make_unique<TriodeGainStageCircuitT<float>>();
+            break;
+
         default:
             circuit[ch] = std::make_unique<DefaultCircuit<float>>();
             break;
@@ -293,25 +298,25 @@ void TubeLabProcessor::buildCircuit()
 
 //==============================================================================
 
-juce::AudioProcessorEditor* TubeLabProcessor::createEditor()
+juce::AudioProcessorEditor* CathodyneProcessor::createEditor()
 {
-    return new TubeLabEditor (*this);
+    return new CathodyneEditor (*this);
 }
 
 //==============================================================================
 
-int TubeLabProcessor::getNumPrograms() { return 1; }
-int TubeLabProcessor::getCurrentProgram() { return 0; }
+int CathodyneProcessor::getNumPrograms() { return 1; }
+int CathodyneProcessor::getCurrentProgram() { return 0; }
 
-void TubeLabProcessor::setCurrentProgram (int) {}
+void CathodyneProcessor::setCurrentProgram (int) {}
 
-const juce::String TubeLabProcessor::getProgramName (int) { return {}; }
+const juce::String CathodyneProcessor::getProgramName (int) { return {}; }
 
-void TubeLabProcessor::changeProgramName (int, const juce::String&) {}
+void CathodyneProcessor::changeProgramName (int, const juce::String&) {}
 
 //==============================================================================
 
-void TubeLabProcessor::getStateInformation (juce::MemoryBlock& destData)
+void CathodyneProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     juce::ValueTree root ("PluginState");
     root.addChild (parameters.copyState(), -1, nullptr);
@@ -321,7 +326,7 @@ void TubeLabProcessor::getStateInformation (juce::MemoryBlock& destData)
     copyXmlToBinary (*xml, destData);
 }
 
-void TubeLabProcessor::setStateInformation (const void* data, int sizeInBytes)
+void CathodyneProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     std::unique_ptr<juce::XmlElement> xml (getXmlFromBinary (data, sizeInBytes));
     auto root = juce::ValueTree::fromXml (*xml);
@@ -343,7 +348,7 @@ void TubeLabProcessor::setStateInformation (const void* data, int sizeInBytes)
 
 //==============================================================================
 
-bool TubeLabProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
+bool CathodyneProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 {
     if (layouts.getMainInputChannelSet() != juce::AudioChannelSet::stereo())
         return false;
@@ -358,15 +363,15 @@ bool TubeLabProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
-    return new TubeLabProcessor();
+    return new CathodyneProcessor();
 }
 
 //==============================================================================
-void TubeLabProcessor::updateCircuitMonitoring ( const int ch)
+void CathodyneProcessor::updateCircuitMonitoring ( const int ch)
 {
     circuit[ch]->updateMonitors();
 }
-const MonitorValuef& TubeLabProcessor::getCircuitMonitoring (const int index, const int ch) const
+const MonitorValuef& CathodyneProcessor::getCircuitMonitoring (const int index, const int ch) const
 {
 #ifdef XSIMD_HPP
     return circuit->getMonitoring (index).get (ch);
@@ -375,7 +380,7 @@ const MonitorValuef& TubeLabProcessor::getCircuitMonitoring (const int index, co
 #endif
 }
 
-float TubeLabProcessor::getCircuitParam (const int index, const int ch) const
+float CathodyneProcessor::getCircuitParam (const int index, const int ch) const
 {
 #ifdef XSIMD_HPP
     return circuit->getParam (index).get (ch);
@@ -384,7 +389,7 @@ float TubeLabProcessor::getCircuitParam (const int index, const int ch) const
 #endif
 }
 
-float TubeLabProcessor::getCircuitControl (const int index, const int ch) const
+float CathodyneProcessor::getCircuitControl (const int index, const int ch) const
 {
 #ifdef XSIMD_HPP
     return circuit->getControl (index).get (ch);
@@ -393,7 +398,7 @@ float TubeLabProcessor::getCircuitControl (const int index, const int ch) const
 #endif
 }
 
-void TubeLabProcessor::setCircuitParam (const int index, float value)
+void CathodyneProcessor::setCircuitParam (const int index, float value)
 {
 #ifdef XSIMD_HPP
     circuit->setParam (index, xsimd::broadcast<float> (value));
@@ -403,7 +408,7 @@ void TubeLabProcessor::setCircuitParam (const int index, float value)
 #endif
 }
 
-void TubeLabProcessor::setCircuitControl (const int index, float value)
+void CathodyneProcessor::setCircuitControl (const int index, float value)
 {
 #ifdef XSIMD_HPP
     circuit->setControl (index, xsimd::broadcast<float> (value));
@@ -415,7 +420,7 @@ void TubeLabProcessor::setCircuitControl (const int index, float value)
 
 //==============================================================================
 
-void TubeLabProcessor::loadCircuitState (const juce::ValueTree& t)
+void CathodyneProcessor::loadCircuitState (const juce::ValueTree& t)
 {
 #ifdef XSIMD_HPP
     for (int i = 0; i < circuit->getNumParam(); ++i)
@@ -452,7 +457,7 @@ void TubeLabProcessor::loadCircuitState (const juce::ValueTree& t)
 #endif
 }
 
-juce::ValueTree TubeLabProcessor::saveCircuitState() const
+juce::ValueTree CathodyneProcessor::saveCircuitState() const
 {
     juce::ValueTree t ("Circuit");
 
@@ -479,7 +484,7 @@ juce::ValueTree TubeLabProcessor::saveCircuitState() const
 
 //==============================================================================
 
-bool TubeLabProcessor::circuitReady() const
+bool CathodyneProcessor::circuitReady() const
 {
 #ifdef XSIMD_HPP
     return circuit != nullptr;

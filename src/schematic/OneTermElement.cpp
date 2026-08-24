@@ -123,11 +123,6 @@ void JackElement::draw (juce::Graphics& g) const
 
 }
 
-void VoltageElement::drawPower (juce::Graphics& g) const
-{
-    if (getNumMonitors()> 0)
-        drawPowerGlowPath(g, path, getRMSValue(0, MONITOR_PORT_I)*getRMSValue(0, MONITOR_PORT_V) *POWER_SCALING);
-}
 juce::AttributedString VoltageElement::getInspectContent () 
 {
     juce::AttributedString textContent;
@@ -150,15 +145,14 @@ void VoltageElement::createSignalPaths ()
 
 void VoltageElement::updateSignalPaths () {
     if (getNumMonitors()> 0){
-        auto power= getRMSValue(0, MONITOR_PORT_I)*getRMSValue(0, MONITOR_PORT_V) *POWER_SCALING;
         signalPaths[0].updateSignalPath(
-            getSmoothedValue(0, MONITOR_PORT_I) * POWER_SCALING,
+            getSmoothedValue(0, MONITOR_PORT_I) * INTENSITY_SCALING,
             getSmoothedValue(0, MONITOR_PORT_V),
-            power
+            getRMSValue(0, MONITOR_PORT_I)*getRMSValue(0, MONITOR_PORT_V) *POWER_SCALING
         );
     }
 };
-float VoltageElement:: labelToValue (const juce::String s)
+float VoltageElement:: labelToValue (const juce::String s) const
 {
     auto str = s.trim().toLowerCase();
 
@@ -170,12 +164,12 @@ float VoltageElement:: labelToValue (const juce::String s)
         str = str.dropLastCharacters (1);
 
     // suffix handling
-    if (str.endsWith ("k"))
+    if (str.endsWith ("k") || str.endsWith ("kv"))
     {
         multiplier = 1e3;
         str = str.dropLastCharacters (1);
     }
-    else if (str.endsWith ("m"))
+    else if (str.endsWith ("m")|| str.endsWith ("mv"))
     {
         multiplier = 1e-3;
         str = str.dropLastCharacters (1);
@@ -187,7 +181,7 @@ float VoltageElement:: labelToValue (const juce::String s)
     return (float) (numeric * multiplier);
 }
 
-juce::String VoltageElement::valueToLabel (float v)
+juce::String VoltageElement::valueToLabel (float v) const
 {
     if (v >= 1e3) return juce::String (v / 1e3, 0) + "kV";
     if (v >= 1) return juce::String (v, 0) + "V";

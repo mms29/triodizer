@@ -56,6 +56,8 @@ void GlowComboBoxLookAndFeel::positionComboBoxText (juce::ComboBox& box,
 
 void GlowComboBoxLookAndFeel::drawLabel (juce::Graphics& g, juce::Label& label) 
 {
+    if (dynamic_cast<juce::AlertWindow*> (label.getParentComponent()) != nullptr)
+        return;
     g.setColour (juce::Colours::white.withAlpha(0.5f));
     g.setFont (label.getFont());
 
@@ -91,10 +93,11 @@ void GlowComboBoxLookAndFeel::drawButtonBackground (
 
         drawGlowAndCorePath (g,
                       outline,
-                      0.07f,
+                      0.02f,
                       getColourNormal(),
                       getColourNormal(),
                       false);
+
     }
 }
 
@@ -112,7 +115,7 @@ void GlowComboBoxLookAndFeel::drawButtonText (
     g.setFont (juce::FontOptions (FONT_SUB2, juce::Font::bold));
     }
     else{
-    g.setColour (getColourNormal());
+    g.setColour (juce::Colours::white.withAlpha(0.5f));
     g.setFont (juce::FontOptions (FONT_SUB2, juce::Font::plain));
     }
 
@@ -326,7 +329,58 @@ void GlowComboBoxLookAndFeel::drawAlertBox (
         g,
         textArea.toFloat());
 }
+void GlowComboBoxLookAndFeel::drawTextEditorOutline (
+    juce::Graphics& g,
+    int width,
+    int height,
+    juce::TextEditor& editor)
+{
+    auto area = juce::Rectangle<float> (
+        0.0f, 0.0f,
+        (float) width,
+        (float) height);
 
+    juce::Path outline;
+    outline.addRoundedRectangle (
+        area.reduced (1.0f),
+        5.0f);
+
+    g.setColour (getColourGrey().withAlpha (0.5f));
+
+    g.strokePath (
+        outline,
+        juce::PathStrokeType (
+            0.5f,
+            juce::PathStrokeType::curved,
+            juce::PathStrokeType::rounded));
+
+    if (editor.hasKeyboardFocus (true))
+    {
+        drawGlowAndCorePath (
+            g,
+            outline,
+            0.035f,
+            getColourNormal(),
+            getColourNormal(),
+            false);
+    }
+}
+void GlowComboBoxLookAndFeel::fillTextEditorBackground (
+    juce::Graphics& g,
+    int width,
+    int height,
+    juce::TextEditor& editor)
+{
+    auto area = juce::Rectangle<float> (
+        0.0f, 0.0f,
+        (float) width,
+        (float) height);
+
+    g.setColour (juce::Colour (0xff101010));
+    g.fillRoundedRectangle (
+        area.reduced (1.0f),
+        5.0f);
+}
 juce::Font GlowComboBoxLookAndFeel::getAlertWindowTitleFont()
 {
     return juce::FontOptions (

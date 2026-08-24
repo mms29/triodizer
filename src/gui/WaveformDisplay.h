@@ -8,7 +8,7 @@
 class WaveformDisplay : public juce::Component
 {
 public:
-    WaveformDisplay (TubeLabProcessor& p) : processor (p) {}
+    WaveformDisplay (CathodyneProcessor& p) : processor (p) {}
 
     void paint (juce::Graphics& g) override;
 
@@ -17,7 +17,7 @@ public:
     void setAmplitudeScale (float scale) { amplitudeScale = scale; }
 
 private:
-    TubeLabProcessor& processor;
+    CathodyneProcessor& processor;
 
     static constexpr int displaySize = 1024;
     std::array<float, displaySize> inputBuffer {};

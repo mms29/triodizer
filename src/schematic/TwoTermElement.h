@@ -39,7 +39,6 @@ public:
     }
     void draw (juce::Graphics& g) const override;
     void updateSignalPaths () override;
-    void drawPower (juce::Graphics& g) const override;
 
     juce::AttributedString getInspectContent () override;
     juce::String getInspectValue () override;
@@ -57,8 +56,8 @@ class ResistorElement : public TwoTermElement
 public:
     using TwoTermElement::TwoTermElement;
 
-    juce::String valueToLabel (float v) override;
-    float labelToValue (const juce::String s) override;
+    juce::String valueToLabel (float v) const override;
+    float labelToValue (const juce::String s) const override;
     void prepareToDraw() override;
     void createSignalPaths () override;
 };
@@ -70,8 +69,8 @@ public:
 
     juce::Path posPath, negPath, posPlate, negPlate;
 
-    juce::String valueToLabel (float v) override;
-    float labelToValue (const juce::String s) override;
+    juce::String valueToLabel (float v) const override;
+    float labelToValue (const juce::String s) const override;
     void prepareToDraw() override;
     void createSignalPaths () override;
 
@@ -82,20 +81,27 @@ public:
 // ==============================================================================
 // GainElement
 class GainElement : public SchematicElement,
-                    public ControllableElement
+                    public ControllableElement,
+                    public SettableElement
+
 {
 public:
     GainElement (const juce::String& name,
                      Terminal termA,
                      Terminal termB,
+                     const int paramIndex,
                      const int controlIndex)
         : SchematicElement (name, std::vector<Terminal> { termA, termB }),
-          ControllableElement (controlIndex)
+          ControllableElement (controlIndex),
+          SettableElement (paramIndex)
     {
     }
     void draw (juce::Graphics& g) const override;
     void prepareToDraw() override;
     void controlCallback(float value, SchematicPanelListener* l) override;
+
+    juce::String valueToLabel(const float v) const override;
+    float labelToValue (const juce::String s) const override;
 
 protected:
     juce::Point<float> labelCenter;
@@ -109,6 +115,7 @@ protected:
 class DiodeElement : public SchematicElement,
                         public ParametrableElement,
                         public MonitoringElement,
+                        public InspectableElement,
                         public SignalElement
 {
 public:
@@ -120,12 +127,14 @@ public:
                     std::vector<ValueChoice> choices,
                      const int monitorIndex,
                     const int signalPathMode = SIGNALPATH_MODE_NORMAL_FORWARD,
-                    SignalPath* signalPathRef = nullptr
+                    SignalPath* signalPathRef = nullptr,
+                    juce::AttributedString descr=juce::AttributedString {}
                 )
         : SchematicElement (name, std::vector<Terminal> { termA, termB }),
         ParametrableElement(paramIndex ,choiceIndex ,std::move(choices)) ,
-          MonitoringElement (std::vector<int> {monitorIndex }),
-          SignalElement(signalPathRef, signalPathMode)
+        MonitoringElement (std::vector<int> {monitorIndex }),
+        SignalElement(signalPathRef, signalPathMode),
+        InspectableElement(juce::AttributedString {})
     {
     }
 
@@ -133,6 +142,9 @@ public:
     void prepareToDraw() override;
     void updateSignalPaths ()  override;
     void createSignalPaths () override;
+    juce::AttributedString getInspectContent () override;
+    juce::String getInspectValue () override;
+
 protected:
     juce::Point<float> labelCenter;
     juce::Path leftPath, rightPath, barPath;
@@ -161,7 +173,6 @@ public:
     }
     void draw (juce::Graphics& g) const override;
     void updateSignalPaths () override;
-    void drawPower (juce::Graphics& g) const override;
     void prepareToDraw() override;
     void createSignalPaths () override;
 protected:

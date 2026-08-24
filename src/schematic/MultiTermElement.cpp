@@ -19,17 +19,25 @@ juce::AttributedString PotElement::getInspectContent ()
         float cp_rms = getRMSValue(0, MONITOR_PORT_I);
         float vm_rms = getRMSValue(1, MONITOR_PORT_V);
         float cm_rms = getRMSValue(1, MONITOR_PORT_I);
-        textContent.append ("Resistor A: ", font, getColourNormal());
+        textContent.append ("Voltage Ra: ", font, getColourNormal());
         textContent.append ("\n\t");
         textContent.append (formatVDCAC(vp, vp_rms), font, getColourElectrical());
-        textContent.append ("\n\t");
-        textContent.append (formatCurrent(cp), font, getColourAmber());
         textContent.append ("\n");
-        textContent.append ("Resistor B: ", font, getColourNormal());
+        textContent.append ("Current Ra: ", font, getColourNormal());
+        textContent.append ("\n\t");
+        textContent.append (formatCurrent(cp), font, getColourHotRed());
+        textContent.append ("\nPower Ra: \n\t ", font, getColourNormal());
+        textContent.append (formatPower(vp * cp), font, getColourAmber());
+        textContent.append ("\n\n");
+        textContent.append ("Voltage Rb: ", font, getColourNormal());
         textContent.append ("\n\t");
         textContent.append (formatVDCAC(vm, vm_rms), font, getColourElectrical());
+        textContent.append ("\n");
+        textContent.append ("Current Rb: ", font, getColourNormal());
         textContent.append ("\n\t");
-        textContent.append (formatCurrent(cm), font, getColourAmber());
+        textContent.append (formatCurrent(cm), font, getColourHotRed());
+        textContent.append ("\nPower Rb: \n\t ", font, getColourNormal());
+        textContent.append (formatPower(vm * cm), font, getColourAmber());
         textContent.append ("\n\t");
         
         
@@ -152,19 +160,6 @@ void PotElement::draw (juce::Graphics& g) const
     drawLabel(g, labelCenter, label);
 }
 
-void PotElement::drawPower (juce::Graphics& g) const
-{
-    if (getNumMonitors() > 0){
-        float pPlus = getRMSValue(0, MONITOR_PORT_I)*getRMSValue(0, MONITOR_PORT_V) * POWER_SCALING; 
-        float pMinus = getRMSValue(1, MONITOR_PORT_I)*getRMSValue(1, MONITOR_PORT_V) * POWER_SCALING; 
-        float pOut = std::abs((getRMSValue(0, MONITOR_PORT_I)-getRMSValue(1, MONITOR_PORT_I)) * getRMSValue(1, MONITOR_PORT_V)) * POWER_SCALING; 
-        drawPowerGlowPath(g, zigzagPlus, pPlus);
-        drawPowerGlowPath(g, zigzagMinus, pMinus);
-        drawPowerGlowPath(g, arrow,pOut);
-    }
-}
-
-
 void PotElement::createSignalPaths () 
 {
     signalPaths[0].addPath(zigzagPlus, 0.0f, 0.5f);
@@ -174,14 +169,18 @@ void PotElement::createSignalPaths ()
 
 void PotElement::updateSignalPaths () {
     if (getNumMonitors()> 0){
+        float pPlus = getRMSValue(0, MONITOR_PORT_I)*getRMSValue(0, MONITOR_PORT_V) * POWER_SCALING; 
+        // float pMinus = getRMSValue(1, MONITOR_PORT_I)*getRMSValue(1, MONITOR_PORT_V) * POWER_SCALING; 
+        // float pOut = std::abs((getRMSValue(0, MONITOR_PORT_I)-getRMSValue(1, MONITOR_PORT_I)) * getRMSValue(1, MONITOR_PORT_V)) * POWER_SCALING; 
         signalPaths[0].updateSignalPath(
-            getSmoothedValue(0, MONITOR_PORT_I) * POWER_SCALING,
-            getSmoothedValue(0, MONITOR_PORT_V)
+            getSmoothedValue(0, MONITOR_PORT_I) * INTENSITY_SCALING,
+            getSmoothedValue(0, MONITOR_PORT_V),
+            pPlus
         );
     }
 };
 
-float PotElement::labelToValue (const juce::String s)
+float PotElement::labelToValue (const juce::String s) const
 {
     auto str = s.trim().toLowerCase();
     if (str.isEmpty()) return getValue(); // fallback to original
@@ -189,23 +188,16 @@ float PotElement::labelToValue (const juce::String s)
     float multiplier = 1.0;
 
     // handle suffixes
-    if (str.endsWith ("k"))
+    if (str.endsWith ("kΩ") || str.endsWith ("k"))
     {
         multiplier = 1e3;
-        str = str.dropLastCharacters (1);
     }
-    else if (str.endsWith ("m") ){
+    else if (str.endsWith ("mΩ") || str.endsWith ("meg")|| str.endsWith ("m")){
         multiplier = 1e6;
-        str = str.dropLastCharacters (1);
     }
-    else if (str.endsWith ("meg") ){
-        multiplier = 1e6;
-        str = str.dropLastCharacters (3);
-    }
-    else if (str.endsWith ("r"))
+    else if (str.endsWith ("r") || str.endsWith ("Ω"))
     {
         multiplier = 1.0;
-        str = str.dropLastCharacters (1);
     }
 
     // parse numeric part
@@ -216,12 +208,12 @@ float PotElement::labelToValue (const juce::String s)
 
     return (float) (value * multiplier);
 }
-juce::String PotElement::valueToLabel (float v)
+juce::String PotElement::valueToLabel (float v) const
 {
-    if (v >= 1e6) return juce::String (v / 1e6, 0) + "M";
-    if (v >= 1e3) return juce::String (v / 1e3, 0) + "k";
-    if (v >= 1) return juce::String (v, 0) + "R";
-    if (v < 1 ) return juce::String (v * 1e3, 2) + "m";
+    if (v >= 1e6) return juce::String (v / 1e6, 0) + "MΩ";
+    if (v >= 1e3) return juce::String (v / 1e3, 0) + "kΩ";
+    if (v >= 1) return juce::String (v, 0) + "Ω";
+    if (v < 1 ) return juce::String (v * 1e3, 2) + "mΩ";
     return juce::String (v);
 }
 
@@ -241,8 +233,7 @@ void VarResElement::updateArrow()
         auto& p = signalPaths[0].getSignalPaths()[2];
         p.path = arrow;
         p.rebuildCache();
-    }
-    
+    } 
 }
 
 void TransformerElement::prepareToDraw () 
@@ -270,7 +261,6 @@ void TransformerElement::prepareToDraw ()
     // Build cached bounds
     cachedBounds = juce::Rectangle<float> (p0, p3);
     // cachedBounds.expand(1.0f + std::abs(v.x*plateWidth/2.0f), 1.0f + std::abs(v.y*plateWidth/2.0f));
-
 
     juce::Rectangle<float> bounds (50.0f, 50.0f, 200.0f, 200.0f);
 
@@ -319,13 +309,13 @@ void TransformerElement::draw (juce::Graphics& g) const
 
 }
 
-juce::String TransformerElement::valueToLabel (float v)
+juce::String TransformerElement::valueToLabel (float v) const
 {
     return "TR="+ juce::String ((int) v);
 }
 
 
-float TransformerElement::labelToValue (const juce::String s)
+float TransformerElement::labelToValue (const juce::String s) const
 {
     auto str = s.trim().toLowerCase();
     if (str.isEmpty()) return getValue(); // fallback to original
@@ -349,31 +339,18 @@ void TransformerElement::createSignalPaths ()
 
 void TransformerElement::updateSignalPaths () {
     if (getNumMonitors()> 1){
-        float pprim = getRMSValue(0, MONITOR_PORT_I)*getRMSValue(0, MONITOR_PORT_V) * POWER_SCALING; 
-        float psec = getRMSValue(1, MONITOR_PORT_I)*getRMSValue(1, MONITOR_PORT_V) * POWER_SCALING; 
         signalPaths[0].updateSignalPath(
-            getSmoothedValue(0, MONITOR_PORT_I) * POWER_SCALING,
+            getSmoothedValue(0, MONITOR_PORT_I) * INTENSITY_SCALING,
             getSmoothedValue(0, MONITOR_PORT_V),
-            pprim
+            getRMSValue(0, MONITOR_PORT_I)*getRMSValue(0, MONITOR_PORT_V) * POWER_SCALING
         );
         signalPaths[1].updateSignalPath(
-            getSmoothedValue(1, MONITOR_PORT_I) * POWER_SCALING,
+            getSmoothedValue(1, MONITOR_PORT_I) * INTENSITY_SCALING,
             getSmoothedValue(1, MONITOR_PORT_V),
-            psec
+            getRMSValue(1, MONITOR_PORT_I)*getRMSValue(1, MONITOR_PORT_V) * POWER_SCALING
         );
     }
 };
-
-void TransformerElement::drawPower (juce::Graphics& g) const
-{
-    if (getNumMonitors() > 1){
-        float pprim = getRMSValue(0, MONITOR_PORT_I)*getRMSValue(0, MONITOR_PORT_V) * POWER_SCALING; 
-        float psec = getRMSValue(1, MONITOR_PORT_I)*getRMSValue(1, MONITOR_PORT_V) * POWER_SCALING; 
-        drawPowerGlowPath(g, primary, pprim);
-        drawPowerGlowPath(g, secondary, psec);
-    }
-}
-
 
 juce::String TransformerElement::getInspectValue () 
 {
@@ -391,15 +368,17 @@ juce::AttributedString TransformerElement::getInspectContent ()
         float cs = getSmoothedValue(1, MONITOR_PORT_I);
         float vp_rms = getRMSValue(0, MONITOR_PORT_V);
         float vs_rms = getRMSValue(1, MONITOR_PORT_V);
-        textContent.append ("Primary : ", font, getColourNormal());
+        textContent.append ("Primary voltage: ", font, getColourNormal());
         textContent.append ("\n\t");
         textContent.append (formatVDCAC(vp, vp_rms), font, getColourElectrical());
+        textContent.append ("\nPrimary current: ", font, getColourNormal());
         textContent.append ("\n\t");
         textContent.append (formatCurrent(cp), font, getColourAmber());
         textContent.append ("\n");
-        textContent.append ("Secondary : ", font, getColourNormal());
+        textContent.append ("Secondary voltage: ", font, getColourNormal());
         textContent.append ("\n\t");
         textContent.append (formatVDCAC(vs, vs_rms), font, getColourElectrical());
+        textContent.append ("\nSecondary current: ", font, getColourNormal());
         textContent.append ("\n\t");
         textContent.append (formatCurrent(cs), font, getColourAmber());
         textContent.append ("\n\t");

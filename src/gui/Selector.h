@@ -60,4 +60,14 @@ public:
     int getAlertBoxWindowFlags() override;
     juce::Font getAlertWindowTitleFont() override;
     juce::Font getAlertWindowMessageFont() override;
+
+    void fillTextEditorBackground (juce::Graphics& g,
+                               int width,
+                               int height,
+                               juce::TextEditor& editor) override;
+
+    void drawTextEditorOutline (juce::Graphics& g,
+                                int width,
+                                int height,
+                                juce::TextEditor& editor) override;
 };

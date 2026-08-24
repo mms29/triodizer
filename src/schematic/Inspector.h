@@ -60,6 +60,7 @@ public:
         g.setColour (getColourNormal());
         bounds.removeFromTop(30);
         g.drawLine (juce::Line(bounds.getTopLeft(), bounds.getTopRight()), 1.0f);
+        bounds.removeFromTop(10);
 
         // // Content    
         // bounds.removeFromTop(10);
@@ -79,7 +80,14 @@ public:
         descriptionBounds.removeFromTop (10);
         descriptionBounds.removeFromTop (contentHeight);
 
+        g.setColour (getColourGrey());
+        g.drawLine (juce::Line(descriptionBounds.getTopLeft(), descriptionBounds.getTopRight()), 1.0f);
+        descriptionBounds.removeFromTop(10);
+        // descriptionBounds.removeFromBottom (30);
+
         contentLayout.draw (g, bounds);
+
+        description.setJustification(juce::Justification::topLeft);
         description.draw (g, descriptionBounds);
 
     }

@@ -44,16 +44,16 @@ private:
 };
 
 // ==============================================================================
-// TubeLabProcessor: Main audio processor class for the TubeLab plugin
+// CathodyneProcessor: Main audio processor class for the Cathodyne plugin
 // Handles audio processing, parameter management, and circuit state
-class TubeLabProcessor : public juce::AudioProcessor,
+class CathodyneProcessor : public juce::AudioProcessor,
                         public juce::ChangeBroadcaster
 {
 public:
-    TubeLabProcessor();
-    ~TubeLabProcessor() override;
+    CathodyneProcessor();
+    ~CathodyneProcessor() override;
 
-    const juce::String getName() const override { return "TubeLab"; }
+    const juce::String getName() const override { return "Cathodyne"; }
 
     // Audio processor overrides
     bool acceptsMidi() const override { return false; }
@@ -134,5 +134,5 @@ private:
     // Preset selection
     int currentPreset = PRESET_DEFAULT;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TubeLabProcessor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (CathodyneProcessor)
 };

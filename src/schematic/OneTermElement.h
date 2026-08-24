@@ -66,11 +66,10 @@ public:
 
     void prepareToDraw () override;
     void draw (juce::Graphics& g) const override;
-    juce::String valueToLabel (float v) override;
-    float labelToValue (const juce::String s) override;
+    juce::String valueToLabel (float v) const override;
+    float labelToValue (const juce::String s) const override;
     juce::AttributedString getInspectContent () override;
     juce::String getInspectValue () override {return label;};
-    void drawPower (juce::Graphics& g) const override;
     void createSignalPaths () override;
     void updateSignalPaths () override;
 

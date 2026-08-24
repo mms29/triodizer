@@ -55,7 +55,6 @@ public:
     void prepareToDraw () override;
     void createSignalPaths () override;
     void updateSignalPaths () override;
-    void drawPower (juce::Graphics& g) const override;
 
     juce::AttributedString getInspectContent () override;
     juce::String getInspectValue () override;
