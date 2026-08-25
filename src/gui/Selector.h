@@ -49,7 +49,6 @@ public:
                             const juce::Colour* textColour) override;
 
     int getPopupMenuBorderSize() override;
-
     juce::Font getPopupMenuFont() override;
 
     void drawAlertBox (juce::Graphics& g,
@@ -70,4 +69,23 @@ public:
                                 int width,
                                 int height,
                                 juce::TextEditor& editor) override;
+};
+
+
+class InspectButtonLookAndFeel : public juce::LookAndFeel_V4
+{
+public:
+    void drawButtonText (
+    juce::Graphics& g,
+    juce::TextButton& button,
+    bool shouldDrawButtonAsHighlighted,
+    bool shouldDrawButtonAsDown) override;
+
+    void drawButtonBackground (
+    juce::Graphics& g,
+    juce::Button& button,
+    const juce::Colour& backgroundColour,
+    bool shouldDrawButtonAsHighlighted,
+    bool shouldDrawButtonAsDown) override;
+
 };

@@ -128,22 +128,6 @@ inline constexpr int INSPECTOR_BUTTON_SIZE = 76;
 // inline constexpr int PRESET_DIODE_CLIPPER = 5;
 // inline constexpr int PRESET_TRIODE_GAIN_STAGE = 6;
 
-enum PresetId
-{
-    PRESET_DEFAULT = 0,
-
-    // Preamps
-    PRESET_BASSMAN_PREAMP,
-    PRESET_DUAL_RECTIFIER_PREAMP,
-    PRESET_TWIN_REVERB,
-
-    // Distortion / Coloring
-    PRESET_DIODE_CLIPPER,
-    PRESET_TRIODE_GAIN_STAGE,
-
-    PRESET_COUNT
-};
-
 // Signal path modes
 inline constexpr int SIGNALPATH_MODE_NORMAL_FORWARD = 0;
 inline constexpr int SIGNALPATH_MODE_REVERSE_FORWARD = 1;   

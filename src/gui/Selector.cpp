@@ -65,21 +65,24 @@ void GlowComboBoxLookAndFeel::drawLabel (juce::Graphics& g, juce::Label& label)
                 label.getLocalBounds(),
                 juce::Justification::centredLeft);
 }
-
 void GlowComboBoxLookAndFeel::drawButtonBackground (
     juce::Graphics& g,
     juce::Button& button,
-    const juce::Colour& backgroundColour,
+    const juce::Colour&,
     bool shouldDrawButtonAsHighlighted,
     bool shouldDrawButtonAsDown)
 {
     auto area = button.getLocalBounds().toFloat();
 
+    // Same outline as ComboBox
     juce::Path outline;
-    outline.addRoundedRectangle (area.reduced (10.0f), 10.0f);
+    outline.addRoundedRectangle (
+        area.reduced (1.0f),
+        6.0f);
 
-    // Same outline as the ComboBox
-    g.setColour (getColourGrey());
+    g.setColour (
+        getColourGrey().withAlpha (0.5f));
+
     g.strokePath (
         outline,
         juce::PathStrokeType (
@@ -87,44 +90,51 @@ void GlowComboBoxLookAndFeel::drawButtonBackground (
             juce::PathStrokeType::curved,
             juce::PathStrokeType::rounded));
 
-    // Optional glow when hovered/pressed
-    if (shouldDrawButtonAsHighlighted || shouldDrawButtonAsDown)
-    {
+    // Same arrow as ComboBox
+    juce::Path arrow;
 
-        drawGlowAndCorePath (g,
-                      outline,
-                      0.02f,
-                      getColourNormal(),
-                      getColourNormal(),
-                      false);
+    float cx = area.getRight() - 15.0f;
+    float cy = area.getCentreY();
 
-    }
+    arrow.startNewSubPath (cx - 5.0f, cy - 3.0f);
+    arrow.lineTo         (cx,       cy + 3.0f);
+    arrow.lineTo         (cx + 5.0f, cy - 3.0f);
+    arrow.closeSubPath();
+
+    drawGlowAndCorePath (
+        g,
+        arrow,
+        0.05f,
+        getColourNormal(),
+        getColourHotRed(),
+        false);
 }
-
 void GlowComboBoxLookAndFeel::drawButtonText (
     juce::Graphics& g,
     juce::TextButton& button,
     bool shouldDrawButtonAsHighlighted,
     bool shouldDrawButtonAsDown)
 {
+    // Same font / colour as ComboBox label
+    g.setColour (
+        juce::Colours::white.withAlpha (0.5f));
 
-    // Optional glow when hovered/pressed
-    if (shouldDrawButtonAsHighlighted || shouldDrawButtonAsDown)
-    {
-    g.setColour (getColourHighlight());
-    g.setFont (juce::FontOptions (FONT_SUB2, juce::Font::bold));
-    }
-    else{
-    g.setColour (juce::Colours::white.withAlpha(0.5f));
-    g.setFont (juce::FontOptions (FONT_SUB2, juce::Font::plain));
-    }
+    g.setFont (
+        juce::FontOptions (
+            FONT_SUB2,
+            juce::Font::plain));
+
+    // Leave room for the arrow
+    auto textArea = button.getLocalBounds()
+                           .reduced (10, 2);
+
+    textArea.removeFromRight (20);
 
     g.drawText (
         button.getButtonText(),
-        button.getLocalBounds(),
-        juce::Justification::centred);
-    
-
+        textArea,
+        juce::Justification::centredLeft,
+        true);
 }
 
 void GlowComboBoxLookAndFeel::drawPopupMenuBackground (juce::Graphics& g,
@@ -139,19 +149,15 @@ void GlowComboBoxLookAndFeel::drawPopupMenuBackground (juce::Graphics& g,
     juce::Path outline;
     g.setColour (getColourBackground());
     g.fillRect(area);
-    outline.addRoundedRectangle (area.reduced (1.0f), 6.0f);
+    outline.addRoundedRectangle (area, 6.0f);
 
-    drawGlowAndCorePath (g,
-                         outline,
-                         0.04f,
-                         getColourNormal(),
-                         getColourNormal(),
-                         false);
-
-    // Dark background
-    g.setColour (getColourBackground());
-    g.fillRoundedRectangle (area.reduced (1.0f), 6.0f);
-
+    g.setColour (getColourGrey());
+    g.strokePath (
+        outline,
+        juce::PathStrokeType (
+            0.5f,
+            juce::PathStrokeType::curved,
+            juce::PathStrokeType::rounded));
 
 }
 
@@ -172,7 +178,7 @@ void GlowComboBoxLookAndFeel::drawPopupMenuItem (
     {
         auto separatorArea = area.reduced (10, 0);
 
-        g.setColour (getColourGrey().withAlpha (0.35f));
+        g.setColour (getColourGrey().withAlpha (0.5f));
 
         g.fillRect (
             separatorArea.getX(),
@@ -287,7 +293,7 @@ int GlowComboBoxLookAndFeel::getPopupMenuBorderSize()
 
 juce::Font GlowComboBoxLookAndFeel::getPopupMenuFont()
 {
-    return juce::FontOptions (FONT_SUB2, juce::Font::plain);
+    return juce::FontOptions (FONT_SUB1, juce::Font::plain);
 }
 
 void GlowComboBoxLookAndFeel::drawAlertBox (
@@ -397,4 +403,71 @@ juce::Font GlowComboBoxLookAndFeel::getAlertWindowMessageFont()
 int GlowComboBoxLookAndFeel::getAlertBoxWindowFlags()
 {
     return 0;
+}
+
+
+
+
+void InspectButtonLookAndFeel::drawButtonBackground (
+    juce::Graphics& g,
+    juce::Button& button,
+    const juce::Colour& backgroundColour,
+    bool shouldDrawButtonAsHighlighted,
+    bool shouldDrawButtonAsDown)
+{
+    auto area = button.getLocalBounds().toFloat();
+
+    juce::Path outline;
+    outline.addRoundedRectangle (area.reduced (10.0f), 6.0f);
+
+    // Same outline as the ComboBox
+    g.setColour (getColourGrey().withAlpha(0.5f));
+    g.strokePath (
+        outline,
+        juce::PathStrokeType (
+            0.5f,
+            juce::PathStrokeType::curved,
+            juce::PathStrokeType::rounded));
+
+    // Optional glow when hovered/pressed
+    if (shouldDrawButtonAsHighlighted || shouldDrawButtonAsDown)
+    {
+
+        drawGlowAndCorePath (g,
+                      outline,
+                      0.02f,
+                      getColourNormal(),
+                      getColourNormal(),
+                      false);
+
+        g.setColour(getColourNormal().withAlpha (0.1f));
+        g.fillPath(outline);
+
+    }
+}
+
+void InspectButtonLookAndFeel::drawButtonText (
+    juce::Graphics& g,
+    juce::TextButton& button,
+    bool shouldDrawButtonAsHighlighted,
+    bool shouldDrawButtonAsDown)
+{
+
+    // Optional glow when hovered/pressed
+    if (shouldDrawButtonAsHighlighted || shouldDrawButtonAsDown)
+    {
+    g.setColour (getColourHighlight());
+    g.setFont (juce::FontOptions (FONT_SUB2, juce::Font::bold));
+    }
+    else{
+    g.setColour (juce::Colours::white.withAlpha(0.5f));
+    g.setFont (juce::FontOptions (FONT_SUB2, juce::Font::plain));
+    }
+
+    g.drawText (
+        button.getButtonText(),
+        button.getLocalBounds(),
+        juce::Justification::centred);
+    
+
 }

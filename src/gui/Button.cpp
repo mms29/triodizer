@@ -1,10 +1,35 @@
 #include <gui/Button.h>
 
 void PathToggleButton::paintButton (juce::Graphics& g,
-                    bool,
+                    bool isMouseOver,
                     bool) 
 {
     auto bounds = getLocalBounds().reduced(0,0).toFloat();
+
+    juce::Path outline;
+    outline.addRoundedRectangle (bounds.reduced (10.0f), 6.0f);
+        g.setColour (getColourGrey().withAlpha(0.5f));
+        g.strokePath (
+            outline,
+            juce::PathStrokeType (
+                0.5f,
+                juce::PathStrokeType::curved,
+                juce::PathStrokeType::rounded));
+
+    // Same outline as the ComboBox
+    if (isMouseOver){
+        drawGlowAndCorePath (g,
+                      outline,
+                      0.02f,
+                      getColourNormal(),
+                      getColourNormal(),
+                      false);
+
+        g.setColour(getColourNormal().withAlpha (0.1f));
+        g.fillPath(outline);
+
+    }
+
 
     // split area: icon + text
     auto textArea = bounds;
@@ -41,8 +66,8 @@ void PathToggleButton::paintButton (juce::Graphics& g,
     }
     else
     {
-        g.setColour (c.withAlpha (0.6f));
-        g.strokePath (p, juce::PathStrokeType (2.0f));
+        g.setColour (c.withAlpha (0.5f));
+        g.strokePath (p, juce::PathStrokeType (1.0f));
     }
 
     // ===== LABEL =====

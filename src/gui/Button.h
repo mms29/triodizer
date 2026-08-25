@@ -18,7 +18,7 @@ public:
     }
 
     void paintButton (juce::Graphics& g,
-                      bool,
+                      bool isMouseOver ,
                       bool) override;
 
 private:

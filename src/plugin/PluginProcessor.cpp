@@ -41,21 +41,12 @@ CathodyneProcessor::CathodyneProcessor()
               std::make_unique<juce::AudioParameterChoice> (
                   "preset",
                   "Preset",
-                  juce::StringArray
-                  {
-                      "Default",
-                      "Fender Bassman Preamp",
-                      "Mesa/Boogie Dual Rectifier",
-                      "Twin Reverb",
-                    "Diode Clipper",
-                    "Triode Gain Stage"
-
-                  },
+                  getPresetNames(),
                   0)
           })
 {
     oversamplingStages = (int) parameters.getRawParameterValue ("oversample")->load();
-    currentPreset = (int) parameters.getRawParameterValue ("preset")->load() + 1;
+    currentPreset = (int) parameters.getRawParameterValue ("preset")->load();
     buildCircuit();
     sendChangeMessage();
 }
@@ -92,14 +83,6 @@ void CathodyneProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 
     // Read parameters
     bool monoMode = *parameters.getRawParameterValue ("monoStereo") > 0.5f;
-
-    // float drive_dB = *parameters.getRawParameterValue ("drive");
-    // float gain_dB = *parameters.getRawParameterValue ("gain");
-
-    // float drive_G = juce::Decibels::decibelsToGain (drive_dB);
-    // float gain_G = juce::Decibels::decibelsToGain (gain_dB);
-
-    // buffer.applyGain (drive_G);
 
     // Capture input samples for waveform display
     if (numChannels >= 1 && numSamples > 0)
@@ -184,7 +167,7 @@ void CathodyneProcessor::updateOversampler()
 
 void CathodyneProcessor::updatePreset()
 {
-    int presetChoice = (int) parameters.getRawParameterValue ("preset")->load() + 1;
+    int presetChoice = (int) parameters.getRawParameterValue ("preset")->load() ;
 
     // Avoid rebuilding every block
     if (currentPreset == presetChoice)

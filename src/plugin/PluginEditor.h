@@ -72,8 +72,6 @@ public:
         oversampleSelector.changeItemText (4, juce::String(8*sampleRate/1e3, 1) + "kHz");
     }
 
-    juce::PopupMenu createPresetMenu();
-
 private:
     CathodyneProcessor& audioProcessor;
     int timerCount = 0;
@@ -118,10 +116,12 @@ private:
     // std::unique_ptr<PathToggleButton> inspectButton;
     CallbackTimer inspectTimer;
     std::unique_ptr<juce::TextButton> inspectTogglebutton;
+    InspectButtonLookAndFeel inspectButtonLF;
 
     // Mono/stereo mode toggle
-    juce::ToggleButton monoStereoButton;
+    juce::TextButton monoStereoButton;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> monoStereoAttachment;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (CathodyneEditor)
 };
+

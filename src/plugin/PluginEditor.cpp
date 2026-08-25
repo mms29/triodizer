@@ -59,31 +59,12 @@ CathodyneEditor::CathodyneEditor (CathodyneProcessor& p)
     //==========================================================================
 
 
-    // juce::Path inspectPath;
-    // inspectPath.addEllipse (10, 10, 25, 25);
-    // float x = 22.5f + 12.5f * std::sqrt(0.5f);
-    // float y = 22.5f + 12.5f * std::sqrt(0.5f);
-    // inspectPath.startNewSubPath(x,y);
-    // inspectPath.lineTo(50, 50);
-    // schematic->setInspectorhActivated(true);
-
-    // // inspectPath.addEllipse (20, 20, 20, 20);
-    // inspectPath.addRoundedRectangle (0, 0, 60, 60, 10.0f);
-
-    // inspectButton = std::make_unique<PathToggleButton> (inspectPath, "INSPECT", juce::Colours::darkgrey,  getColourAmber());
-    // inspectButton->setClickingTogglesState (true);
-    // inspectButton->onClick = [this] 
-    // {
-    //     schematic->setInspectorhActivated(inspectButton->getToggleState());
-    // };
-    // addAndMakeVisible (*inspectButton);
-
     schematic->setInspectorhActivated(false);
     inspectTogglebutton = std::make_unique<juce::TextButton>();
     inspectTogglebutton->setButtonText ("<<");
     inspectTogglebutton->setClickingTogglesState (true);
     // inspectTogglebutton->setToggleState(false);
-    inspectTogglebutton->setLookAndFeel(&glowComboBoxLF);
+    inspectTogglebutton->setLookAndFeel(&inspectButtonLF);
     inspectTogglebutton->onClick = [this]
     {
         inspectTogglebutton->setButtonText (inspectTogglebutton->getToggleState() ? ">>" : "<<");
@@ -92,33 +73,6 @@ CathodyneEditor::CathodyneEditor (CathodyneProcessor& p)
         std::cout << "inspectTogglebutton: " << inspectTogglebutton->getToggleState() << std::endl;
     };
     addAndMakeVisible (*inspectTogglebutton);
-    // inspectTogglebutton->setClickingTogglesState (false);
-
-    // //==========================================================================
-    // // DRIVE
-    // //==========================================================================
-    // driveKnob = std::make_unique<Knob> (
-    //     audioProcessor.parameters,
-    //     "drive",
-    //     "Drive",
-    //     DRIVE_MIN,
-    //     DRIVE_MAX,
-    //     DRIVE_STEP,
-    //     " dB");
-    // addAndMakeVisible (*driveKnob);
-
-    // //==========================================================================
-    // // GAIN
-    // //==========================================================================
-    // gainKnob = std::make_unique<Knob> (
-    //     audioProcessor.parameters,
-    //     "gain",
-    //     "Gain",
-    //     GAIN_MIN,
-    //     GAIN_MAX,
-    //     GAIN_STEP,
-    //     " dB");
-    // addAndMakeVisible (*gainKnob);
 
     //==========================================================================
     // OVERSAMPLING
@@ -144,22 +98,24 @@ CathodyneEditor::CathodyneEditor (CathodyneProcessor& p)
     //==========================================================================
     // MONO STEREO
     //==========================================================================
-    addAndMakeVisible (monoStereoButton);
+    auto* monoStereoParam =audioProcessor.parameters.getRawParameterValue ("monoStereo");
+    const bool isStereo = monoStereoParam->load() > 0.5f;
+
+    monoStereoButton.setButtonText (isStereo ? "Stereo" : "Mono");
+    monoStereoButton.setClickingTogglesState (true);
+    monoStereoButton.setLookAndFeel (&inspectButtonLF);
+
+    monoStereoButton.onClick = [this]
+    {
+        monoStereoButton.setButtonText (monoStereoButton.getToggleState() ? "Stereo" : "Mono");
+    };
 
     monoStereoAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (
         audioProcessor.parameters,
         "monoStereo",
         monoStereoButton);
 
-    monoStereoButton.setClickingTogglesState (true);
-    monoStereoButton.onStateChange = [this]()
-    {
-        if (monoStereoButton.getToggleState())
-            monoStereoButton.setButtonText ("Mono");
-        else
-            monoStereoButton.setButtonText ("Stereo");
-    };
-
+    addAndMakeVisible (monoStereoButton);
     //==========================================================================
     // RESET VIEW
     //==========================================================================
@@ -169,53 +125,53 @@ CathodyneEditor::CathodyneEditor (CathodyneProcessor& p)
     //==========================================================================
     // PRESET
     //==========================================================================
-    // presetSelector.addItem ("Default", PRESET_DEFAULT);
-    // presetSelector.addItem ("Fender Bassman Preamp", PRESET_BASSMAN_PREAMP);
-    // presetSelector.addItem ("Mesa/Boogie Dual Rectifier", PRESET_DUAL_RECTIFIER_PREAMP);
-    // presetSelector.addItem ("Fender Twin reverb", PRESET_TWIN_REVERB);
-    // presetSelector.addItem ("Diode Clipper", PRESET_DIODE_CLIPPER);
-    // presetSelector.addItem ("Triode Gain Stage", PRESET_TRIODE_GAIN_STAGE);
-    // presetSelector.setLookAndFeel(&glowComboBoxLF);
-    // addAndMakeVisible (presetSelector);
 
-    // // presetLabel.setText ("Preset", juce::dontSendNotification);
-    // // presetLabel.attachToComponent (&presetSelector, false);
-    // // addAndMakeVisible (presetLabel);
-
-    // presetAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment> (
-    //     audioProcessor.parameters, "preset", presetSelector);
-
-
-
-    auto menu = createPresetMenu();
-    menu.setLookAndFeel (&glowComboBoxLF);
-    presetSelector.setButtonText ("Default");
+    presetSelector.setLookAndFeel(&glowComboBoxLF);
+    auto* preset = dynamic_cast<juce::AudioParameterChoice*> (audioProcessor.parameters.getParameter ("preset"));
+    presetSelector.setButtonText (preset->getCurrentChoiceName());
+    
     presetSelector.onClick = [this]
     {
-        auto menu = createPresetMenu();
+        juce::PopupMenu menu, preamps, coloring;
+
+        for (const auto& preset : presets)
+        {
+            auto itemId = menuIdForPreset (preset.id);
+
+            if (juce::String (preset.category) == "Preamps")
+                preamps.addItem (itemId, preset.name);
+
+            else if (juce::String (preset.category) == "Distortion & Coloring")
+                coloring.addItem (itemId, preset.name);
+            else if (juce::String (preset.category) == "General")
+                menu.addItem (itemId, preset.name);
+        }
+        menu.addSubMenu ("Preamps", preamps);
+        menu.addSubMenu ("Distortion & Coloring", coloring);
 
         menu.setLookAndFeel (&glowComboBoxLF);
+        auto options = juce::PopupMenu::Options()
+            .withTargetComponent (&presetSelector)
+            .withMinimumWidth (presetSelector.getWidth())
+            .withStandardItemHeight(40);
 
         menu.showMenuAsync (
-            juce::PopupMenu::Options(),
+            options,
             [this] (int result)
             {
-                if (result <= 0)
+                result = presetIndexFromMenuId(result);
+                std::cout<<result<<std::endl;
+                if (result < 0)
                     return;
 
-                auto* parameter =
-                    audioProcessor.parameters.getParameter ("preset");
+                auto* parameter = audioProcessor.parameters.getParameter ("preset");
 
                 if (parameter == nullptr)
                     return;
 
-                parameter->setValueNotifyingHost (
-                    parameter->convertTo0to1 (
-                        static_cast<float> (result)));
+                parameter->setValueNotifyingHost (parameter->convertTo0to1 (static_cast<float> (result)));
 
-                auto* preset =
-                dynamic_cast<juce::AudioParameterChoice*> (
-                    audioProcessor.parameters.getParameter ("preset"));
+                auto* preset = dynamic_cast<juce::AudioParameterChoice*> (audioProcessor.parameters.getParameter ("preset"));
 
                 if (preset != nullptr)
                     presetSelector.setButtonText (
@@ -227,6 +183,8 @@ CathodyneEditor::CathodyneEditor (CathodyneProcessor& p)
     // SIZE
     //==========================================================================
     setSize (WINDOW_WIDTH, WINDOW_HEIGHT);
+    setResizable (true, true);
+    setResizeLimits (WINDOW_WIDTH, WINDOW_HEIGHT/2, WINDOW_WIDTH*2, WINDOW_HEIGHT*2);
     schematic->resetView();
 }
 
@@ -366,6 +324,11 @@ void CathodyneEditor::resized()
 
     scopeButton->setBounds (topPanel.removeFromLeft (TOGGLE_BUTTON_SIZE));
     signalButton->setBounds (topPanel.removeFromLeft (TOGGLE_BUTTON_SIZE));
+
+
+    // Mono stereo button
+    monoStereoButton.setBounds (topPanel.removeFromRight(90));
+
     oversampleSelector.setBounds (topPanel.removeFromRight(120).reduced (10));
 
 
@@ -387,9 +350,6 @@ void CathodyneEditor::resized()
 
     // // Reset view button
     // resetViewButton.setBounds (topPanel.removeFromRight (80));
-
-    // // Mono stereo button
-    // monoStereoButton.setBounds (topPanel.removeFromRight (80));
 
 
     // Waveform display at top
@@ -438,49 +398,4 @@ float CathodyneEditor::getCircuitParam (const int index)
 float CathodyneEditor::getCircuitControl (const int index)
 {
     return audioProcessor.getCircuitControl (index);
-}
-
-
-juce::PopupMenu CathodyneEditor::createPresetMenu()
-{
-    juce::PopupMenu menu;
-
-    menu.addItem (
-        PRESET_DEFAULT,
-        "Default");
-
-    juce::PopupMenu preamps;
-
-    preamps.addItem (
-        PRESET_BASSMAN_PREAMP,
-        "Fender Bassman Preamp");
-
-    preamps.addItem (
-        PRESET_DUAL_RECTIFIER_PREAMP,
-        "Mesa/Boogie Dual Rectifier");
-
-    preamps.addItem (
-        PRESET_TWIN_REVERB,
-        "Fender Twin Reverb");
-
-    menu.addSubMenu (
-        "Preamps",
-        preamps);
-
-
-    juce::PopupMenu coloring;
-
-    coloring.addItem (
-        PRESET_DIODE_CLIPPER,
-        "Diode Clipper");
-
-    coloring.addItem (
-        PRESET_TRIODE_GAIN_STAGE,
-        "Triode Gain Stage");
-
-    menu.addSubMenu (
-        "Distortion / Coloring",
-        coloring);
-
-    return menu;
 }
