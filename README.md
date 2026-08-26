@@ -2,7 +2,7 @@
 
 Cathodyne is a playground for audio nerds and curious musicians who like turning knobs, dirty sounds, and messing with electronic circuits.
 
-![Cathodyne](screenshot.png) 
+![Cathodyne](images/screenshot.png) 
 
 ## Features
 
