@@ -64,7 +64,7 @@ CathodyneEditor::CathodyneEditor (CathodyneProcessor& p)
     inspectTogglebutton->setButtonText ("<<");
     inspectTogglebutton->setClickingTogglesState (true);
     // inspectTogglebutton->setToggleState(false);
-    inspectTogglebutton->setLookAndFeel(&inspectButtonLF);
+    inspectTogglebutton->setLookAndFeel(&glowLF);
     inspectTogglebutton->onClick = [this]
     {
         inspectTogglebutton->setButtonText (inspectTogglebutton->getToggleState() ? ">>" : "<<");
@@ -82,7 +82,7 @@ CathodyneEditor::CathodyneEditor (CathodyneProcessor& p)
     oversampleSelector.addItem ("4x", 3);
     oversampleSelector.addItem ("8x", 4);
     updateOversampleLabels(audioProcessor.getSampleRate());
-    oversampleSelector.setLookAndFeel(&glowComboBoxLF);
+    oversampleSelector.setLookAndFeel(&glowLF);
     addAndMakeVisible (oversampleSelector);
 
     oversampleLabel.setText ("Oversample", juce::dontSendNotification);
@@ -103,7 +103,7 @@ CathodyneEditor::CathodyneEditor (CathodyneProcessor& p)
 
     monoStereoButton.setButtonText (isStereo ? "Stereo" : "Mono");
     monoStereoButton.setClickingTogglesState (true);
-    monoStereoButton.setLookAndFeel (&inspectButtonLF);
+    monoStereoButton.setLookAndFeel (&glowLF);
 
     monoStereoButton.onClick = [this]
     {
@@ -126,7 +126,7 @@ CathodyneEditor::CathodyneEditor (CathodyneProcessor& p)
     // PRESET
     //==========================================================================
 
-    presetSelector.setLookAndFeel(&glowComboBoxLF);
+    presetSelector.setLookAndFeel(&ComboBoxLF);
     auto* preset = dynamic_cast<juce::AudioParameterChoice*> (audioProcessor.parameters.getParameter ("preset"));
     presetSelector.setButtonText (preset->getCurrentChoiceName());
     
@@ -149,7 +149,7 @@ CathodyneEditor::CathodyneEditor (CathodyneProcessor& p)
         menu.addSubMenu ("Preamps", preamps);
         menu.addSubMenu ("Distortion & Coloring", coloring);
 
-        menu.setLookAndFeel (&glowComboBoxLF);
+        menu.setLookAndFeel (&glowLF);
         auto options = juce::PopupMenu::Options()
             .withTargetComponent (&presetSelector)
             .withMinimumWidth (presetSelector.getWidth())
@@ -327,7 +327,7 @@ void CathodyneEditor::resized()
 
 
     // Mono stereo button
-    monoStereoButton.setBounds (topPanel.removeFromRight(90));
+    monoStereoButton.setBounds (topPanel.removeFromRight(90).reduced (10));
 
     oversampleSelector.setBounds (topPanel.removeFromRight(120).reduced (10));
 
@@ -338,7 +338,7 @@ void CathodyneEditor::resized()
         togglebuttArea.removeFromRight(SCHEMATIC_INSPECTOR_SIZE);
     togglebuttArea = togglebuttArea.removeFromRight(INSPECTOR_BUTTON_SIZE).removeFromTop(INSPECTOR_BUTTON_SIZE).reduced (10);
     // togglebuttArea.removeFromTop(50);
-    inspectTogglebutton->setBounds (togglebuttArea);
+    inspectTogglebutton->setBounds (togglebuttArea.reduced (10));
 
     // auto leftPanel = area.removeFromLeft (WINDOW_LEFT_PANEL);
 

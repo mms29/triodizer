@@ -4,7 +4,7 @@
 #include "utils/Glow.h"
 
 
-class GlowComboBoxLookAndFeel : public juce::LookAndFeel_V4
+class GlowLookAndFeel : public juce::LookAndFeel_V4
 {
 public:
     void drawComboBox (juce::Graphics& g,
@@ -69,18 +69,20 @@ public:
                                 int width,
                                 int height,
                                 juce::TextEditor& editor) override;
+
+    void drawRotarySlider (juce::Graphics& g,
+                           int x, int y,
+                           int width, int height,
+                           float sliderPos,
+                           float rotaryStartAngle,
+                           float rotaryEndAngle,
+                           juce::Slider& slider) override;
 };
 
 
-class InspectButtonLookAndFeel : public juce::LookAndFeel_V4
+class ComboBoxLookAndFeel : public GlowLookAndFeel
 {
 public:
-    void drawButtonText (
-    juce::Graphics& g,
-    juce::TextButton& button,
-    bool shouldDrawButtonAsHighlighted,
-    bool shouldDrawButtonAsDown) override;
-
     void drawButtonBackground (
     juce::Graphics& g,
     juce::Button& button,

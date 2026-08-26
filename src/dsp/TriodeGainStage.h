@@ -70,7 +70,7 @@ public:
     void setDefaultControl () 
     { 
         setControl((int)Control::Volume, T(50.0f));    
-        setControl((int)Control::Gain, T(100.0f));    
+        setControl((int)Control::Gain, T(50.0f));    
     }
     void setParam (const int index, T value) override
     {
@@ -92,7 +92,7 @@ public:
             case (int)Param::Rp1: w_Rp1.setResistanceValue(value); break;
             case (int)Param::Cp1: w_Cp1.setCapacitanceValue(value); break;
             case (int)Param::RVol: setControl((int)Control::Volume, T(50.0f)); break;
-            case (int)Param::Gain: setControl((int)Control::Gain, T(50.0f)); break;
+            case (int)Param::Gain: setControl((int)Control::Gain, T(100.0f)); break;
 
             case (int)Param::Count:
             default:

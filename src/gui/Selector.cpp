@@ -1,7 +1,7 @@
 #include <gui/Selector.h>
 
 
-void GlowComboBoxLookAndFeel::drawComboBox (juce::Graphics& g,
+void GlowLookAndFeel::drawComboBox (juce::Graphics& g,
                     int width,
                     int height,
                     bool isButtonDown,
@@ -9,7 +9,7 @@ void GlowComboBoxLookAndFeel::drawComboBox (juce::Graphics& g,
                     int buttonY,
                     int buttonW,
                     int buttonH,
-                    juce::ComboBox&)
+                    juce::ComboBox& box)
     {
         juce::Rectangle<float> area (0.0f, 0.0f, (float) width, (float) height);
 
@@ -26,6 +26,21 @@ void GlowComboBoxLookAndFeel::drawComboBox (juce::Graphics& g,
         //               getColourAmber(),
         //               false);
 
+        if (box.isMouseOver(true))
+        {
+
+            drawGlowAndCorePath (g,
+                        outline,
+                        0.02f,
+                        getColourNormal(),
+                        getColourNormal(),
+                        false);
+
+            g.setColour(getColourNormal().withAlpha (0.1f));
+            g.fillPath(outline);
+
+        }
+
         // Arrow indicator (simple triangle)
         juce::Path arrow;
         float cx = area.getRight() - 15.0f;
@@ -37,15 +52,15 @@ void GlowComboBoxLookAndFeel::drawComboBox (juce::Graphics& g,
         arrow.closeSubPath();
 
         drawGlowAndCorePath (g,
-                      arrow,
-                      0.05f,
-                      getColourNormal(),
-                      getColourHotRed(),
-                      false);
+                        arrow,
+                        0.05f,
+                        getColourNormal(),
+                        getColourHotRed(),
+                        false);
     }
 
 
-void GlowComboBoxLookAndFeel::positionComboBoxText (juce::ComboBox& box,
+void GlowLookAndFeel::positionComboBoxText (juce::ComboBox& box,
                             juce::Label& label) 
 {
     label.setBounds (box.getLocalBounds().reduced (10, 2));
@@ -54,7 +69,7 @@ void GlowComboBoxLookAndFeel::positionComboBoxText (juce::ComboBox& box,
 
 }
 
-void GlowComboBoxLookAndFeel::drawLabel (juce::Graphics& g, juce::Label& label) 
+void GlowLookAndFeel::drawLabel (juce::Graphics& g, juce::Label& label) 
 {
     if (dynamic_cast<juce::AlertWindow*> (label.getParentComponent()) != nullptr)
         return;
@@ -65,7 +80,7 @@ void GlowComboBoxLookAndFeel::drawLabel (juce::Graphics& g, juce::Label& label)
                 label.getLocalBounds(),
                 juce::Justification::centredLeft);
 }
-void GlowComboBoxLookAndFeel::drawButtonBackground (
+void GlowLookAndFeel::drawButtonBackground (
     juce::Graphics& g,
     juce::Button& button,
     const juce::Colour&,
@@ -74,15 +89,11 @@ void GlowComboBoxLookAndFeel::drawButtonBackground (
 {
     auto area = button.getLocalBounds().toFloat();
 
-    // Same outline as ComboBox
     juce::Path outline;
-    outline.addRoundedRectangle (
-        area.reduced (1.0f),
-        6.0f);
+    outline.addRoundedRectangle (area.reduced (1.0f), 6.0f);
 
-    g.setColour (
-        getColourGrey().withAlpha (0.5f));
-
+    // Same outline as the ComboBox
+    g.setColour (getColourGrey().withAlpha(0.5f));
     g.strokePath (
         outline,
         juce::PathStrokeType (
@@ -90,54 +101,48 @@ void GlowComboBoxLookAndFeel::drawButtonBackground (
             juce::PathStrokeType::curved,
             juce::PathStrokeType::rounded));
 
-    // Same arrow as ComboBox
-    juce::Path arrow;
+    // Optional glow when hovered/pressed
+    if (shouldDrawButtonAsHighlighted || shouldDrawButtonAsDown)
+    {
 
-    float cx = area.getRight() - 15.0f;
-    float cy = area.getCentreY();
+        drawGlowAndCorePath (g,
+                      outline,
+                      0.02f,
+                      getColourNormal(),
+                      getColourNormal(),
+                      false);
 
-    arrow.startNewSubPath (cx - 5.0f, cy - 3.0f);
-    arrow.lineTo         (cx,       cy + 3.0f);
-    arrow.lineTo         (cx + 5.0f, cy - 3.0f);
-    arrow.closeSubPath();
+        g.setColour(getColourNormal().withAlpha (0.1f));
+        g.fillPath(outline);
 
-    drawGlowAndCorePath (
-        g,
-        arrow,
-        0.05f,
-        getColourNormal(),
-        getColourHotRed(),
-        false);
+    }
+            
 }
-void GlowComboBoxLookAndFeel::drawButtonText (
+void GlowLookAndFeel::drawButtonText (
     juce::Graphics& g,
     juce::TextButton& button,
     bool shouldDrawButtonAsHighlighted,
     bool shouldDrawButtonAsDown)
 {
-    // Same font / colour as ComboBox label
-    g.setColour (
-        juce::Colours::white.withAlpha (0.5f));
-
-    g.setFont (
-        juce::FontOptions (
-            FONT_SUB2,
-            juce::Font::plain));
-
-    // Leave room for the arrow
-    auto textArea = button.getLocalBounds()
-                           .reduced (10, 2);
-
-    textArea.removeFromRight (20);
+    // Optional glow when hovered/pressed
+    if (shouldDrawButtonAsHighlighted || shouldDrawButtonAsDown)
+    {
+    g.setColour (getColourHighlight());
+    g.setFont (juce::FontOptions (FONT_SUB2, juce::Font::bold));
+    }
+    else{
+    g.setColour (juce::Colours::white.withAlpha(0.5f));
+    g.setFont (juce::FontOptions (FONT_SUB2, juce::Font::plain));
+    }
 
     g.drawText (
         button.getButtonText(),
-        textArea,
-        juce::Justification::centredLeft,
-        true);
+        button.getLocalBounds(),
+        juce::Justification::centred);
+    
 }
 
-void GlowComboBoxLookAndFeel::drawPopupMenuBackground (juce::Graphics& g,
+void GlowLookAndFeel::drawPopupMenuBackground (juce::Graphics& g,
                                                         int width,
                                                         int height)
 {
@@ -161,7 +166,7 @@ void GlowComboBoxLookAndFeel::drawPopupMenuBackground (juce::Graphics& g,
 
 }
 
-void GlowComboBoxLookAndFeel::drawPopupMenuItem (
+void GlowLookAndFeel::drawPopupMenuItem (
     juce::Graphics& g,
     const juce::Rectangle<int>& area,
     bool isSeparator,
@@ -286,17 +291,17 @@ void GlowComboBoxLookAndFeel::drawPopupMenuItem (
     }
 }
 
-int GlowComboBoxLookAndFeel::getPopupMenuBorderSize()
+int GlowLookAndFeel::getPopupMenuBorderSize()
 {
     return 1;
 }
 
-juce::Font GlowComboBoxLookAndFeel::getPopupMenuFont()
+juce::Font GlowLookAndFeel::getPopupMenuFont()
 {
     return juce::FontOptions (FONT_SUB1, juce::Font::plain);
 }
 
-void GlowComboBoxLookAndFeel::drawAlertBox (
+void GlowLookAndFeel::drawAlertBox (
     juce::Graphics& g,
     juce::AlertWindow& alert,
     const juce::Rectangle<int>& textArea,
@@ -335,7 +340,7 @@ void GlowComboBoxLookAndFeel::drawAlertBox (
         g,
         textArea.toFloat());
 }
-void GlowComboBoxLookAndFeel::drawTextEditorOutline (
+void GlowLookAndFeel::drawTextEditorOutline (
     juce::Graphics& g,
     int width,
     int height,
@@ -371,7 +376,7 @@ void GlowComboBoxLookAndFeel::drawTextEditorOutline (
             false);
     }
 }
-void GlowComboBoxLookAndFeel::fillTextEditorBackground (
+void GlowLookAndFeel::fillTextEditorBackground (
     juce::Graphics& g,
     int width,
     int height,
@@ -387,87 +392,112 @@ void GlowComboBoxLookAndFeel::fillTextEditorBackground (
         area.reduced (1.0f),
         5.0f);
 }
-juce::Font GlowComboBoxLookAndFeel::getAlertWindowTitleFont()
+juce::Font GlowLookAndFeel::getAlertWindowTitleFont()
 {
     return juce::FontOptions (
         FONT_SUB2,
         juce::Font::bold);
 }
 
-juce::Font GlowComboBoxLookAndFeel::getAlertWindowMessageFont()
+juce::Font GlowLookAndFeel::getAlertWindowMessageFont()
 {
     return juce::FontOptions (
         FONT_SUB2,
         juce::Font::plain);
 }
-int GlowComboBoxLookAndFeel::getAlertBoxWindowFlags()
+int GlowLookAndFeel::getAlertBoxWindowFlags()
 {
     return 0;
 }
 
 
+void GlowLookAndFeel::drawRotarySlider (juce::Graphics& g,
+                        int x, int y,
+                        int width, int height,
+                        float sliderPos,
+                        float rotaryStartAngle,
+                        float rotaryEndAngle,
+                        juce::Slider& slider)
+{
+    auto bounds = juce::Rectangle<float> (x, y, width, height);
+
+    auto radius = juce::jmin (bounds.getWidth(),
+                                bounds.getHeight()) * 0.3f;
+
+    auto centre = bounds.getCentre();
+
+    auto angle = rotaryStartAngle
+                + sliderPos * (rotaryEndAngle - rotaryStartAngle);
+
+    juce::Path arc;
+
+    arc.addCentredArc (centre.x,
+                        centre.y,
+                        radius,
+                        radius,
+                        0.0f,
+                        rotaryStartAngle,
+                        angle,
+                        true);
+
+    drawGlowAndCorePath (g, arc, 0.1f, getColourAmber(), getColourAmber(), false);
 
 
-void InspectButtonLookAndFeel::drawButtonBackground (
+    juce::Path arcend;
+
+    arcend.addCentredArc (centre.x,
+                        centre.y,
+                        radius,
+                        radius,
+                        0.0f,
+                        angle,
+                        rotaryEndAngle,
+                        true);
+
+    // drawGlowPath (g, arcend, 0.0f, getColourNormal(), getColourNormal(), false);
+    g.setColour (getColourGrey().withAlpha(0.5f));
+    g.strokePath (arcend, juce::PathStrokeType (1.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+
+    // pointer
+    juce::Path pointer;
+
+    pointer.startNewSubPath (centre);
+
+    pointer.lineTo (centre.x + std::cos (angle - juce::MathConstants<float>::halfPi) * radius,
+                    centre.y + std::sin (angle - juce::MathConstants<float>::halfPi) * radius);
+
+    drawGlowAndCorePath (g, pointer, 0.f, getColourNormal(), getColourNormal(), false);
+}
+
+
+void ComboBoxLookAndFeel::drawButtonBackground (
     juce::Graphics& g,
     juce::Button& button,
     const juce::Colour& backgroundColour,
     bool shouldDrawButtonAsHighlighted,
     bool shouldDrawButtonAsDown)
 {
+
+    GlowLookAndFeel:: drawButtonBackground(g, button, backgroundColour, shouldDrawButtonAsHighlighted, shouldDrawButtonAsDown);
+    // Same arrow as ComboBox
+    juce::Path arrow;
     auto area = button.getLocalBounds().toFloat();
+    area.reduced (1.0f);
 
-    juce::Path outline;
-    outline.addRoundedRectangle (area.reduced (10.0f), 6.0f);
+    float cx = area.getRight() - 15.0f;
+    float cy = area.getCentreY();
 
-    // Same outline as the ComboBox
-    g.setColour (getColourGrey().withAlpha(0.5f));
-    g.strokePath (
-        outline,
-        juce::PathStrokeType (
-            0.5f,
-            juce::PathStrokeType::curved,
-            juce::PathStrokeType::rounded));
+    arrow.startNewSubPath (cx - 5.0f, cy - 3.0f);
+    arrow.lineTo         (cx,       cy + 3.0f);
+    arrow.lineTo         (cx + 5.0f, cy - 3.0f);
+    arrow.closeSubPath();
 
-    // Optional glow when hovered/pressed
-    if (shouldDrawButtonAsHighlighted || shouldDrawButtonAsDown)
-    {
-
-        drawGlowAndCorePath (g,
-                      outline,
-                      0.02f,
-                      getColourNormal(),
-                      getColourNormal(),
-                      false);
-
-        g.setColour(getColourNormal().withAlpha (0.1f));
-        g.fillPath(outline);
-
-    }
-}
-
-void InspectButtonLookAndFeel::drawButtonText (
-    juce::Graphics& g,
-    juce::TextButton& button,
-    bool shouldDrawButtonAsHighlighted,
-    bool shouldDrawButtonAsDown)
-{
-
-    // Optional glow when hovered/pressed
-    if (shouldDrawButtonAsHighlighted || shouldDrawButtonAsDown)
-    {
-    g.setColour (getColourHighlight());
-    g.setFont (juce::FontOptions (FONT_SUB2, juce::Font::bold));
-    }
-    else{
-    g.setColour (juce::Colours::white.withAlpha(0.5f));
-    g.setFont (juce::FontOptions (FONT_SUB2, juce::Font::plain));
-    }
-
-    g.drawText (
-        button.getButtonText(),
-        button.getLocalBounds(),
-        juce::Justification::centred);
-    
+    drawGlowAndCorePath (
+        g,
+        arrow,
+        0.05f,
+        getColourNormal(),
+        getColourHotRed(),
+        false);
 
 }

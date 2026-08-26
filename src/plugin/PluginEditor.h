@@ -79,7 +79,8 @@ private:
 
     // Top panel
     juce::Rectangle<int> topRect, botRect, titleRect, subtitleRect;
-    GlowComboBoxLookAndFeel glowComboBoxLF;
+    ComboBoxLookAndFeel ComboBoxLF;
+    GlowLookAndFeel glowLF;
 
     // Waveform display for input/output comparison
     std::unique_ptr<PathToggleButton> scopeButton;
@@ -116,7 +117,6 @@ private:
     // std::unique_ptr<PathToggleButton> inspectButton;
     CallbackTimer inspectTimer;
     std::unique_ptr<juce::TextButton> inspectTogglebutton;
-    InspectButtonLookAndFeel inspectButtonLF;
 
     // Mono/stereo mode toggle
     juce::TextButton monoStereoButton;

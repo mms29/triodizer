@@ -69,7 +69,7 @@ private:
     SchematicPanelListener*                        listener;
     SchematicElement*                              hoveredElement = nullptr;
     Inspector                                      inspector;
-    GlowComboBoxLookAndFeel                         glowLookAndFeel;
+    GlowLookAndFeel                                glowLookAndFeel;
 
 
     // Viewport state for pan/zoom

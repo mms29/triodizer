@@ -1,20 +1,22 @@
-# TubeLab
+# Cathodyne
 
-A real-time vacuum tube circuit simulator using Wave Digital Filters (WDF). 
+Cathodyne is an electronic circuit playground for audio nerds, and curious musicians who like turning knobs and to see what happens. Just circuits, sound, and knobs to mess with.
 
-## Features
+![Cathodyne](screenshot.png)
 
-TubeLab allows you to explore and work with vacuum tube circuits in real time while listening to the effect of circuit changes instantly.
+## Under the hood
 
-You can modify electronic components and tube biasing parameters in real time, making it a powerful tool for experimentation and learning.
+Cathodyne uses Wave Digital Filters (WDF) to power its audio engine.
 
-It is primarily designed for educational purposes and for electronics enthusiasts who want to better understand how their favorite circuits behave.
+Instead of approximating the whole circuit as a simple effect, it simulates the voltages and currents flowing through the individual components.
 
-At the same time, TubeLab can also be used as a musical tool, providing vintage-style tube saturation and analog-style harmonic coloration for audio signals.
+So when you change a resistor, tube, or diode, you're actually changing the circuit.
+
+The goal? Get as close as possible to the real thing — without needing a soldering iron.
 
 ## Acknoledgements
 
-This project builds upon the work of:
+This project builds upon some great opensource tools, thanks a lot to them! 
 
 - chowdsp_wdf
 - JUCE framework

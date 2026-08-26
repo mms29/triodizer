@@ -2,19 +2,7 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "utils/Glow.h"
-
-
-class GlowLookAndFeel : public juce::LookAndFeel_V4
-{
-public:
-    void drawRotarySlider (juce::Graphics& g,
-                           int x, int y,
-                           int width, int height,
-                           float sliderPos,
-                           float rotaryStartAngle,
-                           float rotaryEndAngle,
-                           juce::Slider& slider) override;
-};
+#include "gui/Selector.h"
 
 // ==============================================================================
 // Knob: Custom rotary slider component for parameter control
