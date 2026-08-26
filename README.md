@@ -1,28 +1,23 @@
 # Cathodyne
 
-Cathodyne is an electronic circuit playground for audio nerds, and curious musicians who like turning knobs and to see what happens. Just circuits, sound, and knobs to mess with.
+Cathodyne is a playground for audio nerds and curious musicians who like turning knobs, dirty sounds, and messing with electronic circuits.
 
-![Cathodyne](screenshot.png)
+![Cathodyne](screenshot.png) 
+
+## Features
+
+- Interactive electronic schematics, to experiment with component values and tube types
+- Real-time circuit simulation, to hear the effect of every change you make
+- Tube stages, diode clippers, and classic amplifier circuits to explore
 
 ## Under the hood
 
-Cathodyne uses Wave Digital Filters (WDF) to power its audio engine.
-
-Instead of approximating the whole circuit as a simple effect, it simulates the voltages and currents flowing through the individual components.
-
-So when you change a resistor, tube, or diode, you're actually changing the circuit.
-
-The goal? Get as close as possible to the real thing — without needing a soldering iron.
+Instead of approximating the whole circuit as a simple effect, Cathodyne simulates the entire electronic circuits using Wave Digital Filters (WDF) as its audio engine.
+It simulates the voltages and currents flowing through the individual components. So when you change a resistor, a tube, or a diode, you're actually changing the circuit. The goal? Get as close as possible to the real sound — without needing a soldering iron.
 
 ## Acknoledgements
 
-This project builds upon some great opensource tools, thanks a lot to them! 
+This project builds upon some great open-source tools, thanks a lot to them! 
 
 - chowdsp_wdf
 - JUCE framework
-
-## Citations 
-
-- D'Angelo, S., Pakarinen, J., & Valimaki, V. (2012). New family of wave-digital triode models. IEEE transactions on audio, speech, and language processing, 21(2), 313-321.
- - Zhang, J., & Smith III, J. O. (2018, September). Real-time wave digital simulation of cascaded vacuum tube amplifiers using modified blockwise method. In Proc. 21st Int. Conf. Digital Audio Effects (DAFx-18). Aveiro: University of Aveiro.
-- Giampiccolo, R., D'Angelo, S., Bernardini, A., & Sarti, A. (2023). A quadric surface model of vacuum tubes for virtual analog applications. In Proceedings of the 26th International Conference on Digital Audio Effects (DAFx23) (pp. 296-303).
