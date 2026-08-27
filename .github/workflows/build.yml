@@ -6,6 +6,9 @@ on:
   release:
     types: [created]
 
+permissions:
+  contents: write
+
 jobs:
   macos-build:
     name: macOS Build (VST3 / AU / Standalone)
@@ -85,6 +88,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Inspect downloaded artifacts
+        run: |
+          echo "=== Files ==="
+          find . -type f -print
+          echo "=== Directories ==="
+          find . -type d -print
+
       - name: Download macOS artifacts
         uses: actions/download-artifact@v4
         with:
@@ -107,4 +117,3 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
 
-          
