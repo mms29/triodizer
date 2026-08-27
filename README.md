@@ -21,3 +21,4 @@ This project builds upon some great open-source tools, thanks a lot to them!
 
 - chowdsp_wdf
 - JUCE framework
+
