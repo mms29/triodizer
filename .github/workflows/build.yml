@@ -100,6 +100,7 @@ jobs:
         with:
           name: Cathodyne-Windows-build
           path: Cathodyne-Windows-build
+          
       - name: Inspect downloaded artifacts
         run: |
           echo "=== Files ==="
@@ -107,15 +108,26 @@ jobs:
           echo "=== Directories ==="
           find . -type d -print
 
+      - name: Package macOS
+        run: |
+          cd Cathodyne-macOS-build/Cathodyne_artefacts/Release
+          zip -r "$GITHUB_WORKSPACE/Cathodyne-${{ github.ref_name }}-macOS.zip" \
+            VST3/Cathodyne.vst3 \
+            AU/Cathodyne.component \
+            Standalone/Cathodyne.app
+
+      - name: Package Windows
+        run: |
+          cd Cathodyne-Windows-build/Cathodyne_artefacts/Release
+          zip -r "$GITHUB_WORKSPACE/Cathodyne-${{ github.ref_name }}-Windows.zip" \
+            VST3/Cathodyne.vst3 \
+            Standalone/Cathodyne.exe
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            Cathodyne-macOS-build/**/*.vst3
-            Cathodyne-macOS-build/**/*.component
-            Cathodyne-macOS-build/**/*.app
-            Cathodyne-Windows-build/**/*.vst3
-            Cathodyne-Windows-build/**/*.exe
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
-
+          files: |
+            Cathodyne-${{ github.ref_name }}-macOS.zip
+            Cathodyne-${{ github.ref_name }}-Windows.zip
