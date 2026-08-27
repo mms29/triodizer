@@ -292,7 +292,7 @@ void CathodyneEditor::paint (juce::Graphics& g)
     //                 WINDOW_TITLE_SIZE, 
     //                 WINDOW_TOP_PANEL), juce::Justification::centredLeft);
     g.setFont (FONT_SUB2);
-    g.setColour (getColourGrey().withAlpha(0.5f)); 
+    g.setColour (getColourGrey()); 
     g.drawText ("v0.1",titleRect, juce::Justification::centredRight);
     
     // Subtitle

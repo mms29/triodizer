@@ -100,7 +100,7 @@ jobs:
         with:
           name: Cathodyne-Windows-build
           path: Cathodyne-Windows-build
-          
+
       - name: Inspect downloaded artifacts
         run: |
           echo "=== Files ==="
@@ -127,7 +127,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
           files: |
             Cathodyne-${{ github.ref_name }}-macOS.zip
             Cathodyne-${{ github.ref_name }}-Windows.zip
