@@ -1,4 +1,4 @@
-name: TubeLab Plugin CI/CD
+name: Cathodyne CI/CD
 
 on:
   push:
@@ -36,7 +36,7 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: TubeLab-macOS-build
+          name: Cathodyne-macOS-build
           path: |
             build/**/*.vst3
             build/**/*.component
@@ -73,7 +73,7 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: TubeLab-Windows-build
+          name: Cathodyne-Windows-build
           path: |
             build/**/*.vst3
             build/**/*.exe
@@ -88,21 +88,21 @@ jobs:
       - name: Download macOS artifacts
         uses: actions/download-artifact@v4
         with:
-          name: TubeLab-macOS-build
+          name: Cathodyne-macOS-build
 
       - name: Download Windows artifacts
         uses: actions/download-artifact@v4
         with:
-          name: TubeLab-Windows-build
+          name: Cathodyne-Windows-build
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            TubeLab-macOS-build/**/*.vst3
-            TubeLab-macOS-build/**/*.component
-            TubeLab-macOS-build/**/*.app
-            TubeLab-Windows-build/**/*.vst3
-            TubeLab-Windows-build/**/*.exe
+            Cathodyne-macOS-build/**/*.vst3
+            Cathodyne-macOS-build/**/*.component
+            Cathodyne-macOS-build/**/*.app
+            Cathodyne-Windows-build/**/*.vst3
+            Cathodyne-Windows-build/**/*.exe
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
