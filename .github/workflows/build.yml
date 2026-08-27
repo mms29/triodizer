@@ -88,22 +88,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Cathodyne-macOS-build
+          path: Cathodyne-macOS-build
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Cathodyne-Windows-build
+          path: Cathodyne-Windows-build
       - name: Inspect downloaded artifacts
         run: |
           echo "=== Files ==="
           find . -type f -print
           echo "=== Directories ==="
           find . -type d -print
-
-      - name: Download macOS artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: Cathodyne-macOS-build
-
-      - name: Download Windows artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: Cathodyne-Windows-build
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
