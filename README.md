@@ -1,5 +1,7 @@
 # Cathodyne
 
+An interactive audio circuit simulator to play with analog circuits in real time using Wave Digital Filters (WDF).
+
 Cathodyne is a playground for audio nerds and curious musicians who like turning knobs, dirty sounds, and messing with electronic circuits.
 
 ![Cathodyne](images/screenshot.png) 
