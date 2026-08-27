@@ -19,6 +19,6 @@ It simulates the voltages and currents flowing through the individual components
 
 This project builds upon some great open-source tools, thanks a lot to them! 
 
-- chowdsp_wdf
-- JUCE framework
+- [ChowDSP WDF](https://github.com/Chowdhury-DSP/chowdsp_wdf) library
+- [JUCE](https://github.com/juce-framework/JUCE) framework
 
