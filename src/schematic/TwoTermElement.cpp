@@ -417,6 +417,10 @@ void GainElement::controlCallback(float value, SchematicPanelListener* listener)
 }
 
 
+void GainElement::updateSignalPaths () {
+    signalPaths[0].updateSignalPath(0.0F,0.0F,0.0F);
+};
+
 juce::AttributedString DiodeElement::getInspectContent () 
 {
     juce::AttributedString textContent;

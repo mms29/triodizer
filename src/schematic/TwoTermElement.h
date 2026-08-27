@@ -82,7 +82,8 @@ public:
 // GainElement
 class GainElement : public SchematicElement,
                     public ControllableElement,
-                    public SettableElement
+                    public SettableElement,
+                    public SignalElement
 
 {
 public:
@@ -90,10 +91,13 @@ public:
                      Terminal termA,
                      Terminal termB,
                      const int paramIndex,
-                     const int controlIndex)
+                     const int controlIndex,
+                    const int signalPathMode = SIGNALPATH_MODE_NORMAL_FORWARD,
+                    SignalPath* signalPathRef = nullptr)
         : SchematicElement (name, std::vector<Terminal> { termA, termB }),
           ControllableElement (controlIndex),
-          SettableElement (paramIndex)
+          SettableElement (paramIndex),
+          SignalElement(signalPathRef, signalPathMode)
     {
     }
     void draw (juce::Graphics& g) const override;
@@ -102,6 +106,8 @@ public:
 
     juce::String valueToLabel(const float v) const override;
     float labelToValue (const juce::String s) const override;
+
+    void updateSignalPaths () override;
 
 protected:
     juce::Point<float> labelCenter;
