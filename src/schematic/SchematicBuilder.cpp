@@ -22,22 +22,25 @@ void SchematicBuilder::buildDiodeClipper(SchematicPanel& schematic)
 
     auto t0 = Terminal {0, 0};
 
-    schematic.addElement (std::make_unique<GainElement>("Gain",
-        t0, 
-        t0 + rightL,
-        (int) Param::Gain,
-        (int) Control::Gain
-    ));
-    
     schematic.addElement (std::make_unique<CapacitorElement> (
         "C1",
-        schematic.getElement("Gain")->getTerminals()[1] + rightM + bottomL,
-        schematic.getElement("Gain")->getTerminals()[1] + rightM,
+        t0 + rightL + rightM + bottomL,
+        t0 + rightL + rightM,
         (int) Param::C1,
         (int) Monitoring::C1,
         SIGNALPATH_MODE_NORMAL_FORWARD,
         nullptr
     ));
+
+    schematic.addElement (std::make_unique<GainElement>("Gain",
+        t0, 
+        t0 + rightL,
+        (int) Param::Gain,
+        (int) Control::Gain,
+        SIGNALPATH_MODE_NORMAL_FORWARD,
+        schematic.getElement("C1")->getSignalPath()
+    ));
+    
     schematic.addElement (std::make_unique<ResistorElement> (
         "R1",
         schematic.getElement("Gain")->getTerminals()[1],
@@ -758,8 +761,8 @@ void SchematicBuilder::buildTriodeGainStage(SchematicPanel& schematic)
     ));
     schematic.addElement (std::make_unique<CapacitorElement> (
         "Ci1",
-        V1pos[0]  + leftM + leftL,
         V1pos[0]  + leftM,
+        V1pos[0]  + leftM + leftL,
         (int) Param::Ci1,
         (int) Monitoring::Ci1,
         SIGNALPATH_MODE_NORMAL_FORWARD,
@@ -768,10 +771,12 @@ void SchematicBuilder::buildTriodeGainStage(SchematicPanel& schematic)
     ));
 
     schematic.addElement (std::make_unique<GainElement>("Gain",
-        schematic.getElement("Ci1")->getTerminals()[0]+ leftL, 
-        schematic.getElement("Ci1")->getTerminals()[0],
+        schematic.getElement("Ci1")->getTerminals()[1]+ leftL, 
+        schematic.getElement("Ci1")->getTerminals()[1],
         (int) Param::Gain,
-        (int) Control::Gain
+        (int) Control::Gain,
+        SIGNALPATH_MODE_NORMAL_FORWARD,
+        schematic.getElement("Ci1")->getSignalPath()
     ));
 
     // Plate Circuit

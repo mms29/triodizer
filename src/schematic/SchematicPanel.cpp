@@ -140,8 +140,10 @@ void SchematicPanel::updateInspect ()
 //==============================================================================
 void SchematicPanel::paint (juce::Graphics& g)
 {
+
     // Background
     g.fillAll (getColourBackground());
+    g.saveState();
 
     // Apply zoom and pan transform
     g.addTransform(juce::AffineTransform::scale(zoomFactor).followedBy(
@@ -158,6 +160,8 @@ void SchematicPanel::paint (juce::Graphics& g)
         mainPath.addPath(elem->getPath());
     drawCorePath(g, mainPath, getColourNormal(), false);
 
+
+
     // Render sig path and highlight on top
     for (const auto& elem : elements)
     {
@@ -170,7 +174,17 @@ void SchematicPanel::paint (juce::Graphics& g)
             }
 
         }
-    }
+    }    
+    
+    g.restoreState();
+
+    juce::Path borderPath;
+    borderPath.addRoundedRectangle(controlsBounds, 10.0f, 9.0f);
+    drawGlowAndCorePath(g, borderPath, .1f, getColourNormal(), getColourAmber(), false);
+
+    // Background
+    g.setColour (getColourBackground().withAlpha(0.9f));
+    g.fillRoundedRectangle (controlsBounds.expanded(1), 10.0f);
 }
 
 
@@ -178,17 +192,24 @@ void SchematicPanel::resized()
 {
     auto area = getLocalBounds().reduced(4);
 
-    float offset = area.getWidth()*.5f -  (SCHEMATIC_BUTTON_SIZE * controls.size())*0.5f - SCHEMATIC_BUTTON_SIZE*0.5f +10 ;
+    float offset = (area.getWidth() -  ((SCHEMATIC_BUTTON_SIZE+20) * controls.size()))*0.5f;
 
 
     auto bot = area;
     bot= bot.removeFromBottom(SCHEMATIC_BUTTON_SIZE);
     bot.removeFromLeft(offset);
+    auto botArea = bot;
+
     for (const auto& control : controls){
         bot.removeFromLeft(10);
         control->setBounds(bot.removeFromLeft(SCHEMATIC_BUTTON_SIZE));
         bot.removeFromLeft(10);
     }
+    botArea.setWidth(((SCHEMATIC_BUTTON_SIZE+20) * controls.size()) );
+    botArea.setY(botArea.getY() - 10);
+    botArea.expand(0, 10);
+    botArea.reduce(10, 0);
+    controlsBounds = botArea.reduced(10).toFloat();
     inspector.setBounds(area.removeFromRight(SCHEMATIC_INSPECTOR_SIZE));
 }
 

@@ -36,7 +36,7 @@ void GlowLookAndFeel::drawComboBox (juce::Graphics& g,
                         getColourNormal(),
                         false);
 
-            g.setColour(getColourNormal().withAlpha (0.1f));
+            g.setColour(getColourBackground());
             g.fillPath(outline);
 
         }
@@ -79,6 +79,7 @@ void GlowLookAndFeel::drawLabel (juce::Graphics& g, juce::Label& label)
     g.drawText (label.getText(),
                 label.getLocalBounds(),
                 juce::Justification::centredLeft);
+                
 }
 void GlowLookAndFeel::drawButtonBackground (
     juce::Graphics& g,
@@ -112,7 +113,7 @@ void GlowLookAndFeel::drawButtonBackground (
                       getColourNormal(),
                       false);
 
-        g.setColour(getColourNormal().withAlpha (0.1f));
+        g.setColour(getColourBackground());
         g.fillPath(outline);
 
     }
@@ -125,15 +126,14 @@ void GlowLookAndFeel::drawButtonText (
     bool shouldDrawButtonAsDown)
 {
     // Optional glow when hovered/pressed
-    if (shouldDrawButtonAsHighlighted || shouldDrawButtonAsDown)
-    {
-    g.setColour (getColourHighlight());
-    g.setFont (juce::FontOptions (FONT_SUB2, juce::Font::bold));
-    }
-    else{
+    // if (shouldDrawButtonAsHighlighted || shouldDrawButtonAsDown)
+    // {
+    // g.setColour (getColourHighlight());
+    // g.setFont (juce::FontOptions (FONT_SUB2, juce::Font::bold));
+    // }
+    // else{
     g.setColour (juce::Colours::white.withAlpha(0.5f));
     g.setFont (juce::FontOptions (FONT_SUB2, juce::Font::plain));
-    }
 
     g.drawText (
         button.getButtonText(),
@@ -201,8 +201,6 @@ void GlowLookAndFeel::drawPopupMenuItem (
     {
         auto highlightArea = itemArea.reduced (2.0f, 1.0f);
 
-        g.setColour (getColourNormal().withAlpha (0.08f));
-        g.fillRoundedRectangle (highlightArea, 4.0f);
 
         // Optional glow around hovered item
         juce::Path highlightPath;
@@ -215,6 +213,9 @@ void GlowLookAndFeel::drawPopupMenuItem (
             getColourNormal(),
             getColourNormal(),
             false);
+    
+        g.setColour (getColourBackground());
+        g.fillRoundedRectangle (highlightArea, 4.0f);
     }
 
     // Text

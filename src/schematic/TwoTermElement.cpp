@@ -421,6 +421,12 @@ void GainElement::updateSignalPaths () {
     signalPaths[0].updateSignalPath(0.0F,0.0F,0.0F);
 };
 
+void GainElement::createSignalPaths () 
+{
+    signalPaths[0].addPath(leftPath);
+    signalPaths[0].addPath(rightPath);
+}
+
 juce::AttributedString DiodeElement::getInspectContent () 
 {
     juce::AttributedString textContent;

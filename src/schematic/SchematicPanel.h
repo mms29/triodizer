@@ -66,6 +66,7 @@ private:
     //==========================================================================
     std::vector<std::unique_ptr<SchematicElement>> elements;
     std::vector<std::unique_ptr<Knob>>             controls;
+    juce::Rectangle<float>                         controlsBounds;
     SchematicPanelListener*                        listener;
     SchematicElement*                              hoveredElement = nullptr;
     Inspector                                      inspector;

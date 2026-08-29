@@ -38,11 +38,11 @@ public:
         // Border
         juce::Path borderPath;
         borderPath.addRoundedRectangle(bounds, 10.0f, 10.0f);
-        drawGlowAndCorePath(g, borderPath, .1f, getColourNormal(), getColourNormal(), false);
+        drawGlowAndCorePath(g, borderPath, .1f, getColourNormal(), getColourAmber(), false);
 
         // Background
         g.setColour (getColourBackground().withAlpha(0.9f));
-        g.fillRoundedRectangle (bounds, 10.0f);
+        g.fillRoundedRectangle (bounds.expanded(1.0f), 10.0f);
 
         // Title
         // bounds.reduced (4.0f);

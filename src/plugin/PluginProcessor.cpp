@@ -49,6 +49,7 @@ CathodyneProcessor::CathodyneProcessor()
     currentPreset = (int) parameters.getRawParameterValue ("preset")->load();
     buildCircuit();
     sendChangeMessage();
+    circuitReadyFlag.store(true);
 }
 
 CathodyneProcessor::~CathodyneProcessor() = default;
@@ -117,7 +118,7 @@ void CathodyneProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         left[i] = y.get (0);
         right[i] = y.get (1);
 #else
-        if (monoMode)
+        if (!monoMode)
         {
             float x = 0.5f * (left[i] + right[i]);
             float y = circuit[0]->processSample (x);
@@ -176,10 +177,12 @@ void CathodyneProcessor::updatePreset()
             return;
     }
 
+    circuitReadyFlag.store(false);
     currentPreset = presetChoice;
     buildCircuit();
-    sendChangeMessage();
     prepareCircuit (oversampleRate);
+    sendChangeMessage();
+    circuitReadyFlag.store(true);
 }
 
 //==============================================================================
@@ -199,53 +202,18 @@ void CathodyneProcessor::buildOversampler()
 
 void CathodyneProcessor::prepareCircuit (double sr)
 {
-#ifdef XSIMD_HPP
-    circuit->prepare (xsimd::broadcast (float (sr)));
-#else
     for (int ch = 0; ch < 2; ++ch)
         circuit[ch]->prepare (sr);
-#endif
 }
 
 void CathodyneProcessor::resetCircuit()
 {
-#ifdef XSIMD_HPP
-    circuit->reset();
-#else
     for (int ch = 0; ch < 2; ++ch)
         circuit[ch]->reset();
-#endif
 }
 
 void CathodyneProcessor::buildCircuit()
 {
-#ifdef XSIMD_HPP
-    using batch = xsimd::batch<float>;
-
-    switch (getCurrentPreset())
-    {
-    case PRESET_BASSMAN_TS:
-        circuit = std::make_unique<BassmanToneStackCircuitT<batch>>();
-        break;
-
-    case PRESET_BASSMAN_PREAMP_SMALL:
-        circuit = std::make_unique<BassmanPreampCircuitT<batch>>();
-        break;
-
-    case PRESET_BASSMAN_PREAMP:
-        circuit = std::make_unique<FullBassmanPreampCircuitT<batch>>();
-        break;
-
-    case PRESET_DUAL_RECTIFIER_PREAMP:
-        circuit = std::make_unique<DefaultCircuit<batch>>();
-        break;
-
-    default:
-        circuit = std::make_unique<DefaultCircuit<batch>>();
-        break;
-    }
-
-#else
     for (int ch = 0; ch < 2; ++ch)
     {
         switch (getCurrentPreset())
@@ -276,7 +244,6 @@ void CathodyneProcessor::buildCircuit()
             break;
         }
     }
-#endif
 }
 
 //==============================================================================
@@ -352,75 +319,55 @@ juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 //==============================================================================
 void CathodyneProcessor::updateCircuitMonitoring ( const int ch)
 {
-    circuit[ch]->updateMonitors();
+    if (circuitReadyFlag.load())
+        circuit[ch]->updateMonitors();
 }
 const MonitorValuef& CathodyneProcessor::getCircuitMonitoring (const int index, const int ch) const
 {
-#ifdef XSIMD_HPP
-    return circuit->getMonitoring (index).get (ch);
-#else
-    return circuit[ch]->getMonitoring (index);
-#endif
+    if (circuitReadyFlag.load())
+        return circuit[ch]->getMonitoring (index);
+    
+    static const MonitorValuef emptyValue{};
+    return emptyValue;
 }
 
 float CathodyneProcessor::getCircuitParam (const int index, const int ch) const
 {
-#ifdef XSIMD_HPP
-    return circuit->getParam (index).get (ch);
-#else
-    return circuit[ch]->getParam (index);
-#endif
+    if (circuitReadyFlag.load())
+        return circuit[ch]->getParam (index);
+
+    return 0.0f;
 }
 
 float CathodyneProcessor::getCircuitControl (const int index, const int ch) const
 {
-#ifdef XSIMD_HPP
-    return circuit->getControl (index).get (ch);
-#else
-    return circuit[ch]->getControl (index);
-#endif
+    if (circuitReadyFlag.load())
+        return circuit[ch]->getControl (index);
+
+    return 0.0f;
 }
 
 void CathodyneProcessor::setCircuitParam (const int index, float value)
 {
-#ifdef XSIMD_HPP
-    circuit->setParam (index, xsimd::broadcast<float> (value));
-#else
-    for (int ch = 0; ch < 2; ++ch)
-        circuit[ch]->setParam (index, value);
-#endif
+    if (circuitReadyFlag.load())
+        for (int ch = 0; ch < 2; ++ch)
+            circuit[ch]->setParam (index, value);
 }
 
 void CathodyneProcessor::setCircuitControl (const int index, float value)
 {
-#ifdef XSIMD_HPP
-    circuit->setControl (index, xsimd::broadcast<float> (value));
-#else
-    for (int ch = 0; ch < 2; ++ch)
-        circuit[ch]->setControl (index, value);
-#endif
+    if (circuitReadyFlag.load())
+        for (int ch = 0; ch < 2; ++ch)
+            circuit[ch]->setControl (index, value);
 }
 
 //==============================================================================
 
 void CathodyneProcessor::loadCircuitState (const juce::ValueTree& t)
 {
-#ifdef XSIMD_HPP
-    for (int i = 0; i < circuit->getNumParam(); ++i)
-    {
-        auto name = "P" + juce::String (i);
-        if (t.hasProperty (name))
-            circuit->setParam (i, xsimd::broadcast<float> (t[name]));
-    }
+    if (!circuitReadyFlag.load())
+        return;
 
-    for (int i = 0; i < circuit->getNumControl(); ++i)
-    {
-        auto name = "C" + juce::String (i);
-        if (t.hasProperty (name))
-            circuit->setControl (i, xsimd::broadcast<float> (t[name]));
-    }
-
-#else
     for (int ch = 0; ch < 2; ++ch)
     {
         for (int i = 0; i < circuit[ch]->getNumParam(); ++i)
@@ -437,21 +384,14 @@ void CathodyneProcessor::loadCircuitState (const juce::ValueTree& t)
                 circuit[ch]->setControl (i, t[name]);
         }
     }
-#endif
 }
 
 juce::ValueTree CathodyneProcessor::saveCircuitState() const
 {
     juce::ValueTree t ("Circuit");
+    if (!circuitReadyFlag.load())
+        return t;
 
-#ifdef XSIMD_HPP
-    for (int i = 0; i < circuit->getNumParam(); ++i)
-        t.setProperty ("P" + juce::String (i), circuit->getParam (i).get (0), nullptr);
-
-    for (int i = 0; i < circuit->getNumControl(); ++i)
-        t.setProperty ("C" + juce::String (i), circuit->getControl (i).get (0), nullptr);
-
-#else
     for (int ch = 0; ch < 2; ++ch)
     {
         for (int i = 0; i < circuit[ch]->getNumParam(); ++i)
@@ -460,8 +400,6 @@ juce::ValueTree CathodyneProcessor::saveCircuitState() const
         for (int i = 0; i < circuit[ch]->getNumControl(); ++i)
             t.setProperty ("C" + juce::String (i), circuit[ch]->getControl (i), nullptr);
     }
-#endif
-
     return t;
 }
 
@@ -469,9 +407,5 @@ juce::ValueTree CathodyneProcessor::saveCircuitState() const
 
 bool CathodyneProcessor::circuitReady() const
 {
-#ifdef XSIMD_HPP
-    return circuit != nullptr;
-#else
     return circuit[0] && circuit[1];
-#endif
 }

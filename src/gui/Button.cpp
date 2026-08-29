@@ -25,7 +25,7 @@ void PathToggleButton::paintButton (juce::Graphics& g,
                       getColourNormal(),
                       false);
 
-        g.setColour(getColourNormal().withAlpha (0.1f));
+        g.setColour(getColourBackground());
         g.fillPath(outline);
 
     }

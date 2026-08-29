@@ -34,6 +34,9 @@ CathodyneEditor::CathodyneEditor (CathodyneProcessor& p)
         waveformDisplay.setVisible (showScope);
         resized();
     };
+    scopeButton->setToggleState(true, juce::dontSendNotification);
+    showScope = scopeButton->getToggleState();
+    waveformDisplay.setVisible (showScope);
     addAndMakeVisible (*scopeButton);
 
     //==========================================================================
@@ -46,10 +49,12 @@ CathodyneEditor::CathodyneEditor (CathodyneProcessor& p)
 
     signalButton = std::make_unique<PathToggleButton> (sigPath, "Signal", juce::Colours::white.withAlpha(0.5f),  getColourLaserGreen());
     signalButton->setClickingTogglesState (true);
+
     signalButton->onClick = [this] 
     {
         schematic->setSignalPathActivated(signalButton->getToggleState());
     };
+    signalButton->setToggleState(true, juce::sendNotification);
     addAndMakeVisible (*signalButton);
 
 
@@ -70,7 +75,6 @@ CathodyneEditor::CathodyneEditor (CathodyneProcessor& p)
         inspectTogglebutton->setButtonText (inspectTogglebutton->getToggleState() ? ">>" : "<<");
         schematic->setInspectorhActivated(inspectTogglebutton->getToggleState());
         resized();
-        std::cout << "inspectTogglebutton: " << inspectTogglebutton->getToggleState() << std::endl;
     };
     addAndMakeVisible (*inspectTogglebutton);
 
@@ -160,7 +164,6 @@ CathodyneEditor::CathodyneEditor (CathodyneProcessor& p)
             [this] (int result)
             {
                 result = presetIndexFromMenuId(result);
-                std::cout<<result<<std::endl;
                 if (result < 0)
                     return;
 
@@ -292,7 +295,7 @@ void CathodyneEditor::paint (juce::Graphics& g)
     //                 WINDOW_TITLE_SIZE, 
     //                 WINDOW_TOP_PANEL), juce::Justification::centredLeft);
     g.setFont (FONT_SUB2);
-    g.setColour (getColourGrey()); 
+    g.setColour (getColourGrey().withAlpha(0.5f)); 
     g.drawText ("v0.1",titleRect, juce::Justification::centredRight);
     
     // Subtitle
@@ -340,19 +343,8 @@ void CathodyneEditor::resized()
     // togglebuttArea.removeFromTop(50);
     inspectTogglebutton->setBounds (togglebuttArea.reduced (10));
 
-    // auto leftPanel = area.removeFromLeft (WINDOW_LEFT_PANEL);
 
-    // powerButton->setBounds (leftPanel.removeFromTop (TOGGLE_BUTTON_SIZE).reduced (10, 10));
-    // inspectButton->setBounds (leftPanel.removeFromTop (TOGGLE_BUTTON_SIZE).reduced (10, 10));
-    // // Oversample
-    // // oversampleLabel.setBounds (topPanel.removeFromRight (80).reduced (0, 30));
-    // oversampleSelector.setBounds (topPanel.removeFromRight (100));
-
-    // // Reset view button
-    // resetViewButton.setBounds (topPanel.removeFromRight (80));
-
-
-    // Waveform display at top
+    // Waveform display at bottom
     if (showScope)
         waveformDisplay.setBounds (area.removeFromBottom (120));
 
@@ -360,14 +352,6 @@ void CathodyneEditor::resized()
     // Schematic takes remaining space
     schematic->setBounds (area);
 
-    // Bottom strip for drive / gain / oversample controls
-
-
-
-    // // Drive / gain knobs
-    // driveKnob->getSlider().setBounds (bottom.removeFromLeft (120).reduced (0, 10));
-    // bottom.removeFromLeft (20);
-    // gainKnob->getSlider().setBounds (bottom.removeFromLeft (120).reduced (0, 10));
 }
 
 //==============================================================================

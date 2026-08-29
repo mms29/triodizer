@@ -40,7 +40,7 @@ inline juce::Colour getVoltageColourGradient(float alpha) {
 inline juce::Colour getPowerColourGradient(float alpha) { return juce::Colours::black.interpolatedWith(juce::Colours::white, alpha); }
 
 // Fonts
-inline constexpr int FONT_MAINTITLE = 24;
+inline constexpr int FONT_MAINTITLE = 28;
 inline constexpr int FONT_TITLE = 22;
 inline constexpr int FONT_SUB1 = 18;
 inline constexpr int FONT_SUB2 = 14;

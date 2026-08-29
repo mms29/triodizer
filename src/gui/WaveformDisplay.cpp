@@ -7,9 +7,14 @@ void WaveformDisplay::paint (juce::Graphics& g)
     processor.getWaveformInputBuffer().getLastBlock (inputBuffer.data(), displaySize);
     processor.getWaveformOutputBuffer().getLastBlock (outputBuffer.data(), displaySize);
 
-    g.fillAll (backgroundColour);
 
     auto bounds = getLocalBounds().toFloat();
+    g.fillAll (getColourBackground());
+
+    juce::Path border;
+    border.startNewSubPath(bounds.getX(), bounds.getY() -1.f);
+    border.lineTo(bounds.getRight(), bounds.getY()-1.f);
+    drawGlowAndCorePath(g, border, .1f, getColourNormal(), getColourAmber(), false);
 
     auto halfWidth = bounds.getWidth() * 0.5f;
 
@@ -17,9 +22,15 @@ void WaveformDisplay::paint (juce::Graphics& g)
     auto outputArea = bounds;
 
     // Draw grid with voltage labels
-    auto drawGrid = [&g, this] (juce::Rectangle<float> area)
+    auto drawGrid = [&g, this] (juce::Rectangle<float> area, juce::String name)
     {
+
+        g.setColour (waveformColour);
+
+        g.setFont (juce::FontOptions (FONT_SUB1));
+        g.drawText (name.toUpperCase(),area.reduced(5),juce::Justification::topLeft, true);
         g.setColour (juce::Colours::darkgrey);
+        g.setFont (juce::FontOptions (FONT_SUB2));
 
         for (int i = 0; i <= 4; ++i)
         {
@@ -28,7 +39,7 @@ void WaveformDisplay::paint (juce::Graphics& g)
         }
 
         g.drawText (juce::String ((float) area.getHeight() / (4.0f * amplitudeScale), 2) + "V",
-            area,
+            area.reduced((1)),
             juce::Justification::bottomLeft, true);
     };
 
@@ -36,8 +47,8 @@ void WaveformDisplay::paint (juce::Graphics& g)
     g.drawLine (juce::Line (inputArea.getTopRight(), inputArea.getBottomRight()), 1.5f);
 
     // Grid + mid line
-    drawGrid (inputArea);
-    drawGrid (outputArea);
+    drawGrid (inputArea, "Input");
+    drawGrid (outputArea, "Output");
 
     //==========================================================================
     // INPUT (LEFT)

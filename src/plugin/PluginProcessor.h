@@ -120,6 +120,8 @@ private:
     std::unique_ptr<Circuit<float>> circuit[2];  // One per channel
 #endif
 
+    std::atomic<bool> circuitReadyFlag { false };
+
     double sampleRate = 48000.0;
     double oversampleRate = 48000.0;
     int blockSize = 512;

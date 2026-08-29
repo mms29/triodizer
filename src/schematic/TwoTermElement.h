@@ -108,6 +108,7 @@ public:
     float labelToValue (const juce::String s) const override;
 
     void updateSignalPaths () override;
+    void createSignalPaths () override;
 
 protected:
     juce::Point<float> labelCenter;

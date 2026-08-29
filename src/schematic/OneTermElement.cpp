@@ -21,6 +21,7 @@ void GroundElement::prepareToDraw () {
     path.startNewSubPath(p0.x - groundSize*0.33f, p0.y + groundSize*1.5f);
     path.lineTo(p0.x + groundSize*0.33f, p0.y + groundSize*1.5f);
 
+    cachedBounds = juce::Rectangle<float>(p0.x-groundSize, p0.y , groundSize, groundSize).expanded(6);
 
 }
 void GroundElement::draw (juce::Graphics& g) const
@@ -109,6 +110,21 @@ void JackElement::prepareToDraw () {
     path.lineTo(p0);
 
     labelCenter = center;
+
+    const float t= radius;
+    const float r = t * 0.5f;
+
+    const float left   = std::min(center.x - r, p0.x);
+    const float right  = std::max(center.x + r, p0.x);
+    const float top    = std::min(center.y - r, p0.y);
+    const float bottom = std::max(center.y + r, p0.y);
+
+    cachedBounds = juce::Rectangle<float>(
+        left,
+        top,
+        right - left,
+        bottom - top
+    ).expanded(6);
 
 
 }
