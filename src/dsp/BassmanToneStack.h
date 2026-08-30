@@ -132,6 +132,7 @@ public:
     {
         params.resize((int)Param::Count, 0.0f);
         controls.resize((int)Control::Count, 0.0f);
+        monitors.resize((int)Monitoring::Count);
 
         setDefaultParam();
         setDefaultControl();
@@ -140,8 +141,9 @@ public:
     using Circuit<T>::controls;
     using Circuit<T>::monitors;
     using Circuit<T>::getParam;
+    using Circuit<T>::updatePortMonitor;
 
-    enum class Monitoring : int {  Count };
+    enum class Monitoring : int { RBass, RMid_plus, RMid_minus, RTreble_plus, RTreble_minus, C1, C2, C3, R4, Count };
     enum class Param : int {RBass, RMid, RTreble, C1, C2, C3, R4,Count };
     enum class Control : int {Bass, Mid, Treble, Count };
 
@@ -193,21 +195,27 @@ public:
             case (int)Control::Bass: 
             {
                 T controlVal = getParam((int)Param::RBass);
-                w_bts.setR2(controlVal*(ratio));
+                auto r = getPotRatios(ratio, PotType::Log);
+
+                w_bts.setR2(controlVal*r.minus);
                 break;
             }
             case (int)Control::Treble: 
             {
                 T controlVal = getParam((int)Param::RTreble);
-                w_bts.setR1_plus( controlVal*(T(1.0f) - ratio));
-                w_bts.setR1_minus( controlVal*ratio);
+                auto r = getPotRatios(ratio, PotType::Log);
+
+                w_bts.setR1_plus( controlVal * r.plus);
+                w_bts.setR1_minus( controlVal * r.minus);
                 break;
             }
             case (int)Control::Mid: 
             {        
                 T controlVal = getParam((int)Param::RMid);
-                w_bts.setR3_plus( controlVal*(T(1.0f) - ratio));
-                w_bts.setR3_minus( controlVal*ratio);
+                auto r = getPotRatios(ratio, PotType::Linear);
+
+                w_bts.setR3_plus( controlVal * r.plus);
+                w_bts.setR3_minus( controlVal * r.minus);
                 break;
             }
             default: jassertfalse; break;
@@ -230,7 +238,17 @@ public:
 
     }
 
-    void updateMonitors() override{ }
+    void updateMonitors() override{
+        updatePortMonitor((int)Monitoring::RBass, w_bts.w_R2); 
+        updatePortMonitor((int)Monitoring::RMid_plus, w_bts.w_R3_plus); 
+        updatePortMonitor((int)Monitoring::RMid_minus, w_bts.w_R3_minus); 
+        updatePortMonitor((int)Monitoring::RTreble_plus, w_bts.w_R1_plus); 
+        updatePortMonitor((int)Monitoring::RTreble_minus, w_bts.w_R1_minus); 
+        updatePortMonitor((int)Monitoring::C1, w_bts.w_C1); 
+        updatePortMonitor((int)Monitoring::C2, w_bts.w_C2); 
+        updatePortMonitor((int)Monitoring::C3, w_bts.w_C3); 
+        updatePortMonitor((int)Monitoring::R4, w_bts.w_R4); 
+     }
     
 private: 
     BassmanToneStack<T> w_bts {};

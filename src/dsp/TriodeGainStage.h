@@ -110,8 +110,9 @@ public:
             case (int)Control::Volume: 
             {
                 T controlVal = getParam((int)Param::RVol);
-                w_Ro1_plus.setResistanceValue(controlVal*(T(1.0f) - ratio));
-                w_Ro1_minus.setResistanceValue(controlVal*(ratio));
+                auto potRatio = getPotRatios(ratio, PotType::Log);
+                w_Ro1_plus.setResistanceValue(controlVal * potRatio.plus);
+                w_Ro1_minus.setResistanceValue(controlVal * potRatio.minus);
                 break;
             }
             case (int)Control::Gain: 

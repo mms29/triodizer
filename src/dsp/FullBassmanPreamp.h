@@ -170,31 +170,37 @@ public:
             case (int)Control::Volume: 
             {
                 T controlVal = getParam((int)Param::RVol);
-                w_Ro1_plus.setResistanceValue(controlVal*(T(1.0f) - ratio));
-                w_Ro1_minus.setResistanceValue(controlVal*(ratio));
+                auto r = getPotRatios(ratio, PotType::Log);
+
+                w_Ro1_plus.setResistanceValue(controlVal * r.plus);
+                w_Ro1_minus.setResistanceValue(controlVal * r.minus);
                 break;
             }
             case (int)Control::Bass: 
             {
                 T controlVal = getParam((int)Param::RBass);
-                // auto ratio = std::pow((100.0f-value)/100.0f, 3.0f); // audio taper
-                w_TS.setR2(controlVal*(ratio));
+                auto r = getPotRatios(ratio, PotType::Log);
+
+                w_TS.setR2(controlVal * r.minus);
                 break;
             }
             case (int)Control::Treble: 
             {
 
                 T controlVal = getParam((int)Param::RTreble);
-                // auto ratio = std::pow((100.0f-value)/100.0f, 3.0f); // audio taper
-                w_TS.setR1_plus( controlVal*(T(1.0f) - ratio));
-                w_TS.setR1_minus( controlVal*(ratio));
+                auto r = getPotRatios(ratio, PotType::Log);
+
+                w_TS.setR1_plus( controlVal * r.plus);
+                w_TS.setR1_minus( controlVal * r.minus);
                 break;
             }
             case (int)Control::Mid: 
             {
                 T controlVal = getParam((int)Param::RMid);
-                w_TS.setR3_plus( controlVal*(T(1.0f) - ratio));
-                w_TS.setR3_minus( controlVal*(ratio));
+                auto r = getPotRatios(ratio, PotType::Linear);
+
+                w_TS.setR3_plus( controlVal * r.plus);
+                w_TS.setR3_minus( controlVal * r.minus);
                 break;
             }
             default: jassertfalse; break;

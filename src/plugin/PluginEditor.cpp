@@ -136,23 +136,7 @@ CathodyneEditor::CathodyneEditor (CathodyneProcessor& p)
     
     presetSelector.onClick = [this]
     {
-        juce::PopupMenu menu, preamps, coloring;
-
-        for (const auto& preset : presets)
-        {
-            auto itemId = menuIdForPreset (preset.id);
-
-            if (juce::String (preset.category) == "Preamps")
-                preamps.addItem (itemId, preset.name);
-
-            else if (juce::String (preset.category) == "Distortion & Coloring")
-                coloring.addItem (itemId, preset.name);
-            else if (juce::String (preset.category) == "General")
-                menu.addItem (itemId, preset.name);
-        }
-        menu.addSubMenu ("Preamps", preamps);
-        menu.addSubMenu ("Distortion & Coloring", coloring);
-
+        auto menu = buildPresetMenu();
         menu.setLookAndFeel (&glowLF);
         auto options = juce::PopupMenu::Options()
             .withTargetComponent (&presetSelector)
@@ -168,12 +152,10 @@ CathodyneEditor::CathodyneEditor (CathodyneProcessor& p)
                     return;
 
                 auto* parameter = audioProcessor.parameters.getParameter ("preset");
-
                 if (parameter == nullptr)
                     return;
 
                 parameter->setValueNotifyingHost (parameter->convertTo0to1 (static_cast<float> (result)));
-
                 auto* preset = dynamic_cast<juce::AudioParameterChoice*> (audioProcessor.parameters.getParameter ("preset"));
 
                 if (preset != nullptr)
@@ -227,6 +209,11 @@ void CathodyneEditor::updateSchematic()
 
     case PRESET_TRIODE_GAIN_STAGE:
         schematicBuilder.buildTriodeGainStage (*schematic);
+        break;
+
+
+    case PRESET_FENDER_TONE_STACK:
+        schematicBuilder.buildFenderToneStack (*schematic);
         break;
 
     default:

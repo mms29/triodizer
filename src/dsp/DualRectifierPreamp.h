@@ -112,7 +112,7 @@ public:
         setParam((int)Param::Rc1, 2200.0e3f);
 
         // Vol
-        setParam((int)Param::Cbright, 1e-9f);
+        setParam((int)Param::Cbright, 1e-11f);
         setParam((int)Param::RVol, 1.0e6f);
 
         //V2
@@ -265,56 +265,55 @@ public:
     void setControl (const int index, float value) override
     {
         controls.at(index) = value;
+        auto ratio = value/100.0f; 
 
         switch (index)
         {
             case (int)Control::Volume: 
             {
                 float controlVal = getParam((int)Param::RVol);
-                auto ratio = (100.0f-value)/100.0f; 
-                w_RVol_plus.setResistanceValue(controlVal*ratio);
-                w_RVol_minus.setResistanceValue(controlVal*(1.0f - ratio));
+                auto r = getPotRatios(ratio, PotType::Log);
+                w_RVol_plus.setResistanceValue(controlVal* r.plus);
+                w_RVol_minus.setResistanceValue(controlVal* r.minus);
                 break;
             }
             case (int)Control::Master: 
             {
                 float controlVal = getParam((int)Param::RMas);
-                auto ratio = (100.0f-value)/100.0f; 
-                w_RMas_plus.setResistanceValue(controlVal*ratio);
-                w_RMas_minus.setResistanceValue(controlVal*(1.0f - ratio));
+                auto r = getPotRatios(ratio, PotType::Log);
+                w_RMas_plus.setResistanceValue(controlVal* r.plus);
+                w_RMas_minus.setResistanceValue(controlVal* r.minus);
                 break;
             }
             case (int)Control::Presence: 
             {
                 float controlVal = getParam((int)Param::RPres);
-                auto ratio = (100.0f-value)/100.0f; 
-                w_RPres.setResistanceValue(controlVal*ratio);
+                auto r = getPotRatios(ratio, PotType::Log);
+                w_RPres.setResistanceValue(controlVal* r.plus);
                 break;
             }
             case (int)Control::Bass: 
             {
                 float controlVal = getParam((int)Param::RBass);
-                // auto ratio = std::pow((100.0f-value)/100.0f, 3.0f); // audio taper
-                auto ratio = (100.0f-value)/100.0f;
-                w_TS.setR2(controlVal*(1.0f - ratio));
+                auto r = getPotRatios(ratio, PotType::Log);
+                w_TS.setR2(controlVal* r.minus);
                 break;
             }
             case (int)Control::Treble: 
             {
 
                 float controlVal = getParam((int)Param::RTreble);
-                // auto ratio = std::pow((100.0f-value)/100.0f, 3.0f); // audio taper
-                auto ratio = (100.0f-value)/100.0f;
-                w_TS.setR1_plus( controlVal*ratio);
-                w_TS.setR1_minus( controlVal*(1.0f - ratio));
+                auto r = getPotRatios(ratio, PotType::Log);
+                w_TS.setR1_plus( controlVal* r.plus);
+                w_TS.setR1_minus( controlVal* r.minus);
                 break;
             }
             case (int)Control::Mid: 
             {
                 float controlVal = getParam((int)Param::RMid);
-                auto ratio = (100.0f-value)/100.0f; 
-                w_TS.setR3_plus( controlVal*ratio);
-                w_TS.setR3_minus( controlVal*(1.0f - ratio));
+                auto r = getPotRatios(ratio, PotType::Linear);
+                w_TS.setR3_plus( controlVal* r.plus);
+                w_TS.setR3_minus( controlVal* r.minus);
                 break;
             }
             default: jassertfalse; break;

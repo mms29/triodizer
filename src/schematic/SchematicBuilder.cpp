@@ -298,6 +298,15 @@ void SchematicBuilder::buildDualRectifierPreamp(SchematicPanel& schematic)
         schematic.getElement("Volume")->getSignalPath(),
         DESCR_GRID_STOPPER()
     ));
+    schematic.addElement (std::make_unique<CapacitorElement> (
+        "Cg2",
+        V2pos[0] + bottomM,
+        V2pos[0],
+        (int) Param::Cg2,
+        (int) Monitoring::Cg2,
+        SIGNALPATH_MODE_REVERSE_FORWARD,
+        nullptr
+    ));
     schematic.addElement (std::make_unique<ResistorElement> (
         "Rk2",
         V2pos[2]+ bottomL,
@@ -454,7 +463,7 @@ void SchematicBuilder::buildDualRectifierPreamp(SchematicPanel& schematic)
         (int) Monitoring::V4,
         SIGNALPATH_MODE_REVERSE_FORWARD,
         schematic.getElement("Rp4")->getSignalPath(),
-        DESCR_GRID_STOPPER()
+        DESCR_TRIODE_COMMON_CATHODE()
     ));
     schematic.addElement (std::make_unique<ResistorElement> (
         "Rk4",
@@ -627,6 +636,7 @@ void SchematicBuilder::buildDualRectifierPreamp(SchematicPanel& schematic)
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Rk1")->getTerminals()[0]) );
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Ck1")->getTerminals()[1]) );
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Rc1")->getTerminals()[0]) );
+    schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Cg2")->getTerminals()[0]) );
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Rk2")->getTerminals()[0]) );
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Ck2")->getTerminals()[1]) );
     schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Volume")->getTerminals()[1]) );
@@ -723,6 +733,106 @@ void SchematicBuilder::buildDualRectifierPreamp(SchematicPanel& schematic)
 }
 
 
+//============================================================================================================
+    // Tone Stack
+void SchematicBuilder::buildFenderToneStack(SchematicPanel& schematic)
+{
+    using Param         =  BassmanToneStackCircuitT<float>::Param;
+    using Control       =  BassmanToneStackCircuitT<float>::Control;
+    using Monitoring    =  BassmanToneStackCircuitT<float>::Monitoring;
+
+
+
+    auto toneStackPosition = Terminal {0,0};
+
+    schematic.addElement (std::make_unique<ResistorElement> (
+        "R4",
+        toneStackPosition + bottomL,
+        toneStackPosition,
+        (int) Param::R4,
+        (int) Monitoring::R4,
+        SIGNALPATH_MODE_NORMAL_FORWARD,
+        nullptr
+    ));
+    schematic.addElement (std::make_unique<CapacitorElement> (
+        "C1",
+        toneStackPosition,
+        toneStackPosition + rightL,
+        (int) Param::C1,
+        (int) Monitoring::C1,
+        SIGNALPATH_MODE_NORMAL_BACKWARD,
+        nullptr
+    ));
+    schematic.addElement (std::make_unique<CapacitorElement> (
+        "C2",
+        toneStackPosition + bottomL,
+        toneStackPosition + bottomL + rightL,
+        (int) Param::C2,
+        (int) Monitoring::C2,
+        SIGNALPATH_MODE_NORMAL_FORWARD,
+        schematic.getElement("R4")->getSignalPath()
+    ));
+    schematic.addElement (std::make_unique<CapacitorElement> (
+        "C3",
+        toneStackPosition + bottomL*2.0f ,
+        toneStackPosition + bottomL*2.0f + rightL,
+        (int) Param::C3,
+        (int) Monitoring::C3,
+        SIGNALPATH_MODE_NORMAL_FORWARD,
+        schematic.getElement("R4")->getSignalPath()
+    ));
+    schematic.getElement("C3")->addPointToTerminal(schematic.getElement("C2")->getTerminals()[0], 0);
+
+    schematic.addElement (std::make_unique<PotElement> (
+        "Treble",
+        schematic.getElement("C1")->getTerminals()[1],
+        schematic.getElement("C2")->getTerminals()[1],
+        schematic.getElement("C1")->getTerminals()[1] + rightXS + bottomL*0.5f ,
+        (int) Control::Treble,
+        (int) Param::RTreble,
+        (int) Monitoring::RTreble_plus,
+        (int) Monitoring::RTreble_minus,
+        SIGNALPATH_MODE_NORMAL_FORWARD,
+        schematic.getElement("C1")->getSignalPath()
+    ));
+    schematic.getElement("Treble")->addPointToTerminal(schematic.getElement("Treble")->getTerminals()[2] + rightL, 2, false);
+    schematic.addElement (std::make_unique<VarResElement> (
+        "Bass",
+        schematic.getElement("C2")->getTerminals()[1],
+        schematic.getElement("C2")->getTerminals()[1] + bottomL,
+        (int) Control::Bass,
+        (int) Param::RBass,
+        (int) Monitoring::RBass,
+        SIGNALPATH_MODE_NORMAL_FORWARD,
+        schematic.getElement("C2")->getSignalPath()
+    ));
+    schematic.addElement (std::make_unique<VarResElement> (
+        "Mid",
+        schematic.getElement("Bass")->getTerminals()[1],
+        schematic.getElement("Bass")->getTerminals()[1] + bottomM,
+        (int) Control::Mid,
+        (int) Param::RMid,
+        (int) Monitoring::RMid_minus,
+        SIGNALPATH_MODE_NORMAL_FORWARD,
+        schematic.getElement("C3")->getSignalPath()
+    ));
+
+
+    schematic.addElement (std::make_unique<WireElement>(
+        std::vector<Terminal>{
+            toneStackPosition +leftL ,
+            toneStackPosition
+        },
+        (int) Monitoring::R4,
+        SIGNALPATH_MODE_NORMAL_FORWARD,
+        nullptr
+    ));
+    schematic.addElement (std::make_unique<GroundElement>(schematic.getElement("Mid")->getTerminals()[1]) );
+
+    // I/O
+    schematic.addElement (std::make_unique<JackElement>("INPUT", toneStackPosition +leftL, JUSTIFY_RIGHT) );
+    schematic.addElement (std::make_unique<JackElement>("OUTPUT",schematic.getElement("Treble")->getTerminals()[2], JUSTIFY_LEFT) );
+}
 // ===================================================================================================================
 // TRIODE GAIN STAGE
 // ===================================================================================================================

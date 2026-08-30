@@ -84,3 +84,42 @@ public:
     void setControl(int, T) override {}
     void updateMonitors() override {}
 };
+
+enum class PotType
+{
+    Linear,
+    Log,
+    ReverseLog
+};
+
+template <typename T>
+struct PotRatios
+{
+    T plus;
+    T minus;
+};
+
+template <typename T>
+PotRatios<T> getPotRatios(T ratio, PotType type)
+{
+    T r = ratio;
+    auto eps = 1e-5f;
+
+    switch (type)
+    {
+        case PotType::Linear:
+            r = ratio;
+            break;
+
+        case PotType::ReverseLog:
+            r = std::pow(ratio, T(3));
+            break;
+
+        case PotType::Log:
+            r = T(1) - std::pow(T(1) - ratio, T(3));
+            break;
+    }
+    r = juce::jlimit(T(eps), T(1.0f - eps), r);
+
+    return { T(1) - r, r };
+}

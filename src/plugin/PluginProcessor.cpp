@@ -239,6 +239,10 @@ void CathodyneProcessor::buildCircuit()
             circuit[ch] = std::make_unique<TriodeGainStageCircuitT<float>>();
             break;
 
+        case PRESET_FENDER_TONE_STACK:
+            circuit[ch] = std::make_unique<BassmanToneStackCircuitT<float>>();
+            break;
+
         default:
             circuit[ch] = std::make_unique<DefaultCircuit<float>>();
             break;
