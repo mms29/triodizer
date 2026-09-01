@@ -109,6 +109,7 @@ public:
     // Waveform display access
     const WaveformBuffer& getWaveformInputBuffer() const noexcept { return waveformInputBuffer; }
     const WaveformBuffer& getWaveformOutputBuffer() const noexcept { return waveformOutputBuffer; }
+    const float getWaveformOutputGain() const { return circuitReady() ? circuit[0]->getOutputGain() : 1.0f; }
 
     // Parameter state (public for editor access)
     juce::AudioProcessorValueTreeState parameters;

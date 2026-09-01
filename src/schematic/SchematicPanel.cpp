@@ -519,6 +519,13 @@ void SchematicPanel::showPopupMenuForElement (SchematicElement* element,
 
 void SchematicPanel::clear()
 {
+    hoveredElement = nullptr;
+
+    // Break all SignalPath references
+    for (auto& element : elements)
+        if (auto* sigElem = dynamic_cast<SignalElement*>(element.get()))
+            sigElem->clearSignalReferences();
+
     elements.clear();
     controls.clear();
 }

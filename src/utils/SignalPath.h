@@ -45,6 +45,7 @@ public:
     void updateSignalPath (float intensity, float voltage, float power = 0.0f) ;
     void draw(juce::Graphics& g);
     void shufflePhase();
+    void clearReference(){setRef(nullptr);}
 
 private:
     std::vector<CachedPath> signalPaths;

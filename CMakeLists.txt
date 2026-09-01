@@ -115,6 +115,7 @@ target_compile_definitions(Cathodyne PRIVATE
     JUCE_IGNORE_VST3_MISMATCHED_PARAMETER_ID_WARNING=1
 )
 
+
 # Disable VST2 build globally
 set(JUCE_BUILD_VST2_CLIENT FALSE CACHE BOOL "" FORCE)
 

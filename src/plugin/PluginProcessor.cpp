@@ -107,30 +107,25 @@ void CathodyneProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     auto* left = upsampledBlock.getChannelPointer (0);
     auto* right = upsampledBlock.getChannelPointer (1);
 
+    auto outGain = circuit[0]->getOutputGain();
+
+
     for (int i = 0; i < osNumSamples; ++i)
     {
-#ifdef XSIMD_HPP
-        xsimd::batch<float> x { left[i],
-                                right[i], 0.0F, 0.0F };
-
-        auto y = circuit->processSample (x);
-
-        left[i] = y.get (0);
-        right[i] = y.get (1);
-#else
+        
         if (!monoMode)
         {
             float x = 0.5f * (left[i] + right[i]);
-            float y = circuit[0]->processSample (x);
+            float y = circuit[0]->processSample (x) * outGain;
             left[i] = y;
             right[i] = y;
         }
         else
         {
-            left[i] = circuit[0]->processSample (left[i]);
-            right[i] = circuit[1]->processSample (right[i]);
+            left[i] = circuit[0]->processSample (left[i] * outGain);
+            right[i] = circuit[1]->processSample (right[i] * outGain);
         }
-#endif
+
     }
 
     // DOWNSAMPLE BACK INTO ORIGINAL BUFFER
@@ -236,7 +231,7 @@ void CathodyneProcessor::buildCircuit()
             break;
 
         case PRESET_TRIODE_GAIN_STAGE:
-            circuit[ch] = std::make_unique<TriodeGainStageCircuitT<float>>();
+            circuit[ch] = std::make_unique<TriodeGainStageCircuit>();
             break;
 
         case PRESET_FENDER_TONE_STACK:
@@ -323,12 +318,12 @@ juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 //==============================================================================
 void CathodyneProcessor::updateCircuitMonitoring ( const int ch)
 {
-    if (circuitReadyFlag.load())
+    if (circuitReady())
         circuit[ch]->updateMonitors();
 }
 const MonitorValuef& CathodyneProcessor::getCircuitMonitoring (const int index, const int ch) const
 {
-    if (circuitReadyFlag.load())
+    if (circuitReady())
         return circuit[ch]->getMonitoring (index);
     
     static const MonitorValuef emptyValue{};
@@ -337,7 +332,7 @@ const MonitorValuef& CathodyneProcessor::getCircuitMonitoring (const int index, 
 
 float CathodyneProcessor::getCircuitParam (const int index, const int ch) const
 {
-    if (circuitReadyFlag.load())
+    if (circuitReady())
         return circuit[ch]->getParam (index);
 
     return 0.0f;
@@ -345,7 +340,7 @@ float CathodyneProcessor::getCircuitParam (const int index, const int ch) const
 
 float CathodyneProcessor::getCircuitControl (const int index, const int ch) const
 {
-    if (circuitReadyFlag.load())
+    if (circuitReady())
         return circuit[ch]->getControl (index);
 
     return 0.0f;
@@ -353,14 +348,14 @@ float CathodyneProcessor::getCircuitControl (const int index, const int ch) cons
 
 void CathodyneProcessor::setCircuitParam (const int index, float value)
 {
-    if (circuitReadyFlag.load())
+    if (circuitReady())
         for (int ch = 0; ch < 2; ++ch)
             circuit[ch]->setParam (index, value);
 }
 
 void CathodyneProcessor::setCircuitControl (const int index, float value)
 {
-    if (circuitReadyFlag.load())
+    if (circuitReady())
         for (int ch = 0; ch < 2; ++ch)
             circuit[ch]->setControl (index, value);
 }
@@ -369,7 +364,7 @@ void CathodyneProcessor::setCircuitControl (const int index, float value)
 
 void CathodyneProcessor::loadCircuitState (const juce::ValueTree& t)
 {
-    if (!circuitReadyFlag.load())
+    if (!circuitReady())
         return;
 
     for (int ch = 0; ch < 2; ++ch)
@@ -393,7 +388,7 @@ void CathodyneProcessor::loadCircuitState (const juce::ValueTree& t)
 juce::ValueTree CathodyneProcessor::saveCircuitState() const
 {
     juce::ValueTree t ("Circuit");
-    if (!circuitReadyFlag.load())
+    if (!circuitReady())
         return t;
 
     for (int ch = 0; ch < 2; ++ch)
@@ -411,5 +406,5 @@ juce::ValueTree CathodyneProcessor::saveCircuitState() const
 
 bool CathodyneProcessor::circuitReady() const
 {
-    return circuit[0] && circuit[1];
+    return circuit[0] && circuit[1] && circuitReadyFlag.load();
 }

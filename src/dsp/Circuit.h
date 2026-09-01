@@ -64,11 +64,15 @@ public:
     int getNumParam() const { return (int) params.size();}
     int getNumControl() const { return (int) controls.size();}
     int getNumMonitor() const { return (int) monitors.size();}
+    float getOutputGain() const { return outputGain;}
+    void setOutputGain(const float newGain) { outputGain= newGain;}
 
 protected :
     std::vector<T> params;
     std::vector<T> controls;
     std::vector<MonitorValue<T>> monitors;
+
+    float outputGain = 1.0f;
 };
 
 template <typename T>

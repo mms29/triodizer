@@ -76,14 +76,8 @@ public:
         // Init params
         setDefaultParam();
         setDefaultControl();
-
-        // Dummy resistances 
-        w_Vin.setResistanceValue(1.0e3F);
-        w_V_Rg2.setResistanceValue(1.0e3F);
-        w_TS.setR3_plus(1.0e3F);
-        w_V_Rg3.setResistanceValue(1.0e3f);
-        w_V_Rg4.setResistanceValue(1.0e3f);
-
+        
+        this->setOutputGain(3e-3f);
     };
 
     enum class Monitoring : int 
@@ -205,6 +199,13 @@ public:
         setParam((int)Param::V3, 3.0F); 
         setParam((int)Param::V4, 10.0F); 
         setParam((int)Param::V5, 10.0F); 
+
+        // Dummy resistances 
+        w_Vin.setResistanceValue(1.0e3F);
+        w_V_Rg2.setResistanceValue(1.0e3F);
+        w_TS.setR3_plus(1.0e3F);
+        w_V_Rg3.setResistanceValue(1.0e3f);
+        w_V_Rg4.setResistanceValue(1.0e3f);
     }
     void setDefaultControl () 
     { 
@@ -488,12 +489,10 @@ public:
         w_V5.compute();
         auto V5_out = voltage<float>(w_Rout);
 
-        return V5_out * outputGain;
+        return V5_out;
     }
 
 private: 
-    float outputGain = 3e-3f;
-
     // ==================================================================================================== 
     // =  First stage 
     // ==================================================================================================== 
@@ -526,8 +525,8 @@ private:
     WDFSeriesT<float, decltype (w_PJ_vol), decltype (w_RVol_minus)> w_SJ_vol { w_PJ_vol, w_RVol_minus};
 
     ToneStack<float, decltype(w_SJ_vol)> w_TS {w_SJ_vol, 0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f };
-    PolarityInverterT<float, decltype (w_TS)> w_PI_p1 { w_TS };
-    WDFParallelT<float, decltype (w_E1_Rp1), decltype (w_PI_p1)> w_PJ_p1 { w_E1_Rp1, w_PI_p1};
+    // PolarityInverterT<float, decltype (w_TS)> w_PI_p1 { w_TS };
+    WDFParallelT<float, decltype (w_E1_Rp1), decltype (w_TS)> w_PJ_p1 { w_E1_Rp1, w_TS};
 
     //V1
     TriodeQuadricWDF<float, decltype(w_SJ_g1), decltype(w_PJ_k1), decltype(w_PJ_p1)> w_V1{

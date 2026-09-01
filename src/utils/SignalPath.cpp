@@ -90,15 +90,20 @@ void SignalPath::shufflePhase(){
 void SignalPath::updateSignalPath (float intensity, float voltage, float power) {
     this->power = (power > 1.0f) ? 1.0f : power;
 
-    if (refNode != nullptr){
-        refVoltage = refNode->getRefVoltage() - (refNode->direction ? -1.0f : 1.0f) * refNode->getDeltaVoltage();
+    if (refNode != nullptr)
+    {
+        auto ref = refNode->getRefVoltage();
+        auto dir = refNode->direction;
+        auto delta = refNode->getDeltaVoltage();
+
+        refVoltage = ref - (dir ? -1.0f : 1.0f) * delta;
         deltaVoltage = voltage;
     }
-    else{
-        refVoltage =  voltage;
-        deltaVoltage = 0.0F;
+    else
+    {
+        refVoltage = voltage;
+        deltaVoltage = 0.0f;
     }
-
     for (auto& cachedPath : signalPaths)
         cachedPath.updateCachedPath(intensity);
 }

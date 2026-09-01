@@ -483,7 +483,6 @@ void ComboBoxLookAndFeel::drawButtonBackground (
     // Same arrow as ComboBox
     juce::Path arrow;
     auto area = button.getLocalBounds().toFloat();
-    area.reduced (1.0f);
 
     float cx = area.getRight() - 15.0f;
     float cy = area.getCentreY();

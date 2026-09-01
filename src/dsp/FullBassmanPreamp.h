@@ -26,6 +26,8 @@ public:
         setDefaultParam();
         setDefaultControl();
 
+        this->setOutputGain(T(4e-3));
+
     };
 
     using Circuit<T>::params;
@@ -275,13 +277,12 @@ public:
         w_E3.setVoltage(getParam((int)Param::E3));
         w_V3.compute();
 
-        return voltage<T>(w_Rload) * outputGain;
+        return voltage<T>(w_Rload);
     }
 
 
 private: 
 
-    T outputGain = T(4e-3);
     // ==================================================================================================== 
     // =  First stage 
     // ==================================================================================================== 

@@ -71,7 +71,8 @@ public:
         oversampleSelector.changeItemText (3, juce::String(4*sampleRate/1e3, 1) + "kHz");
         oversampleSelector.changeItemText (4, juce::String(8*sampleRate/1e3, 1) + "kHz");
     }
-
+    void stopCircuitTimers();
+    void startCircuitTimers();
 private:
     CathodyneProcessor& audioProcessor;
     int timerCount = 0;

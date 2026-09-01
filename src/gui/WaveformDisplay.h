@@ -15,6 +15,7 @@ public:
     void setWaveformColour (juce::Colour c) { waveformColour = c; }
     void setBackgroundColour (juce::Colour c) { backgroundColour = c; }
     void setAmplitudeScale (float scale) { amplitudeScale = scale; }
+    void updateOutputGain () { outputGain = processor.getWaveformOutputGain(); }
 
 private:
     CathodyneProcessor& processor;
@@ -26,4 +27,5 @@ private:
     juce::Colour waveformColour { getColourHotRed() };
     juce::Colour backgroundColour { getColourBackground() };
     float amplitudeScale = 100.0f;
+    float outputGain =1.0f;
 };

@@ -33,6 +33,9 @@ public:
 
         setDefaultParam();
         setDefaultControl();
+
+        this->setOutputGain(3e-1f);
+
     };
     using Circuit<float>::params;
     using Circuit<float>::controls;
@@ -104,7 +107,7 @@ public:
         auto out = voltage<float> (w_dp);
         w_P1.incident (w_dp.reflected());
 
-        return out * outputGain;
+        return out;
 
     }
     void updateMonitors() override{ 
@@ -115,7 +118,6 @@ public:
     
 private: 
     float inputGain = 1.0f;
-    float outputGain = 1e-1f;
 
     ResistiveVoltageSourceT<float> w_Vs;
 

@@ -3,6 +3,11 @@
 bool SchematicElement::isHighlighted() const noexcept  { return highlighted; }
 void SchematicElement::setHighlighted (bool should) noexcept { highlighted = should; }
 
+void SignalElement::clearSignalReferences (){
+    for (auto& s : signalPaths)
+        s.clearReference();
+}
+
 bool SchematicElement::hitTest (juce::Point<float> point) const
 {
     for (const auto& terminal : terminals)

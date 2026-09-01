@@ -37,7 +37,9 @@ public:
         signalPath.setMode(signalPathMode);
         signalPaths.push_back(signalPath);
     };
-    ~SignalElement() = default;
+    ~SignalElement()
+    {
+    }
 
     virtual void updateSignalPaths (){}
     virtual void createSignalPaths (){}
@@ -45,6 +47,8 @@ public:
     // Sig path
     SignalPath* getSignalPathPtr (const int index =0 ) noexcept {return &signalPaths[index];}
     int getNumSignals () const noexcept {return signalPaths.size();}
+
+    void clearSignalReferences ();
 
 protected:
     std::vector<SignalPath> signalPaths;

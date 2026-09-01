@@ -29,6 +29,48 @@ public:
 
 private:
 
+    void _buildFenderToneStack(
+        SchematicPanel& schematic,
+        Terminal& toneStackPosition, 
+        juce::String nameR4, int paramR4,  int monitorR4,
+        juce::String nameC1, int paramC1,  int monitorC1,
+        juce::String nameC2, int paramC2,  int monitorC2,
+        juce::String nameC3, int paramC3,  int monitorC3,
+        juce::String nameTreble, int paramTreble,  int controlTreble, int monitorRplusTreble, int monitorRminusTreble,
+        juce::String nameMid, int paramMid,  int controlMid, int monitorRplusMid, int monitorRminusMid,
+        juce::String nameBass, int paramBass,  int controlBass, int monitorBass, 
+        juce::String nameInputSig = ""
+    );
+
+    void _buildCommonCathode(
+        SchematicPanel& schematic,
+        Terminal& pos, 
+        juce::String nameE, int paramE,  int monitorE,
+        juce::String nameRp, int paramRp, int monitorRp,
+        juce::String nameV, int paramV, int monitorV,
+        juce::String nameRk, int paramRk, int monitorRk,
+        juce::String nameCk, int paramCk, int monitorCk,
+        juce::String nameRg = ""
+    );
+
+    void _buildCommonCathodeUnbypassed(
+        SchematicPanel& schematic,
+        Terminal& pos, 
+        juce::String nameE, int paramE,  int monitorE,
+        juce::String nameRp, int paramRp, int monitorRp,
+        juce::String nameV, int paramV, int monitorV,
+        juce::String nameRk, int paramRk, int monitorRk,
+        juce::String nameRg = ""
+    );
+    void _buildCathodeFollower(
+        SchematicPanel& schematic,
+        Terminal& pos, 
+        juce::String nameE, int paramE,  int monitorE,
+        juce::String nameV, int paramV, int monitorV,
+        juce::String nameRk, int paramRk, int monitorRk,
+        juce::String nameRg = ""
+    );
+
         inline static const Terminal left   {-1.0f,  0.0f};
         inline static const Terminal right  { 1.0f,  0.0f};
         inline static const Terminal top    { 0.0f, -1.0f};

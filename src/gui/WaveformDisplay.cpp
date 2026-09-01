@@ -22,13 +22,13 @@ void WaveformDisplay::paint (juce::Graphics& g)
     auto outputArea = bounds;
 
     // Draw grid with voltage labels
-    auto drawGrid = [&g, this] (juce::Rectangle<float> area, juce::String name)
+    auto drawGrid = [&g, this] (juce::Rectangle<float> area, juce::String name, const float gain)
     {
 
         g.setColour (waveformColour);
 
         g.setFont (juce::FontOptions (FONT_SUB1));
-        g.drawText (name.toUpperCase(),area.reduced(5),juce::Justification::topLeft, true);
+        g.drawText (name,area.reduced(5),juce::Justification::topLeft, true);
         g.setColour (juce::Colours::darkgrey);
         g.setFont (juce::FontOptions (FONT_SUB2));
 
@@ -38,7 +38,7 @@ void WaveformDisplay::paint (juce::Graphics& g)
             g.drawLine (area.getX(), y, area.getRight(), y, 1.0f);
         }
 
-        g.drawText (juce::String ((float) area.getHeight() / (4.0f * amplitudeScale), 2) + "V",
+        g.drawText (juce::String ((float) area.getHeight() / (4.0f * amplitudeScale *gain), 2) + "V",
             area.reduced((1)),
             juce::Justification::bottomLeft, true);
     };
@@ -47,8 +47,9 @@ void WaveformDisplay::paint (juce::Graphics& g)
     g.drawLine (juce::Line (inputArea.getTopRight(), inputArea.getBottomRight()), 1.5f);
 
     // Grid + mid line
-    drawGrid (inputArea, "Input");
-    drawGrid (outputArea, "Output");
+    drawGrid (inputArea, "INTPUT", 1.0f);
+    float gainDb = juce::Decibels::gainToDecibels(outputGain);
+    drawGrid (outputArea, juce::String("OUTPUT (" + juce::String(gainDb, 2) + " dB)"), outputGain);
 
     //==========================================================================
     // INPUT (LEFT)

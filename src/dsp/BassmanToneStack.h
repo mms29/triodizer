@@ -136,6 +136,9 @@ public:
 
         setDefaultParam();
         setDefaultControl();
+
+        this->setOutputGain(2.0f);
+
     };
     using Circuit<T>::params;
     using Circuit<T>::controls;

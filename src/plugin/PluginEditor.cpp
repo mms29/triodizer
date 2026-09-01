@@ -23,6 +23,8 @@ CathodyneEditor::CathodyneEditor (CathodyneProcessor& p)
     // WAVEFORM DISPLAY
     //==========================================================================
     addAndMakeVisible (waveformDisplay);
+    waveformDisplay.updateOutputGain();
+
     juce::Path sinepath = createSineWavePath(juce::Rectangle<float>(10, 10, 40, 40), 2.0f, 0.35f);
     // sinepath.addRoundedRectangle (0, 0, 60, 60, 10.0f);
 
@@ -171,6 +173,8 @@ CathodyneEditor::CathodyneEditor (CathodyneProcessor& p)
     setResizable (true, true);
     setResizeLimits (WINDOW_WIDTH, WINDOW_HEIGHT/2, WINDOW_WIDTH*2, WINDOW_HEIGHT*2);
     schematic->resetView();
+
+    startCircuitTimers();
 }
 
 CathodyneEditor::~CathodyneEditor()
@@ -178,11 +182,33 @@ CathodyneEditor::~CathodyneEditor()
     audioProcessor.removeChangeListener (this);
 }
 
+void CathodyneEditor::stopCircuitTimers()
+{
+    schematicTimer.stopTimer();
+    inspectTimer.stopTimer();
+    waveformTimer.stopTimer();
+}
+
+void CathodyneEditor::startCircuitTimers()
+{
+    schematicTimer.startTimerHz(20);
+    inspectTimer.startTimerHz(1);
+    waveformTimer.startTimerHz(20);
+}
 //==============================================================================
 
 void CathodyneEditor::changeListenerCallback (juce::ChangeBroadcaster*)
 {
+    stopCircuitTimers();
+
+    schematic->setSignalPathActivated(false);
+
     updateSchematic();
+
+    waveformDisplay.updateOutputGain();
+
+    schematic->setSignalPathActivated(signalButton->getToggleState());
+    startCircuitTimers();
 }
 
 void CathodyneEditor::updateSchematic()

@@ -57,8 +57,6 @@ public:
 
     void setSignalPathActivated(bool v) {signalPathActivated = v; }
     void setInspectorhActivated(bool v) { inspector.setVisible(v); }
-    void addTubeJunctions();
-
 
 private:
     void showPopupMenuForElement (SchematicElement* element, juce::Point<int> pos);

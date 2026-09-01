@@ -28,11 +28,7 @@ public:
         setDefaultParam();
         setDefaultControl();
 
-        // Dummy resistances 
-        w_Vin.setResistanceValue(1.0e3F);
-        w_V_R3.setResistanceValue(1.0e3F);
-        w_V_R5.setResistanceValue(1.0e3F);
-
+        this->setOutputGain(2e-3f);
     };
 
     enum class Monitoring : int 
@@ -165,15 +161,20 @@ public:
         setParam((int)Param::V3, 0.0F); 
         setParam((int)Param::V4, 0.0F); 
         setParam((int)Param::V5, 0.0F); 
+
+        // Dummy resistances 
+        w_Vin.setResistanceValue(1.0e3F);
+        w_V_R3.setResistanceValue(1.0e3F);
+        w_V_R5.setResistanceValue(1.0e3F);
     }
     void setDefaultControl () 
     { 
-        setControl((int)Control::Volume, 50.0f);    
+        setControl((int)Control::Volume, 25.0f);    
         setControl((int)Control::Treble, 50.0f);    
         setControl((int)Control::Mid, 50.0f);    
         setControl((int)Control::Bass, 50.0f);    
-        setControl((int)Control::Master, 50.0f);    
-        setControl((int)Control::Presence, 50.0f);    
+        setControl((int)Control::Master, 25.0f);    
+        setControl((int)Control::Presence, 1.0f);    
     }
     void setParam (const int index, float value) override
     {
@@ -451,15 +452,11 @@ public:
         w_E5.setVoltage(getParam((int)Param::E5));
         w_V5.compute();
 
-        return voltage<float>(w_RMas_minus)* outputGain;
+        return voltage<float>(w_RMas_minus);
     }
 
 
 private: 
-
-    float outputGain = 2e-3f;
-
-
     // ==================================================================================================== 
     // =  First stage 
     // ==================================================================================================== 
