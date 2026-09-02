@@ -2,6 +2,7 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <vector>
+#include <functional>
 #include "gui/Knob.h"
 #include "utils/SignalPath.h"
 #include "constants/SchematicConstants.h"
@@ -77,7 +78,7 @@ public:
     const juce::String& getName() const noexcept;
 
     // Helper function to display param label
-    void drawLabel(juce::Graphics& g, Terminal center, juce::String labelValue) const;
+    void drawLabel(juce::Graphics& g, Terminal center, juce::String labelValue, const int width = 80) const;
 
     // Templates
     virtual void draw (juce::Graphics& g) const = 0;
@@ -123,11 +124,19 @@ protected:
 };
 
 
-/* 
+/*
 ------------------------------------------------------------------------------------------------------------------------
-    Parametrable element with a popup menu 
+    Parametrable element with a popup menu
+    (single choice param - superseded by MultiParamElement, kept until migration)
 ------------------------------------------------------------------------------------------------------------------------
 */
+
+inline bool nearlyEqual (float a, float b) noexcept
+{
+    const float diff = std::abs (a - b);
+    const float largest = std::max (std::abs (a), std::abs (b));
+    return diff <= std::max (1e-6f * largest, 1e-12f);
+}
 
 struct ValueChoice
 {
@@ -170,29 +179,112 @@ public:
 
 protected:
     const int paramIndex;
-    int choiceIndex ;    
+    int choiceIndex ;
     std::vector<ValueChoice> choices;
-
-private:
-
-    bool nearlyEqual(float a, float b) const
-    {
-        float diff = std::abs(a - b);
-
-        float absA = std::abs(a);
-        float absB = std::abs(b);
-
-        float largest = std::max(absA, absB);
-
-        return diff <= std::max(1e-6f * largest, 1e-12f);
-    }
 
 };
 
 
-/* 
+/*
+------------------------------------------------------------------------------------------------------------------------
+    Multi-param element: a list of typed parameters (float values and/or choices)
+------------------------------------------------------------------------------------------------------------------------
+*/
+
+enum class ParamType
+{
+    Float,
+    Choice
+};
+
+struct ElementParam
+{
+    int paramIndex = -1;              // circuit param index; < 0 = UI-only, skipped by sync & commit
+    juce::String id;                  // name shown in menus, e.g. "Feedback"
+    ParamType type = ParamType::Float;
+
+    // Float param
+    float value = 0.0f;
+    std::function<juce::String (float)> valueToLabel;           // empty -> plain number
+    std::function<float (const juce::String&)> labelToValue;    // empty -> s.getFloatValue()
+
+    // Choice param
+    std::vector<ValueChoice> choices;
+    int choiceIndex = 0;
+
+    // Formats an arbitrary value with this param's formatter (plain number when unset)
+    juce::String format (float v) const;
+
+    // Current display label
+    juce::String getLabel() const;
+
+    // Current value (Float -> value, Choice -> selected choice's value, 0.0f when out of range)
+    float getValue() const;
+
+    // Set from a raw circuit value (Choice maps through the choice list, keeps current when no match)
+    void setValue (float v);
+
+    // Set from an edited label; returns false and keeps the current value on empty input
+    bool setFromLabel (const juce::String& s);
+
+    void setChoiceIndex (int newIndex) noexcept { choiceIndex = newIndex; }
+    int getChoiceIndex() const noexcept { return choiceIndex; }
+    void addChoice (const float v, const juce::String label) noexcept { choices.push_back (ValueChoice { label, v }); }
+    const std::vector<ValueChoice>& getChoices() const noexcept { return choices; }
+
+    // Index of the choice matching value (-1 when none)
+    int getIndexChoiceFromValue (const float v) const;
+};
+
+class MultiParamElement
+{
+public:
+    virtual ~MultiParamElement() = default;
+
+    // The returned reference points into the param vector: configure it immediately,
+    // never hold it across add* calls (the vector may reallocate).
+    ElementParam& addFloatParam (int paramIndex, juce::String id,
+                                 std::function<juce::String (float)> v2l = {},
+                                 std::function<float (const juce::String&)> l2v = {})
+    {
+        ElementParam p;
+        p.type = ParamType::Float;
+        p.paramIndex = paramIndex;
+        p.id = std::move (id);
+        p.valueToLabel = std::move (v2l);
+        p.labelToValue = std::move (l2v);
+        params.push_back (std::move (p));
+        return params.back();
+    }
+
+    ElementParam& addChoiceParam (int paramIndex, juce::String id,
+                                  std::vector<ValueChoice> newChoices,
+                                  int initialChoiceIndex = 0)
+    {
+        ElementParam p;
+        p.type = ParamType::Choice;
+        p.paramIndex = paramIndex;
+        p.id = std::move (id);
+        p.choices = std::move (newChoices);
+        p.choiceIndex = initialChoiceIndex;
+        params.push_back (std::move (p));
+        return params.back();
+    }
+
+    int getNumParams() const noexcept { return (int) params.size(); }
+
+    ElementParam& getParam (int index) noexcept { return params[(size_t) index]; }
+    const ElementParam& getParam (int index) const noexcept { return params[(size_t) index]; }
+
+protected:
+    std::vector<ElementParam> params;
+};
+
+
+/*
 ------------------------------------------------------------------------------------------------------------------------
     Settable Element
+    (single float param - superseded by MultiParamElement, kept until migration)
 ------------------------------------------------------------------------------------------------------------------------
 */
 class SettableElement

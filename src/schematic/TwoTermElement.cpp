@@ -329,7 +329,11 @@ void ReverbTankElement::prepareToDraw (){
 void ReverbTankElement::draw (juce::Graphics& g) const
 {
     // Labels
-    drawLabel(g, labelCenter, "");
+    juce::String label;
+    for (int i = 0; i < getNumParams(); ++i)
+        label << (i > 0 ? " / " : "") << getParam (i).getLabel();
+
+    drawLabel(g, labelCenter, label, 220);
 
 }
 

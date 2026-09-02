@@ -128,7 +128,10 @@ public:
         // V5
         V5, Rdry, Rwet, Rg5, Rk5, Ck5, Rp5, E5, Cp5, Rout,
 
-        Count 
+        // Spring tank
+        SpringFeedback, SpringDecay, SpringDelay, SpringHfCut,
+
+        Count
     };
     enum class Control : int 
     {
@@ -192,6 +195,12 @@ public:
         setParam((int)Param::Rp5, 100.0e3f);
         setParam((int)Param::Cp5, 100e-9);
         setParam((int)Param::Rout, 1e6f);
+
+        // Spring tank
+        setParam((int)Param::SpringFeedback, 0.7f);
+        setParam((int)Param::SpringDecay, 0.85f);
+        setParam((int)Param::SpringDelay, 80.0f);
+        setParam((int)Param::SpringHfCut, 4000.0f);
 
         // Triodes
         setParam((int)Param::V1, 10.0F); 
@@ -298,6 +307,11 @@ public:
             case (int)Param::Rp5: w_Rp5.setResistanceValue(value); break;
             case (int)Param::Cp5: w_Cp5.setCapacitanceValue(value); break;
             case (int)Param::Rout: w_Rout.setResistanceValue(value); break;
+
+            case (int)Param::SpringFeedback: springSubCircuit.setFeedback (value); break;
+            case (int)Param::SpringDecay:    springSubCircuit.setDecay (value); break;
+            case (int)Param::SpringDelay:    springSubCircuit.setDelayMs (value); break;
+            case (int)Param::SpringHfCut:    springSubCircuit.setHfCutoff (value); break;
 
             case (int)Param::Count:
             default:

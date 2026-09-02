@@ -24,7 +24,7 @@ const std::vector<Terminal>& SchematicElement::getTerminals() const noexcept
 }
 
 const juce::String& SchematicElement::getName() const noexcept       { return name; }
-void SchematicElement::drawLabel(juce::Graphics& g, Terminal center, juce::String value) const{
+void SchematicElement::drawLabel(juce::Graphics& g, Terminal center, juce::String value, const int width) const{
     juce::Font fontName = juce::FontOptions (FONT_SUB1);
     juce::Font fontValue = juce::FontOptions (FONT_SUB2);
     if (isHighlighted()){
@@ -36,14 +36,14 @@ void SchematicElement::drawLabel(juce::Graphics& g, Terminal center, juce::Strin
     g.setFont (fontName);
     g.setColour (getColourHighlight());
     g.drawText (getName(),
-                center.getX() - 40, center.getY() - 18, 80, 18,
+                center.getX() - width/2, center.getY() - 18, width, 18,
                 juce::Justification::centred, true);
 
     // Value
     g.setFont (fontValue);
     g.setColour (getColourNormal());
     g.drawText (value,
-                center.getX() - 40, center.getY() + 2, 80, 18,
+                center.getX() - width/2, center.getY() + 2, width, 18,
                 juce::Justification::centred, true);
 
     // cachedBounds = cachedBounds.getUnion (juce::Rectangle<float> (center.getX() - 30, center.getY() - 14, 60, 16));
@@ -84,6 +84,83 @@ float ParametrableElement::getChoiceValue() const
         return choices[choiceIndex].value;
     }
     return 0.0f;
+}
+
+juce::String ElementParam::format (const float v) const
+{
+    if (valueToLabel != nullptr)
+        return valueToLabel (v);
+    return juce::String (v);
+}
+
+juce::String ElementParam::getLabel() const
+{
+    if (type == ParamType::Choice)
+    {
+        if (choices.size() > (size_t) choiceIndex)
+            return choices[(size_t) choiceIndex].label;
+        return {};
+    }
+    return format (value);
+}
+
+float ElementParam::getValue() const
+{
+    if (type == ParamType::Choice)
+    {
+        if (choices.size() > (size_t) choiceIndex)
+            return choices[(size_t) choiceIndex].value;
+        return 0.0f;
+    }
+    return value;
+}
+
+void ElementParam::setValue (const float v)
+{
+    if (type == ParamType::Choice)
+    {
+        const int index = getIndexChoiceFromValue (v);
+        if (index >= 0)
+            choiceIndex = index;
+        return;
+    }
+    value = v;
+}
+
+bool ElementParam::setFromLabel (const juce::String& s)
+{
+    if (s.trim().isEmpty())
+        return false;
+
+    if (type == ParamType::Choice)
+    {
+        // Match by label first, then fall through to value parsing
+        for (int i = 0; i < (int) choices.size(); ++i)
+            if (choices[(size_t) i].label == s)
+            {
+                choiceIndex = i;
+                return true;
+            }
+    }
+
+    const auto parse = labelToValue != nullptr
+        ? labelToValue
+        : [] (const juce::String& str) { return str.getFloatValue(); };
+
+    setValue (parse (s));
+    return true;
+}
+
+int ElementParam::getIndexChoiceFromValue (const float v) const
+{
+    int index = 0;
+    for (const auto& choice : choices)
+    {
+        if (nearlyEqual (choice.value, v))
+            return index;
+        index++;
+    }
+    return -1;
 }
 
 void WireElement::createSignalPaths () { 

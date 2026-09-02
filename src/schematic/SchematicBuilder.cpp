@@ -1320,14 +1320,27 @@ void SchematicBuilder::buildTwinReverb(SchematicPanel& schematic)
     auto V4center = V3pos[0] +rightXL*3 + rightXS;
     auto V4pos = getTriodeTerminals(V4center);
 
-    schematic.addElement (std::make_unique<ReverbTankElement> (
+    auto tank = std::make_unique<ReverbTankElement> (
         "Rev. Tank",
         V4pos[0]+  leftXL +leftXS ,
         V4pos[0] ,
         (int) Monitoring::TVerbSec,
         SIGNALPATH_MODE_NORMAL_FORWARD,
         schematic.getElement("Treverb")->getSignalPath(1)
-    ));
+    );
+    tank->addFloatParam ((int) Param::SpringFeedback, "Feedback",
+        [] (float v) { return juce::String (v * 100.0f, 1) + " %"; },
+        [] (const juce::String& s) { return s.getFloatValue() / 100.0f; });
+    tank->addFloatParam ((int) Param::SpringDelay, "Delay",
+        [] (float v) { return juce::String (v, 0) + " ms"; },
+        [] (const juce::String& s) { return s.getFloatValue(); });
+    tank->addFloatParam ((int) Param::SpringDecay, "Decay",
+        [] (float v) { return juce::String (v, 2); },
+        [] (const juce::String& s) { return s.getFloatValue(); });
+    tank->addFloatParam ((int) Param::SpringHfCut, "Damping",
+        [] (float v) { return juce::String (v / 1000.0f, 1) + " kHz"; },
+        [] (const juce::String& s) { return s.getFloatValue() * 1000.0f; });
+    schematic.addElement (std::move (tank));
     schematic.addElement (std::make_unique<WireElement> (
         std::vector<Terminal>{
             schematic.getElement("Treverb")->getTerminals()[3],

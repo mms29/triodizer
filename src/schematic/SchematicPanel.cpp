@@ -41,6 +41,32 @@ void SchematicPanel::addElement (std::unique_ptr<SchematicElement> element)
 void SchematicPanel::syncSchematicToCircuit(){
     for (const auto& element : elements){
 
+        if (auto* multiParamElem = dynamic_cast<MultiParamElement*>(element.get()))
+        {
+            for (int i = 0; i < multiParamElem->getNumParams(); ++i)
+            {
+                auto& p = multiParamElem->getParam(i);
+                if (p.paramIndex < 0)
+                    continue;
+
+                float v = listener->getCircuitParam(p.paramIndex);
+                if (p.type == ParamType::Choice)
+                {
+                    int index = p.getIndexChoiceFromValue(v);
+                    if (index < 0)
+                    {
+                        p.addChoice(v, juce::String(v, 2));
+                        p.setChoiceIndex((int) p.getChoices().size() - 1);
+                    }
+                    else
+                        p.setChoiceIndex(index);
+                }
+                else
+                    p.setValue(v);
+            }
+            continue;
+        }
+
         if (auto* paramElem = dynamic_cast<ParametrableElement*>(element.get()))
         {
             float v = listener->getCircuitParam(paramElem->getParamIndex());
@@ -417,6 +443,12 @@ SchematicElement* SchematicPanel::getElementAt (juce::Point<int> position) const
 void SchematicPanel::showPopupMenuForElement (SchematicElement* element,
                                                juce::Point<int> pos)
 {
+    if (auto* multiParamElem = dynamic_cast<MultiParamElement*>(element))
+    {
+        showMultiParamMenu (element, multiParamElem);
+        return;
+    }
+
     if (auto* paramElem = dynamic_cast<ParametrableElement*>(element) )
     {
 
@@ -453,41 +485,173 @@ void SchematicPanel::showPopupMenuForElement (SchematicElement* element,
     }
     if (auto* setElem = dynamic_cast<SettableElement*>(element) )
     {
-        auto* window = new juce::AlertWindow (element->getName(),
-                                      "Enter value:",
-                                      juce::AlertWindow::NoIcon);
-
-        window->setLookAndFeel(&glowLookAndFeel);
-        window->addTextEditor ("text", setElem->getLabel());
-        auto* editor = window->getTextEditor("text");
-        if (editor != nullptr)
-        {
-            editor->setJustification (juce::Justification::centred);
-        }
-
-        window->addButton ("OK", 1);
-        window->addButton ("Cancel", 0);
-
-        // window->setSize (320, 140); 
-
-        window->enterModalState (
-            true,
-            juce::ModalCallbackFunction::create (
-                [this, window, setElem] (int result)
-                {
-                    if (result == 1)
-                    {
-                        auto textValue = window->getTextEditorContents ("text");
-
-                        setElem->setLabel(textValue);
-                        listener->setCircuitParam (setElem->getParamIndex(), setElem->getValue());
-
-                    }
-
-                    window->exitModalState (0);
-                    delete window;
-                }));
+        showLabelEditor (element->getName(), setElem->getLabel(),
+            [this, setElem] (const juce::String& textValue)
+            {
+                setElem->setLabel (textValue);
+                listener->setCircuitParam (setElem->getParamIndex(), setElem->getValue());
+            });
     }
+}
+
+void SchematicPanel::showLabelEditor (const juce::String& title,
+                                      const juce::String& initialText,
+                                      std::function<void (const juce::String&)> onOk)
+{
+    auto* window = new juce::AlertWindow (title,
+                                  "Enter value:",
+                                  juce::AlertWindow::NoIcon);
+
+    window->setLookAndFeel (&glowLookAndFeel);
+    window->addTextEditor ("text", initialText);
+    auto* editor = window->getTextEditor ("text");
+    if (editor != nullptr)
+    {
+        editor->setJustification (juce::Justification::centred);
+    }
+
+    window->addButton ("OK", 1);
+    window->addButton ("Cancel", 0);
+
+    window->enterModalState (
+        true,
+        juce::ModalCallbackFunction::create (
+            [window, onOk = std::move (onOk)] (int result)
+            {
+                if (result == 1)
+                    onOk (window->getTextEditorContents ("text"));
+
+                window->exitModalState (0);
+                delete window;
+            }));
+}
+
+void SchematicPanel::showMultiParamMenu (SchematicElement* element, MultiParamElement* mp)
+{
+    const int numParams = mp->getNumParams();
+    if (numParams <= 0)
+        return;
+
+    juce::Component::SafePointer<SchematicPanel> safeThis { this };
+
+    // Single param: edit it directly, same UX as the legacy elements
+    if (numParams == 1)
+    {
+        auto& p = mp->getParam (0);
+
+        if (p.type == ParamType::Choice)
+        {
+            juce::PopupMenu menu;
+            const auto& choices = p.getChoices();
+            for (std::size_t i = 0; i < choices.size(); ++i)
+                menu.addItem ((int) i + 1, choices[i].label, true,
+                              (int) i == p.getChoiceIndex());
+
+            menu.setLookAndFeel (&glowLookAndFeel);
+            menu.showMenuAsync (juce::PopupMenu::Options(),
+                [safeThis, mp] (int result) mutable
+                {
+                    if (result <= 0 || safeThis == nullptr)
+                        return;
+
+                    auto& p = mp->getParam (0);
+                    const int chosenIndex = result - 1;
+                    if (chosenIndex >= 0 && chosenIndex < (int) p.getChoices().size())
+                    {
+                        p.setChoiceIndex (chosenIndex);
+                        safeThis->repaint();
+
+                        if (p.paramIndex >= 0 && safeThis->listener != nullptr)
+                            safeThis->listener->setCircuitParam (p.paramIndex, p.getValue());
+                    }
+                });
+        }
+        else
+        {
+            showLabelEditor (element->getName(), p.getLabel(),
+                [safeThis, mp] (const juce::String& textValue) mutable
+                {
+                    if (safeThis == nullptr)
+                        return;
+
+                    auto& p = mp->getParam (0);
+                    if (! p.setFromLabel (textValue))
+                        return;
+
+                    safeThis->repaint();
+
+                    if (p.paramIndex >= 0 && safeThis->listener != nullptr)
+                        safeThis->listener->setCircuitParam (p.paramIndex, p.getValue());
+                });
+        }
+        return;
+    }
+
+    // Multiple params: one submenu per param
+    juce::PopupMenu menu;
+    for (int slot = 0; slot < numParams; ++slot)
+    {
+        auto& p = mp->getParam (slot);
+
+        if (p.type == ParamType::Choice)
+        {
+            juce::PopupMenu subMenu;
+            const auto& choices = p.getChoices();
+            for (std::size_t i = 0; i < choices.size(); ++i)
+                subMenu.addItem (slot * 100 + 2 + (int) i, choices[i].label, true,
+                                 (int) i == p.getChoiceIndex());
+
+            menu.addSubMenu (p.id + ": " + p.getLabel(), subMenu);
+        }
+        else
+        {
+            menu.addItem (slot * 100 + 1, p.id + ": " + p.getLabel(), true, false);
+        }
+    }
+
+    menu.setLookAndFeel (&glowLookAndFeel);
+    menu.showMenuAsync (juce::PopupMenu::Options(),
+        [safeThis, mp] (int result) mutable
+        {
+            if (result <= 0 || safeThis == nullptr)
+                return;
+
+            const int slot = result / 100;
+            const int k    = result % 100;
+            auto& p = mp->getParam (slot);
+
+            if (p.type == ParamType::Float && k == 1)
+            {
+                safeThis->showLabelEditor (p.id, p.getLabel(),
+                    [safeThis, mp, slot] (const juce::String& textValue) mutable
+                    {
+                        if (safeThis == nullptr)
+                            return;
+
+                        auto& p = mp->getParam (slot);
+                        if (! p.setFromLabel (textValue))
+                            return;
+
+                        safeThis->repaint();
+
+                        if (p.paramIndex >= 0 && safeThis->listener != nullptr)
+                            safeThis->listener->setCircuitParam (p.paramIndex, p.getValue());
+                    });
+                return;
+            }
+
+            if (p.type == ParamType::Choice && k >= 2)
+            {
+                const int chosenIndex = k - 2;
+                if (chosenIndex < (int) p.getChoices().size())
+                    p.setChoiceIndex (chosenIndex);
+            }
+
+            safeThis->repaint();
+
+            if (p.paramIndex >= 0 && safeThis->listener != nullptr)
+                safeThis->listener->setCircuitParam (p.paramIndex, p.getValue());
+        });
 }
 
 

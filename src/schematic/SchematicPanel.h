@@ -60,6 +60,9 @@ public:
 
 private:
     void showPopupMenuForElement (SchematicElement* element, juce::Point<int> pos);
+    void showLabelEditor (const juce::String& title, const juce::String& initialText,
+                          std::function<void (const juce::String&)> onOk);
+    void showMultiParamMenu (SchematicElement* element, MultiParamElement* mp);
 
     //==========================================================================
     std::vector<std::unique_ptr<SchematicElement>> elements;

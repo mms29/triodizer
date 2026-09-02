@@ -163,6 +163,7 @@ protected:
 // ==============================================================================
 // ReverbTankElement
 class ReverbTankElement : public SchematicElement,
+                        public MultiParamElement,
                         public MonitoringElement,
                         public SignalElement
 {

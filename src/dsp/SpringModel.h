@@ -35,6 +35,7 @@ class SpringLine
 public:
     void prepare(double sr, int maxDelaySamples, float delaySamps, float decay, float hfCutoff)
     {
+        sampleRate = sr;
         size = maxDelaySamples;
         buffer.resize(size);
         std::fill(buffer.begin(), buffer.end(), 0.0f);
@@ -45,6 +46,10 @@ public:
     }
 
     void setDelay(float d) { delay = d; }
+
+    void setDecay(float d) { decayFactor = d; }
+
+    void setHfCutoff(float cutoff) { hfFilter.prepare(sampleRate, cutoff); }
 
     float getDelay() const { return delay; }
 
@@ -83,6 +88,7 @@ private:
     std::vector<float> buffer;
     int idx = 0;
     int size = 48000;
+    double sampleRate = 48000.0;
     float delay = 1000.0f;
     float decayFactor = 0.9f;
     SpringFilter hfFilter;
@@ -101,6 +107,7 @@ public:
 
     void prepare(float sr) override
     {
+        sampleRate = sr;
         int maxDelaySamples= (int)(sr * maxDelayMs/ 1000.0f);
         // Two springs with detuned delays for chaotic behavior
         // Guitar spring tanks: ~40-80ms round-trip delay
@@ -114,6 +121,29 @@ public:
     {
         line1.reset();
         line2.reset();
+    }
+
+    void setFeedback (float v) { feedback = v; }
+
+    void setDecay (float v)
+    {
+        decayFactor = v;
+        line1.setDecay (v * 1.03f);
+        line2.setDecay (v);
+    }
+
+    void setDelayMs (float v)
+    {
+        baseDelayMs = juce::jlimit (1.0f, maxDelayMs, v);
+        line1.setDelay (baseDelayMs * sampleRate / 1000.0f);
+        line2.setDelay (baseDelayMs * 1.05f * sampleRate / 1000.0f);
+    }
+
+    void setHfCutoff (float v)
+    {
+        hfCutoff = v;
+        line1.setHfCutoff (v);
+        line2.setHfCutoff (v * 0.9f);
     }
 
     void setParam(int param, float val) override
@@ -146,6 +176,7 @@ private:
     SpringLine line2;
 
     float maxDelayMs = 200.0f;
+    float sampleRate = 48000.0f;
     float feedback, hfCutoff, baseDelayMs, decayFactor, gain;
 
 };
